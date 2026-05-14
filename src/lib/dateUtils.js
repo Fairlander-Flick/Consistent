@@ -1,5 +1,9 @@
 export function todayISO() {
-  return new Date().toISOString().slice(0, 10)
+  const d = new Date()
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
 }
 
 export function isoToDisplay(iso) {
@@ -12,12 +16,11 @@ export function weekDays() {
 }
 
 export function getWeekStart(date = new Date()) {
-  // Work in UTC to stay timezone-safe (toISOString() is always UTC)
   const d = new Date(date)
-  const day = d.getUTCDay()
+  const day = d.getDay()
   const diff = (day === 0 ? -6 : 1 - day)
-  d.setUTCDate(d.getUTCDate() + diff)
-  d.setUTCHours(0, 0, 0, 0)
+  d.setDate(d.getDate() + diff)
+  d.setHours(0, 0, 0, 0)
   return d
 }
 
@@ -25,7 +28,10 @@ export function isoWeekDates(date = new Date()) {
   const start = getWeekStart(date)
   return Array.from({ length: 7 }, (_, i) => {
     const d = new Date(start)
-    d.setUTCDate(d.getUTCDate() + i)
-    return d.toISOString().slice(0, 10)
+    d.setDate(d.getDate() + i)
+    const y = d.getFullYear()
+    const m = String(d.getMonth() + 1).padStart(2, '0')
+    const day = String(d.getDate()).padStart(2, '0')
+    return `${y}-${m}-${day}`
   })
 }

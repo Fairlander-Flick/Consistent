@@ -8,5 +8,9 @@ export function loadData(key, defaultValue) {
 }
 
 export function saveData(key, value) {
-  localStorage.setItem(key, JSON.stringify(value))
+  try {
+    localStorage.setItem(key, JSON.stringify(value))
+  } catch (e) {
+    console.error('[storage] saveData failed:', e)
+  }
 }

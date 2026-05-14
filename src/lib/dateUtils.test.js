@@ -15,7 +15,10 @@ describe('dateUtils', () => {
   })
 
   it('getWeekStart returns Monday of current week', () => {
-    const start = getWeekStart(new Date('2026-05-14'))
-    expect(start.toISOString().slice(0, 10)).toBe('2026-05-11')
+    const start = getWeekStart(new Date('2026-05-14T12:00:00'))
+    const y = start.getFullYear()
+    const m = String(start.getMonth() + 1).padStart(2, '0')
+    const d = String(start.getDate()).padStart(2, '0')
+    expect(`${y}-${m}-${d}`).toBe('2026-05-11')
   })
 })
