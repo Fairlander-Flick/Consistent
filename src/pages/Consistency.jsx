@@ -137,11 +137,74 @@ function TrainingProgramEditor() {
   )
 }
 
+function DailyTrainingLog() {
+  const { program, logSession, getSessionForDate } = useTrainingStore()
+  const today = todayISO()
+  const d = new Date(today + 'T00:00:00')
+  const dayLabel = DAYS[d.getDay() === 0 ? 6 : d.getDay() - 1]
+  const todayProgram = program[dayLabel]
+  const logged = getSessionForDate(today)
+
+  const [session, setSession] = useState(() => {
+    if (logged) return logged.exercises
+    return todayProgram.exercises.map(ex => ({
+      ...ex,
+      sets: ex.sets.map(s => ({ ...s })),
+    }))
+  })
+
+  const updateSet = (exIdx, setIdx, field, value) => {
+    setSession(prev => prev.map((ex, i) =>
+      i !== exIdx ? ex : {
+        ...ex,
+        sets: ex.sets.map((s, j) => j !== setIdx ? s : { ...s, [field]: parseFloat(value) || 0 }),
+      }
+    ))
+  }
+
+  const handleLog = () => {
+    logSession(today, session)
+  }
+
+  return (
+    <Card style={{ marginBottom: '16px' }}>
+      <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '12px' }}>
+        Today's Session — {dayLabel} {todayProgram.name ? `(${todayProgram.name})` : ''}
+      </div>
+      {session.length === 0 ? (
+        <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>No exercises for today. Edit the program first.</p>
+      ) : (
+        session.map((ex, exIdx) => (
+          <div key={ex.id} style={{ marginBottom: '12px' }}>
+            <div style={{ fontSize: '13px', fontWeight: 500, marginBottom: '6px' }}>{ex.name}</div>
+            {ex.sets.map((set, setIdx) => (
+              <div key={setIdx} style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '4px' }}>
+                <span style={{ fontSize: '11px', color: 'var(--text-muted)', width: '40px' }}>Set {setIdx + 1}</span>
+                <Input type="number" value={set.reps} onChange={v => updateSet(exIdx, setIdx, 'reps', v)} style={{ width: '60px' }} />
+                <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>reps</span>
+                <Input type="number" value={set.weight} onChange={v => updateSet(exIdx, setIdx, 'weight', v)} style={{ width: '60px' }} />
+                <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>kg</span>
+              </div>
+            ))}
+          </div>
+        ))
+      )}
+      {session.length > 0 && (
+        <Button onClick={handleLog} style={{ marginTop: '8px' }}>
+          {logged ? '✓ Update Session' : 'Log Session'}
+        </Button>
+      )}
+      {logged && <span style={{ fontSize: '11px', color: 'var(--accent-green)', marginLeft: '10px' }}>Session logged</span>}
+    </Card>
+  )
+}
+
 export function Consistency() {
   return (
     <div style={{ maxWidth: '960px' }}>
       <h1 style={{ fontSize: '20px', fontWeight: 700, letterSpacing: '-0.5px', marginBottom: '20px' }}>Consistency</h1>
       <WeightLogSection />
+      <DailyTrainingLog />
       <TrainingProgramEditor />
     </div>
   )
