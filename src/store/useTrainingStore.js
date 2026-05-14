@@ -47,9 +47,15 @@ export const useTrainingStore = create((set, get) => ({
     set({ program })
   },
 
-  logSession: (date, exercises) => {
+  logSession: (date, exercises, durationMinutes = 0) => {
     const existing = get().log.filter(l => l.date !== date)
-    const next = [...existing, { date, exercises }].sort((a, b) => b.date.localeCompare(a.date))
+    const next = [...existing, { date, exercises, durationMinutes }].sort((a, b) => b.date.localeCompare(a.date))
+    saveData(LOG_KEY, next)
+    set({ log: next })
+  },
+
+  deleteSession: (date) => {
+    const next = get().log.filter(l => l.date !== date)
     saveData(LOG_KEY, next)
     set({ log: next })
   },
