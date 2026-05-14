@@ -199,6 +199,37 @@ function DailyTrainingLog() {
   )
 }
 
+function TrainingHistory() {
+  const { log } = useTrainingStore()
+
+  if (log.length === 0) return null
+
+  return (
+    <Card style={{ marginBottom: '16px' }}>
+      <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '12px' }}>
+        Session History
+      </div>
+      {log.map(session => (
+        <details key={session.date} style={{ marginBottom: '8px' }}>
+          <summary style={{ cursor: 'pointer', fontSize: '13px', fontWeight: 500, padding: '6px 0', borderBottom: '1px solid var(--border)' }}>
+            {isoToDisplay(session.date)}
+          </summary>
+          <div style={{ padding: '8px 0' }}>
+            {session.exercises.map(ex => (
+              <div key={ex.id} style={{ marginBottom: '6px' }}>
+                <div style={{ fontSize: '12px', fontWeight: 500 }}>{ex.name}</div>
+                <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                  {ex.sets.map((s, i) => `${s.reps}×${s.weight}kg`).join(' · ')}
+                </div>
+              </div>
+            ))}
+          </div>
+        </details>
+      ))}
+    </Card>
+  )
+}
+
 export function Consistency() {
   return (
     <div style={{ maxWidth: '960px' }}>
@@ -206,6 +237,7 @@ export function Consistency() {
       <WeightLogSection />
       <DailyTrainingLog />
       <TrainingProgramEditor />
+      <TrainingHistory />
     </div>
   )
 }
