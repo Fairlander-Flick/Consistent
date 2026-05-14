@@ -1,9 +1,12 @@
 import { useState } from 'react'
 import { useWeightStore } from '../store/useWeightStore'
+import { useTrainingStore } from '../store/useTrainingStore'
 import { Card } from '../components/ui/Card'
 import { Input } from '../components/ui/Input'
 import { Button } from '../components/ui/Button'
 import { todayISO, isoToDisplay } from '../lib/dateUtils'
+
+const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
 function WeightLogSection() {
   const { entries, addEntry, deleteEntry } = useWeightStore()
@@ -55,11 +58,91 @@ function WeightLogSection() {
   )
 }
 
+function TrainingProgramEditor() {
+  const { program, setDayName, addExercise, addSet, removeExercise } = useTrainingStore()
+  const [openDay, setOpenDay] = useState(null)
+  const [newExName, setNewExName] = useState('')
+  const [newSets, setNewSets] = useState({})
+
+  const handleAddExercise = (day) => {
+    if (!newExName.trim()) return
+    addExercise(day, newExName.trim())
+    setNewExName('')
+  }
+
+  const handleAddSet = (day, exId) => {
+    const key = `${day}-${exId}`
+    const { reps = '', weight = '' } = newSets[key] || {}
+    if (!reps || !weight) return
+    addSet(day, exId, reps, weight)
+    setNewSets(prev => ({ ...prev, [key]: { reps: '', weight: '' } }))
+  }
+
+  return (
+    <Card style={{ marginBottom: '16px' }}>
+      <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '12px' }}>
+        Training Program
+      </div>
+      {DAYS.map(day => (
+        <div key={day} style={{ marginBottom: '6px', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', overflow: 'hidden' }}>
+          <button
+            onClick={() => setOpenDay(openDay === day ? null : day)}
+            style={{
+              width: '100%', padding: '10px 12px', display: 'flex', justifyContent: 'space-between',
+              background: 'var(--bg)', color: 'var(--text)', fontSize: '13px', fontWeight: 500,
+            }}
+          >
+            <span>{day} {program[day].name ? `— ${program[day].name}` : ''}</span>
+            <span style={{ color: 'var(--text-muted)' }}>{openDay === day ? '▲' : '▼'}</span>
+          </button>
+          {openDay === day && (
+            <div style={{ padding: '12px', background: 'var(--bg-card)' }}>
+              <Input
+                value={program[day].name}
+                onChange={v => setDayName(day, v)}
+                placeholder="Session name (e.g. Upper Body)"
+                style={{ marginBottom: '10px' }}
+              />
+              {program[day].exercises.map(ex => {
+                const key = `${day}-${ex.id}`
+                const s = newSets[key] || { reps: '', weight: '' }
+                return (
+                  <div key={ex.id} style={{ marginBottom: '10px', padding: '8px', background: 'var(--bg)', borderRadius: 'var(--radius-sm)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                      <span style={{ fontSize: '13px', fontWeight: 500 }}>{ex.name}</span>
+                      <button onClick={() => removeExercise(day, ex.id)} style={{ color: 'var(--text-muted)', fontSize: '14px' }}>×</button>
+                    </div>
+                    {ex.sets.map((set, i) => (
+                      <span key={i} style={{ fontSize: '11px', color: 'var(--text-muted)', marginRight: '8px' }}>
+                        {set.reps}×{set.weight}kg
+                      </span>
+                    ))}
+                    <div style={{ display: 'flex', gap: '6px', marginTop: '6px' }}>
+                      <Input type="number" value={s.reps} onChange={v => setNewSets(p => ({ ...p, [key]: { ...s, reps: v } }))} placeholder="reps" style={{ width: '60px' }} />
+                      <Input type="number" value={s.weight} onChange={v => setNewSets(p => ({ ...p, [key]: { ...s, weight: v } }))} placeholder="kg" style={{ width: '60px' }} />
+                      <Button onClick={() => handleAddSet(day, ex.id)} variant="ghost" style={{ fontSize: '11px' }}>+ Set</Button>
+                    </div>
+                  </div>
+                )
+              })}
+              <div style={{ display: 'flex', gap: '6px', marginTop: '6px' }}>
+                <Input value={newExName} onChange={setNewExName} placeholder="Exercise name" style={{ flex: 1 }} />
+                <Button onClick={() => handleAddExercise(day)} variant="secondary">Add</Button>
+              </div>
+            </div>
+          )}
+        </div>
+      ))}
+    </Card>
+  )
+}
+
 export function Consistency() {
   return (
     <div style={{ maxWidth: '960px' }}>
       <h1 style={{ fontSize: '20px', fontWeight: 700, letterSpacing: '-0.5px', marginBottom: '20px' }}>Consistency</h1>
       <WeightLogSection />
+      <TrainingProgramEditor />
     </div>
   )
 }
