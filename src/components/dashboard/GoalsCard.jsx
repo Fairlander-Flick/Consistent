@@ -1,119 +1,128 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useGoalsStore } from '../../store/useGoalsStore'
-import { todayISO } from '../../lib/dateUtils'
-import { Card } from '../ui/Card'
-import { TabBar } from '../ui/TabBar'
-import { Checkbox } from '../ui/Checkbox'
-import { Input } from '../ui/Input'
-import { Button } from '../ui/Button'
+import { useSettingsStore } from '../../store/useSettingsStore'
 import { DUMMY_GOALS } from '../../lib/dummyData'
 
-const PERIODS = ['Daily', 'Weekly', 'Monthly', 'Yearly']
-const SENECA = "No wind is favourable if you don't know your port."
+const PERIODS = ['daily', 'weekly', 'monthly', 'yearly']
 
 export function GoalsCard() {
-  const [activeTab, setActiveTab] = useState('Daily')
-  const [newTodo, setNewTodo] = useState('')
-  const { goals, addTodo, toggleTodo, deleteTodo, setTitle, isCompleted, recordHistory } = useGoalsStore()
+  const { goals, toggleTodo, deleteTodo } = useGoalsStore()
+  const { confirmGoalDelete, setConfirmGoalDelete } = useSettingsStore()
+  const [period, setPeriod] = useState('daily')
+  const [confirmTarget, setConfirmTarget] = useState(null) // { id, text }
+  const [dontAsk, setDontAsk] = useState(false)
 
-  const period     = activeTab.toLowerCase()
-  const storeData  = goals[period]
-  const hasData    = storeData.todos.length > 0 || storeData.title
+  const storeData = goals[period]
+  const hasGoals = (storeData?.todos?.length ?? 0) > 0 || storeData?.title
+  const goalSet = hasGoals ? storeData : DUMMY_GOALS[period]
+  const goalTitle = goalSet?.title || ''
+  const goalTasks = goalSet?.todos || []
+  const goalDone = goalTasks.filter(t => t.done).length
 
-  const { title, todos } = hasData ? storeData : (DUMMY_GOALS[period] ?? storeData)
+  function handleDeleteClick(task) {
+    if (!confirmGoalDelete) {
+      if (hasGoals) deleteTodo(period, task.id)
+      return
+    }
+    setDontAsk(false)
+    setConfirmTarget(task)
+  }
 
-  const done       = todos.filter(t => t.done).length
-  const total      = todos.length
-  const pct        = total > 0 ? (done / total) * 100 : 0
-  const completed  = total > 0 && done === total
-
-  useEffect(() => {
-    if (hasData) recordHistory(period, todayISO(), isCompleted(period))
-  }, [storeData.todos])
-
-  const handleAdd = () => {
-    if (!newTodo.trim()) return
-    addTodo(period, newTodo.trim())
-    setNewTodo('')
+  function handleConfirmDelete() {
+    if (dontAsk) setConfirmGoalDelete(false)
+    if (hasGoals) deleteTodo(period, confirmTarget.id)
+    setConfirmTarget(null)
   }
 
   return (
-    <Card style={{ outline: completed ? '1px solid rgba(35,194,106,0.35)' : 'none' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2px' }}>
-        <span className="label" style={{ marginBottom: '3px' }}>Goals</span>
-        {total > 0 && (
-          <span className="nums" style={{
-            fontSize: '11px',
-            color: completed ? 'var(--accent-green)' : 'var(--text-muted)',
-            fontWeight: 600,
-          }}>
-            {done}/{total}
-          </span>
-        )}
-      </div>
-
-      <p style={{ fontSize: '11px', color: 'var(--text-muted)', fontStyle: 'italic', marginBottom: '12px', lineHeight: 1.5 }}>
-        "{SENECA}"
-      </p>
-
-      <TabBar tabs={PERIODS} active={activeTab} onChange={setActiveTab} />
-
-      {/* Period title */}
-      {hasData ? (
-        <Input
-          value={title}
-          onChange={v => setTitle(period, v)}
-          placeholder="Period title — e.g. May 2026"
-          style={{ marginBottom: '12px', fontSize: '12px' }}
-        />
-      ) : (
-        <div style={{
-          fontSize: '12px', fontWeight: 500, color: 'var(--text-2)',
-          padding: '7px 0', marginBottom: '4px',
-        }}>
-          {title}
-        </div>
-      )}
-
-      {/* Progress bar */}
-      {total > 0 && (
-        <div className="progress-track" style={{ marginBottom: '12px' }}>
-          <div className="progress-fill" style={{ width: `${pct}%` }} />
-        </div>
-      )}
-
-      {/* Todo list */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
-        {todos.length === 0 && (
-          <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>No goals yet. Add one below.</span>
-        )}
-        {todos.map(todo => (
-          <div key={todo.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px' }}>
-            {hasData ? (
-              <Checkbox
-                checked={todo.done}
-                onChange={() => toggleTodo(period, todo.id)}
-                label={todo.text}
-              />
-            ) : (
-              <Checkbox checked={todo.done} onChange={() => {}} label={todo.text} />
-            )}
-            {hasData && (
-              <button
-                onClick={() => deleteTodo(period, todo.id)}
-                style={{ color: 'var(--text-muted)', fontSize: '15px', lineHeight: 1, padding: '0 4px', flexShrink: 0, transition: 'color var(--transition)' }}
-              >
-                ×
+    <>
+      <div className="card area-goals">
+        <div className="card-h">
+          <h3>Goals</h3>
+          <div className="tabs">
+            {PERIODS.map(t => (
+              <button key={t} className={period === t ? 'active' : ''} onClick={() => setPeriod(t)}>
+                {t[0].toUpperCase() + t.slice(1)}
               </button>
-            )}
+            ))}
           </div>
-        ))}
+        </div>
+
+        <div className="row between" style={{ marginBottom: 8 }}>
+          <div style={{ fontSize: 13, fontWeight: 500 }}>{goalTitle || '—'}</div>
+          <div className="mono" style={{ fontSize: 11, color: 'var(--muted)' }}>
+            {goalDone} / {goalTasks.length} done
+          </div>
+        </div>
+
+        <div className="col" style={{ gap: 0 }}>
+          {goalTasks.slice(0, 6).map(t => (
+            <div
+              key={t.id}
+              className={'todo' + (t.done ? ' done' : '')}
+              onClick={() => hasGoals && toggleTodo(period, t.id)}
+            >
+              <div className="chk"></div>
+              <div className="lbl">{t.text}</div>
+              {hasGoals && (
+                <div
+                  className="x"
+                  style={{ color: 'var(--negative)', fontSize: 16 }}
+                  onClick={(e) => { e.stopPropagation(); handleDeleteClick(t) }}
+                >
+                  ×
+                </div>
+              )}
+            </div>
+          ))}
+          {goalTasks.length === 0 && (
+            <div style={{ fontSize: 12, color: 'var(--muted)', padding: '12px 4px' }}>No goals yet.</div>
+          )}
+        </div>
+
+        {goalTasks.length > 0 && (
+          <div style={{ marginTop: 12, height: 3, background: 'var(--faint)', borderRadius: 2, overflow: 'hidden' }}>
+            <div style={{
+              width: `${(goalDone / goalTasks.length) * 100}%`,
+              height: '100%',
+              background: 'var(--accent)',
+              transition: 'width 300ms',
+            }} />
+          </div>
+        )}
       </div>
 
-      <div style={{ display: 'flex', gap: '6px' }}>
-        <Input value={newTodo} onChange={setNewTodo} placeholder="Add a goal…" style={{ flex: 1 }} />
-        <Button onClick={handleAdd} variant="secondary">Add</Button>
-      </div>
-    </Card>
+      {/* Confirm dialog */}
+      {confirmTarget && (
+        <div className="modal-overlay" onClick={() => setConfirmTarget(null)}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <h4>Delete goal?</h4>
+            <p>
+              You're about to remove{' '}
+              <span className="highlight">{confirmTarget.text}</span>
+              {' '}from your {period} goals.
+            </p>
+            <label className="dont-ask">
+              <input
+                type="checkbox"
+                checked={dontAsk}
+                onChange={e => setDontAsk(e.target.checked)}
+              />
+              Don't ask again (you can re-enable in Settings)
+            </label>
+            <div className="modal-footer">
+              <button className="btn ghost" onClick={() => setConfirmTarget(null)}>Cancel</button>
+              <button
+                className="btn primary"
+                style={{ background: 'var(--negative)', borderColor: 'var(--negative)' }}
+                onClick={handleConfirmDelete}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   )
 }
