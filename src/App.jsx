@@ -3,6 +3,7 @@ import { AppShell } from './components/layout/AppShell'
 import { Dashboard } from './pages/Dashboard'
 import { Consistency } from './pages/Consistency'
 import { Finance } from './pages/Finance'
+import { Settings } from './pages/Settings'
 
 export default function App() {
   return (
@@ -12,6 +13,7 @@ export default function App() {
           <Route index element={<Dashboard />} />
           <Route path="/consistency" element={<Consistency />} />
           <Route path="/finance" element={<Finance />} />
+          <Route path="/settings" element={<Settings />} />
         </Route>
       </Routes>
     </BrowserRouter>
