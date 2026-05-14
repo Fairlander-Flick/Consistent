@@ -10,3 +10,4 @@ coverage/
 .vite/
 *.log
 npm-debug.log*
+.superpowers/
