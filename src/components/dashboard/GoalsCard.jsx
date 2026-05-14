@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useGoalsStore } from '../../store/useGoalsStore'
+import { todayISO } from '../../lib/dateUtils'
 import { Card } from '../ui/Card'
 import { TabBar } from '../ui/TabBar'
 import { Checkbox } from '../ui/Checkbox'
@@ -12,12 +13,17 @@ const SENECA_QUOTE = "If you don't know what port you are sailing to, no wind is
 export function GoalsCard() {
   const [activeTab, setActiveTab] = useState('Daily')
   const [newTodo, setNewTodo] = useState('')
-  const { goals, addTodo, toggleTodo, deleteTodo, setTitle, isCompleted } = useGoalsStore()
+  const { goals, addTodo, toggleTodo, deleteTodo, setTitle, isCompleted, recordHistory } = useGoalsStore()
 
   const period = activeTab.toLowerCase()
   const { title, todos } = goals[period]
   const done = todos.filter(t => t.done).length
   const completed = isCompleted(period)
+
+  useEffect(() => {
+    const isNowComplete = isCompleted(period)
+    recordHistory(period, todayISO(), isNowComplete)
+  }, [goals[period].todos])
 
   const handleAdd = () => {
     if (!newTodo.trim()) return
