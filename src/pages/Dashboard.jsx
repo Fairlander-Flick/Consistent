@@ -1,61 +1,32 @@
-import { WeightChart } from '../components/dashboard/WeightChart'
-import { WeeklyRing } from '../components/dashboard/WeeklyRing'
+import { GraphCard } from '../components/dashboard/GraphCard'
+import { ThisWeekCard } from '../components/dashboard/ThisWeekCard'
+import { JournalCard } from '../components/dashboard/JournalCard'
 import { GoalsCard } from '../components/dashboard/GoalsCard'
-import { ContributionGrid } from '../components/dashboard/ContributionGrid'
-import { Journal } from '../components/dashboard/Journal'
+import { ConsistencyCard } from '../components/dashboard/ConsistencyCard'
 
-const DAY   = new Date().toLocaleDateString('en', { weekday: 'long' })
-const DATE  = new Date().toLocaleDateString('en', { month: 'long', day: 'numeric', year: 'numeric' })
+const FULL_DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']
+const FULL_MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December']
 
 export function Dashboard() {
+  const today = new Date()
   return (
-    <div style={{ maxWidth: '960px' }}>
-
-      {/* ── Page header ── */}
-      <div className="anim" style={{ '--d': '0ms', marginBottom: '28px' }}>
-        <p style={{ fontSize: '11px', fontWeight: 600, color: 'var(--accent-green)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '4px' }}>
-          {DAY}
-        </p>
-        <h1 style={{ fontSize: '26px', fontWeight: 700, letterSpacing: '-0.5px', lineHeight: 1.1 }}>
-          {DATE}
-        </h1>
-      </div>
-
-      {/* ── Row 1: Weight (3/5) + Weekly (2/5) ── */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: '3fr 2fr',
-        gap: '10px',
-        marginBottom: '10px',
-      }} className="row-1">
-        <div className="anim" style={{ '--d': '60ms' }}>
-          <WeightChart />
-        </div>
-        <div className="anim" style={{ '--d': '120ms' }}>
-          <WeeklyRing />
+    <>
+      <div className="page-head">
+        <div>
+          <h1>Dashboard</h1>
+          <div className="sub" style={{ marginTop: 4 }}>
+            {FULL_DAYS[today.getDay()]} · {FULL_MONTHS[today.getMonth()]} {today.getDate()}, {today.getFullYear()}
+          </div>
         </div>
       </div>
 
-      {/* ── Row 2: Goals (full) ── */}
-      <div className="anim" style={{ '--d': '180ms', marginBottom: '10px' }}>
+      <div className="bento">
+        <GraphCard />
+        <ThisWeekCard />
+        <JournalCard />
         <GoalsCard />
+        <ConsistencyCard />
       </div>
-
-      {/* ── Row 3: Contribution (full) ── */}
-      <div className="anim" style={{ '--d': '240ms', marginBottom: '10px' }}>
-        <ContributionGrid />
-      </div>
-
-      {/* ── Row 4: Journal (full) ── */}
-      <div className="anim" style={{ '--d': '300ms' }}>
-        <Journal />
-      </div>
-
-      <style>{`
-        @media (max-width: 640px) {
-          .row-1 { grid-template-columns: 1fr !important; }
-        }
-      `}</style>
-    </div>
+    </>
   )
 }
