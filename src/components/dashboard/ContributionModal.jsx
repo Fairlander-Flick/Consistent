@@ -16,7 +16,9 @@ export function ContributionModal({ item, onClose }) {
     <div
       onClick={onClose}
       style={{
-        position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)',
+        position: 'fixed', inset: 0,
+        background: 'rgba(0,0,0,0.65)',
+        backdropFilter: 'blur(4px)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         zIndex: 200,
       }}
@@ -29,31 +31,46 @@ export function ContributionModal({ item, onClose }) {
           borderRadius: 'var(--radius-card)',
           padding: '24px',
           minWidth: '320px',
-          maxWidth: '480px',
+          maxWidth: '440px',
           width: '90%',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
         }}
       >
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
           <div>
-            <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-              {item.period}
-            </div>
-            <div style={{ fontWeight: 600 }}>{isoToDisplay(item.date)}</div>
+            <span className="label" style={{ marginBottom: '4px' }}>{item.period}</span>
+            <div style={{ fontWeight: 600, fontSize: '15px' }}>{isoToDisplay(item.date)}</div>
           </div>
-          <button onClick={onClose} style={{ color: 'var(--text-muted)', fontSize: '20px' }}>×</button>
+          <button
+            onClick={onClose}
+            style={{ color: 'var(--text-muted)', fontSize: '20px', lineHeight: 1, padding: '2px 4px', transition: 'color var(--transition)' }}
+          >
+            ×
+          </button>
         </div>
+
         {journalEntry?.todos?.length > 0 && (
           <div style={{ marginBottom: '16px' }}>
-            <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '8px' }}>Journal</div>
-            {journalEntry.todos.map(t => (
-              <div key={t.id} style={{ marginBottom: '4px' }}>
-                <Checkbox checked={t.done} onChange={() => {}} label={t.text} />
-              </div>
-            ))}
+            <span className="label" style={{ marginBottom: '8px' }}>Journal</span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              {journalEntry.todos.map(t => (
+                <Checkbox key={t.id} checked={t.done} onChange={() => {}} label={t.text} />
+              ))}
+            </div>
           </div>
         )}
-        <div style={{ fontSize: '12px', color: historyEntry?.completed ? 'var(--accent-green)' : 'var(--accent-red)' }}>
-          {historyEntry ? (historyEntry.completed ? '✓ Completed' : '✗ Not completed') : 'No record'}
+
+        <div style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '6px',
+          fontSize: '12px',
+          fontWeight: 500,
+          color: historyEntry?.completed ? 'var(--accent-green)' : 'var(--accent-red)',
+        }}>
+          {historyEntry
+            ? (historyEntry.completed ? '✓ Completed' : '✗ Not completed')
+            : 'No record for this date'}
         </div>
       </div>
     </div>

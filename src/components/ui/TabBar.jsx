@@ -1,6 +1,6 @@
 export function TabBar({ tabs, active, onChange }) {
   return (
-    <div style={{ display: 'flex', gap: '0', borderBottom: '1px solid var(--border)', marginBottom: '12px' }}>
+    <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', marginBottom: '14px' }}>
       {tabs.map(tab => (
         <button
           key={tab}
@@ -13,7 +13,10 @@ export function TabBar({ tabs, active, onChange }) {
             borderBottom: active === tab ? '2px solid var(--accent-green)' : '2px solid transparent',
             marginBottom: '-1px',
             background: 'none',
+            cursor: 'pointer',
             transition: 'color var(--transition)',
+            fontFamily: 'inherit',
+            outline: 'none',
           }}
         >
           {tab}

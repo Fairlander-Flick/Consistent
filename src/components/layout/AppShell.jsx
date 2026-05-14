@@ -6,15 +6,14 @@ import { useSettingsStore } from '../../store/useSettingsStore'
 
 export function AppShell() {
   const { init } = useSettingsStore()
-
   useEffect(() => { init() }, [])
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh' }}>
+    <div style={{ display: 'flex', minHeight: '100dvh' }}>
       <div style={{ display: 'none' }} className="sidebar-wrapper">
         <Sidebar />
       </div>
-      <main style={{ flex: 1, minHeight: '100vh', overflowY: 'auto' }}>
+      <main style={{ flex: 1, minHeight: '100dvh', overflowY: 'auto' }}>
         <Outlet />
       </main>
       <div className="bottom-nav-wrapper">
@@ -22,12 +21,15 @@ export function AppShell() {
       </div>
       <style>{`
         @media (min-width: 1024px) {
-          .sidebar-wrapper { display: block !important; }
+          .sidebar-wrapper  { display: block !important; }
           .bottom-nav-wrapper { display: none; }
-          main { margin-left: var(--sidebar-width); padding: 28px 32px; padding-bottom: 28px; }
+          main { margin-left: var(--sidebar-width); padding: 36px 44px; }
         }
         @media (max-width: 1023px) {
-          main { padding: 16px; padding-bottom: 80px; }
+          main { padding: 20px 16px 90px; }
+        }
+        @media (max-width: 640px) {
+          main { padding: 16px 12px 88px; }
         }
       `}</style>
     </div>

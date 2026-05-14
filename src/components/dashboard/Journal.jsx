@@ -4,12 +4,15 @@ import { Card } from '../ui/Card'
 import { Checkbox } from '../ui/Checkbox'
 import { Input } from '../ui/Input'
 import { Button } from '../ui/Button'
+import { DUMMY_JOURNAL } from '../../lib/dummyData'
 
 export function Journal() {
   const { getTodayEntry, addTodayTodo, toggleTodayTodo, deleteTodayTodo } = useJournalStore()
   const [text, setText] = useState('')
 
-  const entry = getTodayEntry()
+  const entry   = getTodayEntry()
+  const hasData = entry.todos.length > 0
+  const display = hasData ? entry.todos : DUMMY_JOURNAL
 
   const handleAdd = () => {
     if (!text.trim()) return
@@ -19,31 +22,37 @@ export function Journal() {
 
   return (
     <Card>
-      <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '12px' }}>
-        Today's Journal
-      </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '10px' }}>
-        {entry.todos.length === 0 && (
-          <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>No notes yet. Add one below.</span>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <span className="label" style={{ marginBottom: 0 }}>Today's journal</span>
+        {!hasData && (
+          <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontStyle: 'italic' }}>sample data</span>
         )}
-        {entry.todos.map(todo => (
-          <div key={todo.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      </div>
+
+      <div style={{ height: '1px', background: 'var(--border)', margin: '12px 0' }} />
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '14px' }}>
+        {display.map((todo, i) => (
+          <div key={todo.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px' }}>
             <Checkbox
               checked={todo.done}
-              onChange={() => toggleTodayTodo(todo.id)}
+              onChange={() => hasData && toggleTodayTodo(todo.id)}
               label={todo.text}
             />
-            <button
-              onClick={() => deleteTodayTodo(todo.id)}
-              style={{ color: 'var(--text-muted)', fontSize: '16px', lineHeight: 1, padding: '0 4px' }}
-            >
-              ×
-            </button>
+            {hasData && (
+              <button
+                onClick={() => deleteTodayTodo(todo.id)}
+                style={{ color: 'var(--text-muted)', fontSize: '15px', lineHeight: 1, padding: '0 4px', flexShrink: 0, transition: 'color var(--transition)' }}
+              >
+                ×
+              </button>
+            )}
           </div>
         ))}
       </div>
+
       <div style={{ display: 'flex', gap: '6px' }}>
-        <Input value={text} onChange={setText} placeholder="Add a note..." style={{ flex: 1 }} />
+        <Input value={text} onChange={setText} placeholder="Add a note…" style={{ flex: 1 }} />
         <Button onClick={handleAdd} variant="secondary">Add</Button>
       </div>
     </Card>
