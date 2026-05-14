@@ -5,7 +5,12 @@ import { useSettingsStore } from './useSettingsStore'
 describe('useSettingsStore', () => {
   beforeEach(() => {
     localStorage.clear()
-    useSettingsStore.setState({ theme: 'dark' })
+    useSettingsStore.setState({
+      theme: 'dark',
+      confirmGoalDelete: true,
+      confirmTxDelete: true,
+      confirmJournalDelete: true,
+    })
   })
 
   it('default theme is dark', () => {
@@ -24,5 +29,35 @@ describe('useSettingsStore', () => {
     const { result } = renderHook(() => useSettingsStore())
     act(() => result.current.toggleTheme())
     expect(result.current.theme).toBe('dark')
+  })
+})
+
+describe('useSettingsStore — confirm flags', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    useSettingsStore.setState({
+      theme: 'dark',
+      confirmGoalDelete: true,
+      confirmTxDelete: true,
+      confirmJournalDelete: true,
+    })
+  })
+
+  it('default confirmGoalDelete is true', () => {
+    const { result } = renderHook(() => useSettingsStore())
+    expect(result.current.confirmGoalDelete).toBe(true)
+  })
+
+  it('setConfirmGoalDelete sets to false', () => {
+    const { result } = renderHook(() => useSettingsStore())
+    act(() => result.current.setConfirmGoalDelete(false))
+    expect(result.current.confirmGoalDelete).toBe(false)
+  })
+
+  it('toggleTheme preserves confirmGoalDelete', () => {
+    const { result } = renderHook(() => useSettingsStore())
+    act(() => result.current.setConfirmGoalDelete(false))
+    act(() => result.current.toggleTheme())
+    expect(result.current.confirmGoalDelete).toBe(false)
   })
 })
