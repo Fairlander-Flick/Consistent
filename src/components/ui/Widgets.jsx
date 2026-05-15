@@ -218,19 +218,24 @@ export function RangeOverlay({ startX, endX, chartH, padT, padB, labelLines }) {
             stroke="#4ade80" strokeWidth="1" strokeDasharray="3 3" />
       <circle cx={left} cy={midY} r="4" fill="#4ade80" />
       <circle cx={right} cy={midY} r="4" fill="#4ade80" />
-      {labelLines && labelLines.map((line, i) => (
-        <text
-          key={i}
-          x={left + 4}
-          y={padT + 12 + i * 12}
-          fill="var(--text)"
-          fontSize="9"
-          fontFamily="var(--font-mono)"
-          fillOpacity="0.9"
-        >
-          {line}
-        </text>
-      ))}
+      {labelLines && labelLines.map((line, i) => {
+        const text = typeof line === 'string' ? line : line.text
+        const tone = typeof line === 'string' ? '' : line.tone
+        const fill = tone === 'pos' ? 'var(--accent)' : tone === 'neg' ? 'var(--negative)' : 'var(--text)'
+        return (
+          <text
+            key={i}
+            x={left + 4}
+            y={padT + 12 + i * 12}
+            fill={fill}
+            fontSize="9"
+            fontFamily="var(--font-mono)"
+            fillOpacity="0.9"
+          >
+            {text}
+          </text>
+        )
+      })}
     </g>
   )
 }
