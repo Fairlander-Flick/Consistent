@@ -1,6 +1,5 @@
 import { useState, useRef } from 'react'
 import { useGoalsStore } from '../../store/useGoalsStore'
-import { useSettingsStore } from '../../store/useSettingsStore'
 import { DUMMY_GOALS } from '../../lib/dummyData'
 import { IconEdit } from '../ui/Icons'
 
@@ -8,10 +7,7 @@ const PERIODS = ['daily', 'weekly', 'monthly', 'yearly']
 
 export function GoalsCard() {
   const { goals, toggleTodo, deleteTodo, replacePeriod } = useGoalsStore()
-  const { confirmGoalDelete, setConfirmGoalDelete } = useSettingsStore()
   const [period, setPeriod] = useState('daily')
-  const [confirmTarget, setConfirmTarget] = useState(null)
-  const [dontAsk, setDontAsk] = useState(false)
 
   const [editOpen, setEditOpen] = useState(false)
   const [editTitle, setEditTitle] = useState('')
@@ -55,18 +51,7 @@ export function GoalsCard() {
   }
 
   function handleDeleteClick(task) {
-    if (!confirmGoalDelete) {
-      if (hasGoals) deleteTodo(period, task.id)
-      return
-    }
-    setDontAsk(false)
-    setConfirmTarget(task)
-  }
-
-  function handleConfirmDelete() {
-    if (dontAsk) setConfirmGoalDelete(false)
-    if (hasGoals) deleteTodo(period, confirmTarget.id)
-    setConfirmTarget(null)
+    if (hasGoals) deleteTodo(period, task.id)
   }
 
   return (
@@ -204,37 +189,6 @@ export function GoalsCard() {
         </div>
       )}
 
-      {/* Confirm delete dialog */}
-      {confirmTarget && (
-        <div className="modal-overlay" onClick={() => setConfirmTarget(null)}>
-          <div className="modal" onClick={e => e.stopPropagation()}>
-            <h4>Delete goal?</h4>
-            <p>
-              You're about to remove{' '}
-              <span className="highlight">{confirmTarget.text}</span>
-              {' '}from your {period} goals.
-            </p>
-            <label className="dont-ask">
-              <input
-                type="checkbox"
-                checked={dontAsk}
-                onChange={e => setDontAsk(e.target.checked)}
-              />
-              Don't ask again (you can re-enable in Settings)
-            </label>
-            <div className="modal-footer">
-              <button className="btn ghost" onClick={() => setConfirmTarget(null)}>Cancel</button>
-              <button
-                className="btn primary"
-                style={{ background: 'var(--negative)', borderColor: 'var(--negative)' }}
-                onClick={handleConfirmDelete}
-              >
-                Delete
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </>
   )
 }
