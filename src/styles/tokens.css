@@ -24,6 +24,17 @@
   --negative: #f87171;
   --negative-soft: rgba(248, 113, 113, 0.12);
 
+  /* Schedule (This Week time-grid) */
+  --sched-class: #93c5fd;
+  --sched-class-soft: rgba(96, 165, 250, 0.18);
+  --sched-class-line: rgba(96, 165, 250, 0.55);
+  --sched-work: #facc15;
+  --sched-work-soft: rgba(250, 204, 21, 0.18);
+  --sched-work-line: rgba(250, 204, 21, 0.55);
+  --sched-oneoff: #c084fc;
+  --sched-oneoff-soft: rgba(168, 85, 247, 0.18);
+  --sched-oneoff-line: rgba(168, 85, 247, 0.55);
+
   /* Radius / shadow */
   --r-card: 8px;
   --r-sm: 4px;
