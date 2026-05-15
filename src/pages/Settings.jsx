@@ -9,11 +9,16 @@ function Toggle({ checked, onChange }) {
   )
 }
 
+const WEIGHT_GOALS = [
+  { value: 'lose', label: 'Lose' },
+  { value: 'gain', label: 'Gain' },
+  { value: null, label: 'No preference' },
+]
+
 export function Settings() {
   const {
     confirmGoalDelete, setConfirmGoalDelete,
-    confirmTxDelete, setConfirmTxDelete,
-    confirmJournalDelete, setConfirmJournalDelete,
+    weightGoal, setWeightGoal,
   } = useSettingsStore()
 
   return (
@@ -26,6 +31,27 @@ export function Settings() {
       </div>
 
       <div className="card" style={{ maxWidth: 560 }}>
+        <div className="card-h"><h3>Weight goal</h3></div>
+        <div className="setting-row">
+          <div>
+            <div className="setting-label">Direction</div>
+            <div className="setting-desc">Controls how weight changes are colored on the dashboard graph.</div>
+          </div>
+          <div className="tabs">
+            {WEIGHT_GOALS.map(g => (
+              <button
+                key={String(g.value)}
+                className={weightGoal === g.value ? 'active' : ''}
+                onClick={() => setWeightGoal(g.value)}
+              >
+                {g.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="card" style={{ maxWidth: 560, marginTop: 16 }}>
         <div className="card-h"><h3>Confirmations</h3></div>
         <div>
           <div className="setting-row">
@@ -34,26 +60,6 @@ export function Settings() {
               <div className="setting-desc">Shows a dialog before removing a goal item.</div>
             </div>
             <Toggle checked={confirmGoalDelete} onChange={setConfirmGoalDelete} />
-          </div>
-
-          <div className="setting-row">
-            <div>
-              <div className="setting-label">Confirm before deleting a transaction</div>
-              <div className="setting-desc" style={{ color: 'var(--muted)' }}>
-                Not yet wired — coming in a future update.
-              </div>
-            </div>
-            <Toggle checked={confirmTxDelete} onChange={setConfirmTxDelete} />
-          </div>
-
-          <div className="setting-row">
-            <div>
-              <div className="setting-label">Confirm before deleting a journal entry</div>
-              <div className="setting-desc" style={{ color: 'var(--muted)' }}>
-                Not yet wired — coming in a future update.
-              </div>
-            </div>
-            <Toggle checked={confirmJournalDelete} onChange={setConfirmJournalDelete} />
           </div>
         </div>
       </div>
