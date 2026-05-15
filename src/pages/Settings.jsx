@@ -1,6 +1,9 @@
 import { useState } from 'react'
 import { useSettingsStore } from '../store/useSettingsStore'
-import { DUMMY_WEIGHT, DUMMY_TRAINED, DUMMY_GOALS } from '../lib/dummyData'
+import {
+  DUMMY_WEIGHT, DUMMY_TRAINED, DUMMY_GOALS,
+  DUMMY_FINANCE_TRANSACTIONS, DUMMY_TRAINING_PROGRAM, DUMMY_TRAINING_LOG, DUMMY_SCHEDULE,
+} from '../lib/dummyData'
 
 function Toggle({ checked, onChange }) {
   return (
@@ -25,25 +28,49 @@ const STORE_KEYS = [
   'consistent:training-program',
   'consistent:training-log',
   'consistent:finance',
+  'consistent:schedule',
 ]
 
 function doGenerateSampleData() {
-  localStorage.setItem('consistent:weight', JSON.stringify(
-    DUMMY_WEIGHT.map(e => ({ date: e.date, kg: e.kg }))
-  ))
+  localStorage.setItem('consistent:weight', JSON.stringify(DUMMY_WEIGHT))
 
-  const journalEntries = [...DUMMY_TRAINED].map((date, i) => ({
+  // Journal: one entry per training day + some rest days for a fuller grid
+  const trainedDates = [...DUMMY_TRAINED]
+  const scores = [7, 8, 8, 9, 7, 6, 8, 9, 7, 8, 6, 8, 9, 7, 8, 7, 9]
+  const sleep   = [7.5, 8, 7, 6.5, 8, 7.5, 7, 8.5, 6.5, 7, 8, 7.5, 8, 7, 8, 6.5, 8]
+  const journalEntries = trainedDates.map((date, i) => ({
     date,
     todos: [],
     feelings: null,
-    score: 6 + (i % 4),
-    sleepHours: 6.5 + (i % 3) * 0.5,
+    score: scores[i % scores.length],
+    sleepHours: sleep[i % sleep.length],
     nutrition: null,
     submitted: true,
   }))
+  // Add a handful of rest-day entries to fill out the grid
+  const restDays = [
+    '2026-04-08','2026-04-10','2026-04-12','2026-04-13',
+    '2026-04-15','2026-04-17','2026-04-19','2026-04-20',
+    '2026-04-22','2026-04-24','2026-04-26','2026-04-27',
+    '2026-04-29','2026-05-01','2026-05-03','2026-05-04',
+    '2026-05-06','2026-05-08','2026-05-10','2026-05-13','2026-05-14',
+  ]
+  restDays.forEach((date, i) => {
+    journalEntries.push({ date, todos: [], feelings: null, score: 5 + (i % 3), sleepHours: 7 + (i % 3) * 0.5, nutrition: null, submitted: true })
+  })
   localStorage.setItem('consistent:journal', JSON.stringify(journalEntries))
 
   localStorage.setItem('consistent:goals', JSON.stringify(DUMMY_GOALS))
+
+  localStorage.setItem('consistent:finance', JSON.stringify({
+    categories: ['Gym', 'Food', 'Rent & Bills', 'Transport', 'Other'],
+    transactions: DUMMY_FINANCE_TRANSACTIONS,
+  }))
+
+  localStorage.setItem('consistent:training-program', JSON.stringify(DUMMY_TRAINING_PROGRAM))
+  localStorage.setItem('consistent:training-log', JSON.stringify(DUMMY_TRAINING_LOG))
+
+  localStorage.setItem('consistent:schedule', JSON.stringify(DUMMY_SCHEDULE))
 
   window.location.reload()
 }
@@ -108,7 +135,7 @@ export function Settings() {
         <div className="setting-row">
           <div>
             <div className="setting-label">Generate sample data</div>
-            <div className="setting-desc">Populates weight, journal, and goals with example data.</div>
+            <div className="setting-desc">Populates weight, journal, goals, finance, training program, training log, and schedule with example data.</div>
           </div>
           <button className="btn" onClick={doGenerateSampleData}>Generate</button>
         </div>
