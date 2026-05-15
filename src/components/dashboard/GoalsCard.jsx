@@ -38,7 +38,10 @@ export function GoalsCard() {
     <>
       <div className="card area-goals">
         <div className="card-h">
-          <h3>Goals</h3>
+          <div className="row" style={{ gap: 8, alignItems: 'center' }}>
+            <h3>Goals</h3>
+            {!hasGoals && <span className="chip" style={{ color: 'var(--muted)' }}>Sample data</span>}
+          </div>
           <div className="tabs">
             {PERIODS.map(t => (
               <button key={t} className={period === t ? 'active' : ''} onClick={() => setPeriod(t)}>
