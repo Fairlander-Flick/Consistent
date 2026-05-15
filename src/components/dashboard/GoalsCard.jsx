@@ -1,16 +1,23 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useGoalsStore } from '../../store/useGoalsStore'
 import { useSettingsStore } from '../../store/useSettingsStore'
 import { DUMMY_GOALS } from '../../lib/dummyData'
+import { IconEdit } from '../ui/Icons'
 
 const PERIODS = ['daily', 'weekly', 'monthly', 'yearly']
 
 export function GoalsCard() {
-  const { goals, toggleTodo, deleteTodo } = useGoalsStore()
+  const { goals, toggleTodo, deleteTodo, replacePeriod } = useGoalsStore()
   const { confirmGoalDelete, setConfirmGoalDelete } = useSettingsStore()
   const [period, setPeriod] = useState('daily')
-  const [confirmTarget, setConfirmTarget] = useState(null) // { id, text }
+  const [confirmTarget, setConfirmTarget] = useState(null)
   const [dontAsk, setDontAsk] = useState(false)
+
+  const [editOpen, setEditOpen] = useState(false)
+  const [editTitle, setEditTitle] = useState('')
+  const [editTodos, setEditTodos] = useState([])
+  const [addText, setAddText] = useState('')
+  const addInputRef = useRef(null)
 
   const storeData = goals[period]
   const hasGoals = (storeData?.todos?.length ?? 0) > 0 || storeData?.title
@@ -18,6 +25,34 @@ export function GoalsCard() {
   const goalTitle = goalSet?.title || ''
   const goalTasks = goalSet?.todos || []
   const goalDone = goalTasks.filter(t => t.done).length
+
+  function openEdit() {
+    setEditTitle(storeData?.title || '')
+    setEditTodos(storeData?.todos ? [...storeData.todos] : [])
+    setAddText('')
+    setEditOpen(true)
+  }
+
+  function handleSave() {
+    replacePeriod(period, { title: editTitle, todos: editTodos })
+    setEditOpen(false)
+  }
+
+  function handleAddTodo() {
+    const text = addText.trim()
+    if (!text) return
+    setEditTodos(prev => [...prev, { id: Date.now().toString(), text, done: false }])
+    setAddText('')
+    addInputRef.current?.focus()
+  }
+
+  function handleAddKeyDown(e) {
+    if (e.key === 'Enter') handleAddTodo()
+  }
+
+  function handleRemoveEditTodo(id) {
+    setEditTodos(prev => prev.filter(t => t.id !== id))
+  }
 
   function handleDeleteClick(task) {
     if (!confirmGoalDelete) {
@@ -42,12 +77,17 @@ export function GoalsCard() {
             <h3>Goals</h3>
             {!hasGoals && <span className="chip" style={{ color: 'var(--muted)' }}>Sample data</span>}
           </div>
-          <div className="tabs">
-            {PERIODS.map(t => (
-              <button key={t} className={period === t ? 'active' : ''} onClick={() => setPeriod(t)}>
-                {t[0].toUpperCase() + t.slice(1)}
-              </button>
-            ))}
+          <div className="row" style={{ gap: 8, alignItems: 'center' }}>
+            <div className="tabs">
+              {PERIODS.map(t => (
+                <button key={t} className={period === t ? 'active' : ''} onClick={() => setPeriod(t)}>
+                  {t[0].toUpperCase() + t.slice(1)}
+                </button>
+              ))}
+            </div>
+            <button className="btn icon" onClick={openEdit} title="Edit goals">
+              <IconEdit size={13} />
+            </button>
           </div>
         </div>
 
@@ -79,7 +119,16 @@ export function GoalsCard() {
             </div>
           ))}
           {goalTasks.length === 0 && (
-            <div style={{ fontSize: 12, color: 'var(--muted)', padding: '12px 4px' }}>No goals yet.</div>
+            <div style={{ fontSize: 12, color: 'var(--muted)', padding: '12px 4px' }}>
+              No goals yet.{' '}
+              <button
+                className="btn ghost sm"
+                style={{ padding: '2px 6px' }}
+                onClick={openEdit}
+              >
+                Add one
+              </button>
+            </div>
           )}
         </div>
 
@@ -95,7 +144,67 @@ export function GoalsCard() {
         )}
       </div>
 
-      {/* Confirm dialog */}
+      {/* Edit modal */}
+      {editOpen && (
+        <div className="modal-overlay" onClick={() => setEditOpen(false)}>
+          <div className="modal" style={{ width: 340 }} onClick={e => e.stopPropagation()}>
+            <h4>Edit {period[0].toUpperCase() + period.slice(1)} Goals</h4>
+
+            <div style={{ marginBottom: 14 }}>
+              <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 4 }}>Title</div>
+              <input
+                className="input"
+                style={{ width: '100%', boxSizing: 'border-box' }}
+                placeholder="e.g. This week's focus"
+                value={editTitle}
+                onChange={e => setEditTitle(e.target.value)}
+              />
+            </div>
+
+            <div style={{ marginBottom: 10 }}>
+              <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 6 }}>Tasks</div>
+              <div className="col" style={{ gap: 0 }}>
+                {editTodos.map(t => (
+                  <div key={t.id} className="todo">
+                    <div className="chk" style={{ pointerEvents: 'none' }}></div>
+                    <div className="lbl">{t.text}</div>
+                    <div
+                      className="x"
+                      style={{ color: 'var(--negative)', fontSize: 16, opacity: 1 }}
+                      onClick={() => handleRemoveEditTodo(t.id)}
+                    >
+                      ×
+                    </div>
+                  </div>
+                ))}
+                {editTodos.length === 0 && (
+                  <div style={{ fontSize: 12, color: 'var(--muted)', padding: '6px 4px' }}>No tasks yet.</div>
+                )}
+              </div>
+            </div>
+
+            <div className="row" style={{ gap: 6, marginBottom: 16 }}>
+              <input
+                ref={addInputRef}
+                className="input"
+                style={{ flex: 1 }}
+                placeholder="Add a task..."
+                value={addText}
+                onChange={e => setAddText(e.target.value)}
+                onKeyDown={handleAddKeyDown}
+              />
+              <button className="btn primary sm" onClick={handleAddTodo}>Add</button>
+            </div>
+
+            <div className="modal-footer">
+              <button className="btn ghost" onClick={() => setEditOpen(false)}>Cancel</button>
+              <button className="btn primary" onClick={handleSave}>Save</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirm delete dialog */}
       {confirmTarget && (
         <div className="modal-overlay" onClick={() => setConfirmTarget(null)}>
           <div className="modal" onClick={e => e.stopPropagation()}>

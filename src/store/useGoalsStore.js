@@ -45,6 +45,12 @@ export const useGoalsStore = create((set, get) => ({
     set({ goals })
   },
 
+  replacePeriod: (period, data) => {
+    const goals = { ...get().goals, [period]: data }
+    saveData(GOALS_KEY, goals)
+    set({ goals })
+  },
+
   isCompleted: (period) => {
     const { todos } = get().goals[period]
     return todos.length > 0 && todos.every(t => t.done)
