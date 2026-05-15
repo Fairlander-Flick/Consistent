@@ -1,4 +1,6 @@
+import { useState } from 'react'
 import { useSettingsStore } from '../store/useSettingsStore'
+import { DUMMY_WEIGHT, DUMMY_TRAINED, DUMMY_GOALS } from '../lib/dummyData'
 
 function Toggle({ checked, onChange }) {
   return (
@@ -15,11 +17,50 @@ const WEIGHT_GOALS = [
   { value: null, label: 'No preference' },
 ]
 
+const STORE_KEYS = [
+  'consistent:weight',
+  'consistent:journal',
+  'consistent:goals',
+  'consistent:goals-history',
+  'consistent:training-program',
+  'consistent:training-log',
+  'consistent:finance',
+]
+
+function doGenerateSampleData() {
+  localStorage.setItem('consistent:weight', JSON.stringify(
+    DUMMY_WEIGHT.map(e => ({ date: e.date, kg: e.kg }))
+  ))
+
+  const journalEntries = [...DUMMY_TRAINED].map((date, i) => ({
+    date,
+    todos: [],
+    feelings: null,
+    score: 6 + (i % 4),
+    sleepHours: 6.5 + (i % 3) * 0.5,
+    nutrition: null,
+    submitted: true,
+  }))
+  localStorage.setItem('consistent:journal', JSON.stringify(journalEntries))
+
+  localStorage.setItem('consistent:goals', JSON.stringify(DUMMY_GOALS))
+
+  window.location.reload()
+}
+
+function doDeleteAllData() {
+  STORE_KEYS.forEach(k => localStorage.removeItem(k))
+  window.location.reload()
+}
+
 export function Settings() {
   const {
     confirmGoalDelete, setConfirmGoalDelete,
     weightGoal, setWeightGoal,
   } = useSettingsStore()
+
+  const [deleteOpen, setDeleteOpen] = useState(false)
+  const [deleteInput, setDeleteInput] = useState('')
 
   return (
     <>
@@ -53,16 +94,72 @@ export function Settings() {
 
       <div className="card" style={{ maxWidth: 560, marginTop: 16 }}>
         <div className="card-h"><h3>Confirmations</h3></div>
-        <div>
-          <div className="setting-row">
-            <div>
-              <div className="setting-label">Confirm before deleting a goal</div>
-              <div className="setting-desc">Shows a dialog before removing a goal item.</div>
-            </div>
-            <Toggle checked={confirmGoalDelete} onChange={setConfirmGoalDelete} />
+        <div className="setting-row">
+          <div>
+            <div className="setting-label">Confirm before deleting a goal</div>
+            <div className="setting-desc">Shows a dialog before removing a goal item.</div>
           </div>
+          <Toggle checked={confirmGoalDelete} onChange={setConfirmGoalDelete} />
         </div>
       </div>
+
+      <div className="card" style={{ maxWidth: 560, marginTop: 16 }}>
+        <div className="card-h"><h3>Data</h3></div>
+        <div className="setting-row">
+          <div>
+            <div className="setting-label">Generate sample data</div>
+            <div className="setting-desc">Populates weight, journal, and goals with example data.</div>
+          </div>
+          <button className="btn" onClick={doGenerateSampleData}>Generate</button>
+        </div>
+        <div className="setting-row" style={{ borderBottom: 0 }}>
+          <div>
+            <div className="setting-label">Delete all data</div>
+            <div className="setting-desc">Permanently clears all stored entries. Settings are kept.</div>
+          </div>
+          <button
+            className="btn"
+            style={{ borderColor: 'var(--negative)', color: 'var(--negative)' }}
+            onClick={() => { setDeleteInput(''); setDeleteOpen(true) }}
+          >
+            Delete all
+          </button>
+        </div>
+      </div>
+
+      {deleteOpen && (
+        <div className="modal-overlay" onClick={() => setDeleteOpen(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <h4>Delete all data?</h4>
+            <p>This will permanently remove all weight, journal, goals, training, and finance data. This cannot be undone.</p>
+            <p style={{ marginBottom: 8 }}>
+              Please type <span className="highlight">Fairlander</span> to confirm.
+            </p>
+            <input
+              className="input"
+              style={{ width: '100%', boxSizing: 'border-box', marginBottom: 16 }}
+              placeholder="Fairlander"
+              value={deleteInput}
+              onChange={e => setDeleteInput(e.target.value)}
+            />
+            <div className="modal-footer">
+              <button className="btn ghost" onClick={() => setDeleteOpen(false)}>Cancel</button>
+              <button
+                className="btn primary"
+                style={{
+                  background: deleteInput === 'Fairlander' ? 'var(--negative)' : 'var(--faint)',
+                  borderColor: deleteInput === 'Fairlander' ? 'var(--negative)' : 'var(--border)',
+                  color: deleteInput === 'Fairlander' ? '#fff' : 'var(--muted)',
+                  cursor: deleteInput === 'Fairlander' ? 'pointer' : 'not-allowed',
+                }}
+                onClick={() => deleteInput === 'Fairlander' && doDeleteAllData()}
+              >
+                Delete everything
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   )
 }
