@@ -4,22 +4,35 @@ import { todayISO } from '../../lib/dateUtils'
 
 const MONTH_LABELS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
 const DOW_LABELS = ['Mon', '', 'Wed', '', 'Fri', '', '']
+const CELL = 11
+const GAP = 3
+const PITCH = CELL + GAP // 14px per week-column
 
-function buildYearCells(year, entries) {
-  return Array.from({ length: 12 }, (_, m) => {
-    const firstDay = new Date(year, m, 1)
-    const daysInMonth = new Date(year, m + 1, 0).getDate()
-    const startWeekday = (firstDay.getDay() + 6) % 7 // Mon=0
-    const cells = Array.from({ length: startWeekday }, () => null)
-    for (let d = 1; d <= daysInMonth; d++) {
-      const dateStr = `${year}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
-      const entry = entries.find(e => e.date === dateStr)
-      const score = entry?.score ?? null
-      const level = score === null ? 0 : score >= 8 ? 4 : score >= 6 ? 3 : score >= 4 ? 2 : 1
-      cells.push({ dateStr, level })
-    }
-    return cells
+function buildYearGrid(year, entries) {
+  const jan1 = new Date(year, 0, 1)
+  const leadingEmpty = (jan1.getDay() + 6) % 7 // Mon=0
+  const isLeap = (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0
+  const daysInYear = isLeap ? 366 : 365
+
+  const cells = Array.from({ length: leadingEmpty }, () => null)
+  for (let i = 0; i < daysInYear; i++) {
+    const d = new Date(year, 0, 1 + i)
+    const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+    const entry = entries.find(e => e.date === dateStr)
+    const score = entry?.score ?? null
+    const level = score === null ? 0 : score >= 8 ? 4 : score >= 6 ? 3 : score >= 4 ? 2 : 1
+    cells.push({ dateStr, level })
+  }
+
+  const monthCols = MONTH_LABELS.map((label, m) => {
+    const firstOfMonth = new Date(year, m, 1)
+    const diffDays = Math.round((firstOfMonth - jan1) / 86400000)
+    const col = Math.floor((leadingEmpty + diffDays) / 7)
+    return { label, col }
   })
+
+  const totalCols = Math.ceil(cells.length / 7)
+  return { cells, monthCols, totalCols }
 }
 
 function buildTooltip(dateStr, entries) {
@@ -56,7 +69,9 @@ export function ConsistencyCard() {
   const [selectedYear, setSelectedYear] = useState(currentYear)
   const [hover, setHover] = useState(null) // { dateStr, rect }
 
-  const months = useMemo(() => buildYearCells(selectedYear, entries), [selectedYear, entries])
+  const { cells, monthCols, totalCols } = useMemo(
+    () => buildYearGrid(selectedYear, entries), [selectedYear, entries]
+  )
 
   return (
     <div className="card area-contrib">
@@ -71,46 +86,51 @@ export function ConsistencyCard() {
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: 0, overflowX: 'auto' }}>
-        {/* Day-of-week labels */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 3, marginTop: 18, marginRight: 8, flexShrink: 0 }}>
+      <div style={{ display: 'flex', gap: 8, overflowX: 'auto' }}>
+        {/* Day-of-week gutter */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: GAP, marginTop: 18, flexShrink: 0 }}>
           {DOW_LABELS.map((lbl, i) => (
-            <div key={i} style={{ height: 11, fontSize: 9, color: 'var(--muted)', fontFamily: 'var(--font-mono)', lineHeight: '11px', width: 24, textAlign: 'right' }}>
+            <div key={i} style={{ height: CELL, fontSize: 9, color: 'var(--muted)', fontFamily: 'var(--font-mono)', lineHeight: `${CELL}px`, width: 24, textAlign: 'right' }}>
               {lbl}
             </div>
           ))}
         </div>
 
-        {/* Month blocks */}
-        <div style={{ display: 'flex', gap: 4 }}>
-          {months.map((cells, mIdx) => (
-            <div key={mIdx} style={{ flexShrink: 0 }}>
-              <div style={{ fontSize: 9, color: 'var(--muted)', fontFamily: 'var(--font-mono)', marginBottom: 4, height: 14, lineHeight: '14px' }}>
-                {MONTH_LABELS[mIdx]}
-              </div>
-              <div style={{
-                display: 'grid',
-                gridTemplateRows: 'repeat(7, 11px)',
-                gridAutoFlow: 'column',
-                gridAutoColumns: '11px',
-                gap: 3,
+        <div style={{ flexShrink: 0 }}>
+          {/* Floating month labels */}
+          <div style={{ position: 'relative', height: 14, marginBottom: 4, width: totalCols * PITCH }}>
+            {monthCols.map(({ label, col }) => (
+              <div key={label} style={{
+                position: 'absolute', left: col * PITCH, top: 0,
+                fontSize: 9, color: 'var(--muted)', fontFamily: 'var(--font-mono)', lineHeight: '14px',
               }}>
-                {cells.map((cell, i) => cell === null ? (
-                  <div key={i} style={{ width: 11, height: 11 }} />
-                ) : (
-                  <div
-                    key={i}
-                    className="cg-square"
-                    data-fill={cell.level}
-                    data-today={cell.dateStr === todayStr ? '1' : '0'}
-                    style={{ width: 11, height: 11 }}
-                    onMouseEnter={(e) => setHover({ dateStr: cell.dateStr, rect: e.currentTarget.getBoundingClientRect() })}
-                    onMouseLeave={() => setHover(null)}
-                  />
-                ))}
+                {label}
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
+
+          {/* One continuous 7×N grid */}
+          <div style={{
+            display: 'grid',
+            gridTemplateRows: `repeat(7, ${CELL}px)`,
+            gridAutoFlow: 'column',
+            gridAutoColumns: `${CELL}px`,
+            gap: GAP,
+          }}>
+            {cells.map((cell, i) => cell === null ? (
+              <div key={i} style={{ width: CELL, height: CELL }} />
+            ) : (
+              <div
+                key={i}
+                className="cg-square"
+                data-fill={cell.level}
+                data-today={cell.dateStr === todayStr ? '1' : '0'}
+                style={{ width: CELL, height: CELL }}
+                onMouseEnter={(e) => setHover({ dateStr: cell.dateStr, rect: e.currentTarget.getBoundingClientRect() })}
+                onMouseLeave={() => setHover(null)}
+              />
+            ))}
+          </div>
         </div>
       </div>
 
@@ -136,7 +156,7 @@ export function ConsistencyCard() {
       <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 6, marginTop: 12, fontSize: 11, color: 'var(--muted)' }}>
         <span>Less</span>
         {[0, 1, 2, 3, 4].map(l => (
-          <div key={l} className="cg-square" data-fill={l} style={{ width: 11, height: 11, cursor: 'default' }} />
+          <div key={l} className="cg-square" data-fill={l} style={{ width: CELL, height: CELL, cursor: 'default' }} />
         ))}
         <span>More</span>
       </div>
