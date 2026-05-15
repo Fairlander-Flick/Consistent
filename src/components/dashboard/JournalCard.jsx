@@ -66,12 +66,7 @@ export function JournalCard() {
   const todayStr = todayISO()
   const isViewingPast = viewDate !== todayStr
 
-  if (isViewingPast) {
-    const pastEntry = entries.find(e => e.date === viewDate) ?? null
-    return <ReadOnlyView entry={pastEntry} label={dateLabel(viewDate)} />
-  }
-
-  // ── Today's interactive view ──────────────────────────────
+  // ── Today's interactive view state (hooks must be unconditional) ──
   const entry = getTodayEntry()
   const submitted = !!entry.submitted
   const today = new Date()
@@ -95,6 +90,11 @@ export function JournalCard() {
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [entry.date, submitted])
+
+  if (isViewingPast) {
+    const pastEntry = entries.find(e => e.date === viewDate) ?? null
+    return <ReadOnlyView entry={pastEntry} label={dateLabel(viewDate)} />
+  }
 
   const fillPct = local.score !== null ? ((local.score - 1) / 9) * 100 : 0
 
