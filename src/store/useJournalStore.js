@@ -11,6 +11,7 @@ const EMPTY_ENTRY = (date) => ({
   score: null,
   sleepHours: null,
   nutrition: null,
+  submitted: false,
 })
 
 function upsertToday(entries, update) {
@@ -50,6 +51,18 @@ export const useJournalStore = create((set, get) => ({
 
   setTodayNutrition: (nutrition) => {
     const next = upsertToday(get().entries, { nutrition })
+    saveData(KEY, next)
+    set({ entries: next })
+  },
+
+  submitToday: ({ score, sleepHours, nutrition, feelings }) => {
+    const next = upsertToday(get().entries, { score, sleepHours, nutrition, feelings, submitted: true })
+    saveData(KEY, next)
+    set({ entries: next })
+  },
+
+  editToday: () => {
+    const next = upsertToday(get().entries, { submitted: false })
     saveData(KEY, next)
     set({ entries: next })
   },

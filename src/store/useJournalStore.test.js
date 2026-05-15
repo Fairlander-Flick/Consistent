@@ -51,3 +51,33 @@ describe('useJournalStore — new fields', () => {
     expect(result.current.entries).toHaveLength(1)
   })
 })
+
+describe('useJournalStore — submit / edit', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    useJournalStore.setState({ entries: [] })
+  })
+
+  it('getTodayEntry defaults submitted to false', () => {
+    const { result } = renderHook(() => useJournalStore())
+    expect(result.current.getTodayEntry().submitted).toBe(false)
+  })
+
+  it('submitToday writes all four fields and submitted:true in one entry', () => {
+    const { result } = renderHook(() => useJournalStore())
+    act(() => result.current.submitToday({ score: 7, sleepHours: 7.5, nutrition: 'good', feelings: 'solid day' }))
+    const e = result.current.getTodayEntry()
+    expect(e).toMatchObject({ score: 7, sleepHours: 7.5, nutrition: 'good', feelings: 'solid day', submitted: true })
+    expect(result.current.entries).toHaveLength(1)
+  })
+
+  it('editToday flips submitted back to false keeping values', () => {
+    const { result } = renderHook(() => useJournalStore())
+    act(() => result.current.submitToday({ score: 8, sleepHours: 6, nutrition: 'mid', feelings: 'ok' }))
+    act(() => result.current.editToday())
+    const e = result.current.getTodayEntry()
+    expect(e.submitted).toBe(false)
+    expect(e.score).toBe(8)
+    expect(e.feelings).toBe('ok')
+  })
+})
