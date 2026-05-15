@@ -1,16 +1,17 @@
 import { useState, useMemo } from 'react'
 import { useJournalStore } from '../../store/useJournalStore'
+import { useTrainingStore } from '../../store/useTrainingStore'
 import { todayISO } from '../../lib/dateUtils'
 
 const MONTH_LABELS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
 const DOW_LABELS = ['Mon', '', 'Wed', '', 'Fri', '', '']
 const CELL = 11
 const GAP = 3
-const PITCH = CELL + GAP // 14px per week-column
+const PITCH = CELL + GAP
 
 function buildYearGrid(year, entries) {
   const jan1 = new Date(year, 0, 1)
-  const leadingEmpty = (jan1.getDay() + 6) % 7 // Mon=0
+  const leadingEmpty = (jan1.getDay() + 6) % 7
   const isLeap = (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0
   const daysInYear = isLeap ? 366 : 365
 
@@ -63,15 +64,29 @@ function buildTooltip(dateStr, entries) {
 
 export function ConsistencyCard() {
   const { entries } = useJournalStore()
+  const { log: trainingLog } = useTrainingStore()
   const todayStr = todayISO()
   const currentYear = new Date().getFullYear()
   const years = Array.from({ length: currentYear - 2025 }, (_, i) => 2026 + i)
   const [selectedYear, setSelectedYear] = useState(currentYear)
-  const [hover, setHover] = useState(null) // { dateStr, rect }
+  const [hover, setHover] = useState(null)
+  const [selectedDate, setSelectedDate] = useState(null)
 
   const { cells, monthCols, totalCols } = useMemo(
     () => buildYearGrid(selectedYear, entries), [selectedYear, entries]
   )
+
+  function handleCellClick(dateStr) {
+    if (dateStr === todayStr || dateStr === selectedDate) {
+      setSelectedDate(null)
+    } else {
+      setSelectedDate(dateStr)
+    }
+  }
+
+  const selectedEntry = selectedDate ? entries.find(e => e.date === selectedDate) : null
+  const selectedSession = selectedDate ? trainingLog.find(l => l.date === selectedDate) : null
+  const hasSelectedData = selectedEntry || selectedSession
 
   return (
     <div className="card area-contrib">
@@ -109,7 +124,7 @@ export function ConsistencyCard() {
             ))}
           </div>
 
-          {/* One continuous 7×N grid */}
+          {/* Grid */}
           <div style={{
             display: 'grid',
             gridTemplateRows: `repeat(7, ${CELL}px)`,
@@ -125,17 +140,25 @@ export function ConsistencyCard() {
                 className="cg-square"
                 data-fill={cell.level}
                 data-today={cell.dateStr === todayStr ? '1' : '0'}
-                style={{ width: CELL, height: CELL }}
+                data-selected={cell.dateStr === selectedDate ? '1' : '0'}
+                style={{
+                  width: CELL,
+                  height: CELL,
+                  cursor: 'pointer',
+                  outline: cell.dateStr === selectedDate ? '1.5px solid var(--accent)' : 'none',
+                  outlineOffset: '1px',
+                }}
                 onMouseEnter={(e) => setHover({ dateStr: cell.dateStr, rect: e.currentTarget.getBoundingClientRect() })}
                 onMouseLeave={() => setHover(null)}
+                onClick={() => handleCellClick(cell.dateStr)}
               />
             ))}
           </div>
         </div>
       </div>
 
-      {/* Tooltip (fixed so it escapes overflow:auto) */}
-      {hover && (
+      {/* Tooltip */}
+      {hover && !selectedDate && (
         <div
           className="tt"
           style={{
@@ -149,6 +172,63 @@ export function ConsistencyCard() {
           }}
         >
           {buildTooltip(hover.dateStr, entries)}
+        </div>
+      )}
+
+      {/* Selected day detail */}
+      {selectedDate && (
+        <div style={{
+          marginTop: 12,
+          padding: '10px 12px',
+          background: 'var(--bg)',
+          borderRadius: 6,
+          border: '1px solid var(--border)',
+          fontSize: 12,
+        }}>
+          <div className="row between" style={{ marginBottom: hasSelectedData ? 8 : 0 }}>
+            <div style={{ fontWeight: 600, fontSize: 13 }}>
+              {new Date(selectedDate + 'T00:00:00').toLocaleString('en', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
+            </div>
+            <button
+              className="btn ghost sm"
+              style={{ padding: '2px 8px', fontSize: 11 }}
+              onClick={() => setSelectedDate(null)}
+            >
+              ✕ Close
+            </button>
+          </div>
+          {!hasSelectedData && (
+            <div style={{ color: 'var(--muted)' }}>No data logged for this day.</div>
+          )}
+          {hasSelectedData && (
+            <div className="row" style={{ gap: 20, flexWrap: 'wrap' }}>
+              {selectedEntry?.score != null && (
+                <div>
+                  <div style={{ fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Score</div>
+                  <div className="num" style={{ fontSize: 16, color: 'var(--accent)' }}>{selectedEntry.score}<span style={{ fontSize: 11, color: 'var(--muted)' }}>/10</span></div>
+                </div>
+              )}
+              {selectedEntry?.sleepHours != null && (
+                <div>
+                  <div style={{ fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Sleep</div>
+                  <div className="num" style={{ fontSize: 16 }}>{selectedEntry.sleepHours}<span style={{ fontSize: 11, color: 'var(--muted)' }}>h</span></div>
+                </div>
+              )}
+              {selectedSession && (
+                <div>
+                  <div style={{ fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Training</div>
+                  <div style={{ fontSize: 13, fontWeight: 500 }}>
+                    {selectedSession.exercises.length} exercises ·{' '}
+                    <span className="mono" style={{ fontSize: 12 }}>
+                      {selectedSession.exercises
+                        .reduce((s, e) => s + e.sets.reduce((vs, set) => vs + set.reps * set.weight, 0), 0)
+                        .toLocaleString()} kg
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
 
