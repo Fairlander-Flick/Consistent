@@ -10,6 +10,7 @@ export function GoalsCard() {
   const [period, setPeriod] = useState('daily')
 
   const [editOpen, setEditOpen] = useState(false)
+  const [editTitle, setEditTitle] = useState('')
   const [editTodos, setEditTodos] = useState([])
   const [addText, setAddText] = useState('')
   const addInputRef = useRef(null)
@@ -22,13 +23,14 @@ export function GoalsCard() {
   const goalDone = goalTasks.filter(t => t.done).length
 
   function openEdit() {
+    setEditTitle(storeData?.title || '')
     setEditTodos(storeData?.todos ? [...storeData.todos] : [])
     setAddText('')
     setEditOpen(true)
   }
 
   function handleSave() {
-    replacePeriod(period, { title: storeData?.title || '', todos: editTodos })
+    replacePeriod(period, { title: editTitle, todos: editTodos })
     setEditOpen(false)
   }
 
@@ -124,6 +126,17 @@ export function GoalsCard() {
         <div className="modal-overlay" onClick={() => setEditOpen(false)}>
           <div className="modal" style={{ width: 340 }} onClick={e => e.stopPropagation()}>
             <h4>{period[0].toUpperCase() + period.slice(1)} Goals</h4>
+
+            <div style={{ marginBottom: 14 }}>
+              <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 4 }}>Title</div>
+              <input
+                className="input"
+                style={{ width: '100%', boxSizing: 'border-box' }}
+                placeholder="e.g. This week's focus"
+                value={editTitle}
+                onChange={e => setEditTitle(e.target.value)}
+              />
+            </div>
 
             <div style={{ marginBottom: 10 }}>
               <div className="col" style={{ gap: 0 }}>
