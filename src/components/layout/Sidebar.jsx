@@ -18,7 +18,7 @@ export function Sidebar() {
   return (
     <aside className="sb">
       <div className="sb-brand">
-        <div className="sb-brand-mark"></div>
+        <img src="/sisyphus.png" alt="logo" className="sb-brand-mark" style={{ background: 'none', objectFit: 'contain' }} />
         <div className="sb-brand-name">Consistent<span className="dim">+Potent</span></div>
       </div>
 
