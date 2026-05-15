@@ -4,16 +4,17 @@ import { Dashboard } from './pages/Dashboard'
 import { Consistency } from './pages/Consistency'
 import { Finance } from './pages/Finance'
 import { Settings } from './pages/Settings'
+import { ErrorBoundary } from './components/ui/ErrorBoundary'
 
 export default function App() {
   return (
     <BrowserRouter>
       <Routes>
         <Route element={<AppShell />}>
-          <Route index element={<Dashboard />} />
-          <Route path="/consistency" element={<Consistency />} />
-          <Route path="/finance" element={<Finance />} />
-          <Route path="/settings" element={<Settings />} />
+          <Route index element={<ErrorBoundary><Dashboard /></ErrorBoundary>} />
+          <Route path="/consistency" element={<ErrorBoundary><Consistency /></ErrorBoundary>} />
+          <Route path="/finance" element={<ErrorBoundary><Finance /></ErrorBoundary>} />
+          <Route path="/settings" element={<ErrorBoundary><Settings /></ErrorBoundary>} />
         </Route>
       </Routes>
     </BrowserRouter>

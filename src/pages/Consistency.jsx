@@ -218,7 +218,7 @@ function DailyLog() {
   const handleLog = () => {
     const exercises = todayProgram.exercises.map((ex, i) => ({
       ...ex,
-      sets: sets[i].map(({ done, ...rest }) => rest),
+      sets: (sets[i] ?? []).map(({ done, ...rest }) => rest),
     }))
     logSession(today, exercises)
   }
@@ -295,15 +295,18 @@ function ProgramEditor() {
   const [newExName, setNewExName] = useState('')
   const [setReps, setSetReps] = useState({})
   const [setWeight, setSetWeight] = useState({})
+  const [setSetsCount, setSetSetsCount] = useState({})
 
   const handleAddSet = (day, exId) => {
     const key = `${day}-${exId}`
     const r = setReps[key]
     const w = setWeight[key]
     if (!r || !w) return
-    addSet(day, exId, r, w)
+    const count = parseInt(setSetsCount[key]) || 1
+    for (let i = 0; i < count; i++) addSet(day, exId, r, w)
     setSetReps(prev => ({ ...prev, [key]: '' }))
     setSetWeight(prev => ({ ...prev, [key]: '' }))
+    setSetSetsCount(prev => ({ ...prev, [key]: '' }))
   }
 
   const editing = program[editingDay]
@@ -397,14 +400,17 @@ function ProgramEditor() {
                   ))}
                 </div>
                 <div className="row" style={{ gap: 6 }}>
+                  <input className="input" placeholder="sets" type="number" min="1" value={setSetsCount[key] || ''}
+                         onChange={e => setSetSetsCount(prev => ({ ...prev, [key]: e.target.value }))}
+                         style={{ width: 60 }} />
                   <input className="input" placeholder="reps" type="number" value={setReps[key] || ''}
                          onChange={e => setSetReps(prev => ({ ...prev, [key]: e.target.value }))}
-                         style={{ width: 80 }} />
+                         style={{ width: 70 }} />
                   <input className="input" placeholder="kg" type="number" value={setWeight[key] || ''}
                          onChange={e => setSetWeight(prev => ({ ...prev, [key]: e.target.value }))}
-                         style={{ width: 80 }} />
+                         style={{ width: 70 }} />
                   <button className="btn" onClick={() => handleAddSet(editingDay, ex.id)}>
-                    <IconPlus size={11} /> Set
+                    <IconPlus size={11} /> Add
                   </button>
                 </div>
               </div>
