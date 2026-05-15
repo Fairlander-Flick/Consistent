@@ -10,7 +10,6 @@ export function GoalsCard() {
   const [period, setPeriod] = useState('daily')
 
   const [editOpen, setEditOpen] = useState(false)
-  const [editTitle, setEditTitle] = useState('')
   const [editTodos, setEditTodos] = useState([])
   const [addText, setAddText] = useState('')
   const addInputRef = useRef(null)
@@ -23,14 +22,13 @@ export function GoalsCard() {
   const goalDone = goalTasks.filter(t => t.done).length
 
   function openEdit() {
-    setEditTitle(storeData?.title || '')
     setEditTodos(storeData?.todos ? [...storeData.todos] : [])
     setAddText('')
     setEditOpen(true)
   }
 
   function handleSave() {
-    replacePeriod(period, { title: editTitle, todos: editTodos })
+    replacePeriod(period, { title: storeData?.title || '', todos: editTodos })
     setEditOpen(false)
   }
 
@@ -58,10 +56,7 @@ export function GoalsCard() {
     <>
       <div className="card area-goals">
         <div className="card-h">
-          <div className="row" style={{ gap: 8, alignItems: 'center' }}>
-            <h3>Goals</h3>
-            {!hasGoals && <span className="chip" style={{ color: 'var(--muted)' }}>Sample data</span>}
-          </div>
+          <h3>Goals</h3>
           <div className="row" style={{ gap: 8, alignItems: 'center' }}>
             <div className="tabs">
               {PERIODS.map(t => (
@@ -106,11 +101,7 @@ export function GoalsCard() {
           {goalTasks.length === 0 && (
             <div style={{ fontSize: 12, color: 'var(--muted)', padding: '12px 4px' }}>
               No goals yet.{' '}
-              <button
-                className="btn ghost sm"
-                style={{ padding: '2px 6px' }}
-                onClick={openEdit}
-              >
+              <button className="btn ghost sm" style={{ padding: '2px 6px' }} onClick={openEdit}>
                 Add one
               </button>
             </div>
@@ -129,25 +120,12 @@ export function GoalsCard() {
         )}
       </div>
 
-      {/* Edit modal */}
       {editOpen && (
         <div className="modal-overlay" onClick={() => setEditOpen(false)}>
           <div className="modal" style={{ width: 340 }} onClick={e => e.stopPropagation()}>
-            <h4>Edit {period[0].toUpperCase() + period.slice(1)} Goals</h4>
-
-            <div style={{ marginBottom: 14 }}>
-              <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 4 }}>Title</div>
-              <input
-                className="input"
-                style={{ width: '100%', boxSizing: 'border-box' }}
-                placeholder="e.g. This week's focus"
-                value={editTitle}
-                onChange={e => setEditTitle(e.target.value)}
-              />
-            </div>
+            <h4>{period[0].toUpperCase() + period.slice(1)} Goals</h4>
 
             <div style={{ marginBottom: 10 }}>
-              <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 6 }}>Tasks</div>
               <div className="col" style={{ gap: 0 }}>
                 {editTodos.map(t => (
                   <div key={t.id} className="todo">
@@ -188,7 +166,6 @@ export function GoalsCard() {
           </div>
         </div>
       )}
-
     </>
   )
 }
