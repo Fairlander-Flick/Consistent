@@ -4,6 +4,8 @@ import { useFinanceStore } from '../../store/useFinanceStore'
 import { useTrainingStore } from '../../store/useTrainingStore'
 import { RangeOverlay } from '../ui/Widgets'
 import { DUMMY_WEIGHT } from '../../lib/dummyData'
+import { useSettingsStore } from '../../store/useSettingsStore'
+import { deltaTone } from '../../lib/deltaTone'
 
 const SVG_W = 600
 const SVG_H = 200
@@ -32,6 +34,8 @@ export function GraphCard() {
   const { entries: weightEntries } = useWeightStore()
   const { transactions } = useFinanceStore()
   const { log: trainingLog } = useTrainingStore()
+  const { weightGoal } = useSettingsStore()
+  const weightMode = weightGoal === 'lose' ? 'weightLose' : weightGoal === 'gain' ? 'weightGain' : 'neutral'
 
   const [tab, setTab] = useState('weight')
   const [financeVis, setFinanceVis] = useState({ income: true, expense: true, balance: true })
@@ -51,13 +55,15 @@ export function GraphCard() {
   }, [])
 
   // ── Data per tab ──────────────────────────────────────────
-  const weightData = useMemo(() => {
-    const real = [...weightEntries]
-      .sort((a, b) => a.date.localeCompare(b.date))
-      .slice(-28)
-      .map(e => ({ date: e.date, value: e.kg }))
-    return real.length >= 2 ? real : DUMMY_WEIGHT.map(e => ({ date: e.date, value: e.kg }))
-  }, [weightEntries])
+  const realWeight = useMemo(() => [...weightEntries]
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .slice(-28)
+    .map(e => ({ date: e.date, value: e.kg })), [weightEntries])
+  const weightIsSample = realWeight.length < 2
+  const weightData = useMemo(
+    () => weightIsSample ? DUMMY_WEIGHT.map(e => ({ date: e.date, value: e.kg })) : realWeight,
+    [weightIsSample, realWeight]
+  )
 
   const financeData = useMemo(() => {
     const cutoff = isoMinus(27)
@@ -78,7 +84,8 @@ export function GraphCard() {
       s.exercises.reduce((sum, ex) => sum + ex.sets.reduce((ss, set) => ss + set.reps * set.weight, 0), 0)
     )
     const duration = sessions.map(s => s.durationMinutes ?? 0)
-    return { sessions, volume, duration }
+    const isReal = sessions.map(s => (s.exercises?.length ?? 0) > 0)
+    return { sessions, volume, duration, isReal }
   }, [trainingLog])
 
   // ── Pointer helpers ───────────────────────────────────────
@@ -142,7 +149,10 @@ export function GraphCard() {
       const pct = start.value ? ((delta / start.value) * 100).toFixed(1) : '0.0'
       return [
         `${start.value.toFixed(1)} → ${end.value.toFixed(1)} kg`,
-        `Δ ${delta >= 0 ? '+' : ''}${delta.toFixed(1)} kg (${delta >= 0 ? '+' : ''}${pct}%)`,
+        {
+          text: `Δ ${delta >= 0 ? '+' : ''}${delta.toFixed(1)} kg (${delta >= 0 ? '+' : ''}${pct}%)`,
+          tone: deltaTone(delta, weightMode),
+        },
       ]
     }
     if (tab === 'finance') {
@@ -153,21 +163,27 @@ export function GraphCard() {
       const lines = []
       if (financeVis.income) lines.push(`Income: +${incomeSum.toFixed(0)} €`)
       if (financeVis.expense) lines.push(`Expense: -${expenseSum.toFixed(0)} €`)
-      if (financeVis.balance) lines.push(`Balance: ${balDelta >= 0 ? '+' : ''}${balDelta.toFixed(0)} €`)
+      if (financeVis.balance) lines.push({
+        text: `Balance: ${balDelta >= 0 ? '+' : ''}${balDelta.toFixed(0)} €`,
+        tone: deltaTone(balDelta, 'finance'),
+      })
       return lines
     }
-    // volume
+    // volume — average excludes empty (0-exercise) sessions (audit #7)
     const volSlice = volumeData.volume.slice(range.start, range.end + 1)
     const durSlice = volumeData.duration.slice(range.start, range.end + 1)
+    const realSlice = volumeData.isReal.slice(range.start, range.end + 1)
     const volSum = volSlice.reduce((a, b) => a + b, 0)
     const durSum = durSlice.reduce((a, b) => a + b, 0)
-    const n = range.end - range.start + 1
+    const nReal = realSlice.filter(Boolean).length
+    const avgVol = nReal ? volSum / nReal : 0
+    const avgDur = nReal ? Math.round(durSum / nReal) : 0
     return [
       `Volume: ${volSum.toLocaleString()} kg`,
       `Duration: ${durSum} min`,
-      `Avg: ${(volSum / n).toFixed(0)} kg · ${Math.round(durSum / n)} min/session`,
+      `Avg: ${avgVol.toFixed(0)} kg · ${avgDur} min/session`,
     ]
-  }, [range, tab, weightData, financeData, volumeData, financeVis])
+  }, [range, tab, weightData, financeData, volumeData, financeVis, weightMode])
 
   // ── Headline ──────────────────────────────────────────────
   const headline = useMemo(() => {
@@ -175,20 +191,16 @@ export function GraphCard() {
       const latest = weightData[weightData.length - 1]
       const prev = weightData[weightData.length - 2]
       const delta = latest && prev ? latest.value - prev.value : 0
-      return {
-        text: `${latest?.value.toFixed(1) ?? '—'} kg`,
-        sub: `${delta >= 0 ? '+' : ''}${delta.toFixed(1)} kg`,
-        pos: delta < 0,
-      }
+      return { text: `${latest?.value.toFixed(1) ?? '—'} kg`, tone: deltaTone(delta, weightMode) }
     }
     if (tab === 'finance') {
       const net = financeData.balance[financeData.balance.length - 1] ?? 0
-      return { text: `${net >= 0 ? '+' : ''}${net.toFixed(0)} €`, pos: net >= 0 }
+      return { text: `${net >= 0 ? '+' : ''}${net.toFixed(0)} €`, tone: deltaTone(net, 'finance') }
     }
     const lastVol = volumeData.volume[volumeData.volume.length - 1] ?? 0
     const lastDur = volumeData.duration[volumeData.duration.length - 1] ?? 0
-    return { text: `${lastVol.toLocaleString()} kg · ${lastDur} min` }
-  }, [tab, weightData, financeData, volumeData])
+    return { text: `${lastVol.toLocaleString()} kg · ${lastDur} min`, tone: '' }
+  }, [tab, weightData, financeData, volumeData, weightMode])
 
   // ── SVG path builders ─────────────────────────────────────
   function weightSVG() {
@@ -203,8 +215,8 @@ export function GraphCard() {
       <g>
         <defs>
           <linearGradient id="gfill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="var(--accent)" stopOpacity="0.18" />
-            <stop offset="100%" stopColor="var(--accent)" stopOpacity="0" />
+            <stop offset="0%" stopColor="var(--text)" stopOpacity="0.14" />
+            <stop offset="100%" stopColor="var(--text)" stopOpacity="0" />
           </linearGradient>
         </defs>
         {ticks.map((v, i) => {
@@ -217,11 +229,11 @@ export function GraphCard() {
           )
         })}
         <path d={area} fill="url(#gfill)" />
-        <path d={path} fill="none" stroke="var(--accent)" strokeWidth="1.4" />
+        <path d={path} fill="none" stroke="var(--text)" strokeWidth="1.4" />
         {pts.map((p, i) => i === pts.length - 1 ? (
           <g key={i}>
-            <circle cx={p.x} cy={p.y} r="5" fill="var(--accent)" opacity="0.2" />
-            <circle cx={p.x} cy={p.y} r="2.5" fill="var(--accent)" />
+            <circle cx={p.x} cy={p.y} r="5" fill="var(--text)" opacity="0.2" />
+            <circle cx={p.x} cy={p.y} r="2.5" fill="var(--text)" />
           </g>
         ) : null)}
       </g>
@@ -307,7 +319,12 @@ export function GraphCard() {
   return (
     <div className="card area-weight">
       <div className="card-h">
-        <h3>Graph</h3>
+        <div className="row" style={{ gap: 8, alignItems: 'center' }}>
+          <h3>Graph</h3>
+          {tab === 'weight' && weightIsSample && (
+            <span className="chip" style={{ color: 'var(--muted)' }}>Sample data</span>
+          )}
+        </div>
         <div className="row" style={{ gap: 12 }}>
           <div className="tabs">
             <button className={tab === 'weight' ? 'active' : ''} onClick={() => setTab('weight')}>Weight</button>
@@ -315,7 +332,7 @@ export function GraphCard() {
             <button className={tab === 'volume' ? 'active' : ''} onClick={() => setTab('volume')}>Volume</button>
           </div>
           <span style={{ fontSize: 10, color: 'var(--muted)' }}>↔ drag to select</span>
-          <span className={`num num-md ${headline.pos === true ? 'delta pos' : headline.pos === false ? 'delta neg' : ''}`}>
+          <span className={`num num-md ${headline.tone ? 'delta ' + headline.tone : ''}`}>
             {headline.text}
           </span>
         </div>
