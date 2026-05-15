@@ -368,18 +368,18 @@ export function GraphCard() {
       {tab === 'finance' && (
         <div className="row" style={{ gap: 8, marginTop: 12 }}>
           {[
-            { key: 'income',  label: 'Income',  activeBg: 'rgba(74,222,128,0.18)',  activeColor: 'var(--accent)',   activeBorder: 'var(--accent)' },
-            { key: 'expense', label: 'Expense', activeBg: 'rgba(248,113,113,0.18)', activeColor: '#f87171',         activeBorder: '#f87171' },
-            { key: 'balance', label: 'Balance', activeBg: 'var(--faint)',            activeColor: 'var(--text)',     activeBorder: 'var(--border-strong)' },
-          ].map(({ key, label, activeBg, activeColor, activeBorder }) => (
+            { key: 'income', label: 'Income', color: 'var(--accent)' },
+            { key: 'expense', label: 'Expense', color: 'var(--negative)' },
+            { key: 'balance', label: 'Balance', color: 'var(--text)' },
+          ].map(({ key, label, color }) => (
             <button
               key={key}
               onClick={() => setFinanceVis(p => ({ ...p, [key]: !p[key] }))}
               className="chip"
               style={{
-                background: financeVis[key] ? activeBg : 'transparent',
-                color: financeVis[key] ? activeColor : 'var(--muted)',
-                border: `1px solid ${financeVis[key] ? activeBorder : 'transparent'}`,
+                background: financeVis[key] ? 'var(--faint)' : 'transparent',
+                color: financeVis[key] ? color : 'var(--muted)',
+                border: `1px solid ${financeVis[key] ? 'var(--border-strong)' : 'transparent'}`,
                 cursor: 'pointer',
                 transition: 'all 120ms',
               }}
