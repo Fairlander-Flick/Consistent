@@ -8,11 +8,12 @@ const DEFAULT = {
   confirmGoalDelete: true,
   confirmTxDelete: true,
   confirmJournalDelete: true,
+  weightGoal: null,
 }
 
 function persist(get, patch) {
-  const { theme, confirmGoalDelete, confirmTxDelete, confirmJournalDelete } = { ...get(), ...patch }
-  saveData(KEY, { theme, confirmGoalDelete, confirmTxDelete, confirmJournalDelete })
+  const { theme, confirmGoalDelete, confirmTxDelete, confirmJournalDelete, weightGoal } = { ...get(), ...patch }
+  saveData(KEY, { theme, confirmGoalDelete, confirmTxDelete, confirmJournalDelete, weightGoal })
 }
 
 export const useSettingsStore = create((set, get) => {
@@ -22,6 +23,12 @@ export const useSettingsStore = create((set, get) => {
     confirmGoalDelete: stored.confirmGoalDelete ?? DEFAULT.confirmGoalDelete,
     confirmTxDelete: stored.confirmTxDelete ?? DEFAULT.confirmTxDelete,
     confirmJournalDelete: stored.confirmJournalDelete ?? DEFAULT.confirmJournalDelete,
+    weightGoal: stored.weightGoal ?? DEFAULT.weightGoal,
+
+    setWeightGoal: (val) => {
+      persist(get, { weightGoal: val })
+      set({ weightGoal: val })
+    },
 
     toggleTheme: () => {
       const theme = get().theme === 'dark' ? 'light' : 'dark'
@@ -53,6 +60,7 @@ export const useSettingsStore = create((set, get) => {
         confirmGoalDelete: s.confirmGoalDelete ?? DEFAULT.confirmGoalDelete,
         confirmTxDelete: s.confirmTxDelete ?? DEFAULT.confirmTxDelete,
         confirmJournalDelete: s.confirmJournalDelete ?? DEFAULT.confirmJournalDelete,
+        weightGoal: s.weightGoal ?? DEFAULT.weightGoal,
       })
     },
   }

@@ -10,6 +10,7 @@ describe('useSettingsStore', () => {
       confirmGoalDelete: true,
       confirmTxDelete: true,
       confirmJournalDelete: true,
+      weightGoal: null,
     })
   })
 
@@ -40,6 +41,7 @@ describe('useSettingsStore — confirm flags', () => {
       confirmGoalDelete: true,
       confirmTxDelete: true,
       confirmJournalDelete: true,
+      weightGoal: null,
     })
   })
 
@@ -59,5 +61,36 @@ describe('useSettingsStore — confirm flags', () => {
     act(() => result.current.setConfirmGoalDelete(false))
     act(() => result.current.toggleTheme())
     expect(result.current.confirmGoalDelete).toBe(false)
+  })
+})
+
+describe('useSettingsStore — weightGoal', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    useSettingsStore.setState({
+      theme: 'dark',
+      confirmGoalDelete: true,
+      confirmTxDelete: true,
+      confirmJournalDelete: true,
+      weightGoal: null,
+    })
+  })
+
+  it('default weightGoal is null', () => {
+    const { result } = renderHook(() => useSettingsStore())
+    expect(result.current.weightGoal).toBeNull()
+  })
+
+  it('setWeightGoal sets a value', () => {
+    const { result } = renderHook(() => useSettingsStore())
+    act(() => result.current.setWeightGoal('lose'))
+    expect(result.current.weightGoal).toBe('lose')
+  })
+
+  it('weightGoal survives toggleTheme (persisted together)', () => {
+    const { result } = renderHook(() => useSettingsStore())
+    act(() => result.current.setWeightGoal('gain'))
+    act(() => result.current.toggleTheme())
+    expect(result.current.weightGoal).toBe('gain')
   })
 })
