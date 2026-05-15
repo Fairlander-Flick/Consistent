@@ -1,170 +1,380 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useFinanceStore } from '../store/useFinanceStore'
-import { Card } from '../components/ui/Card'
-import { Input } from '../components/ui/Input'
-import { Button } from '../components/ui/Button'
-import { Badge } from '../components/ui/Badge'
+import { todayISO } from '../lib/dateUtils'
+import { MultiLineChart } from '../components/ui/Widgets'
+import {
+  IconPlus, IconTrash, IconEdit, IconX, IconTarget,
+  IconChevLeft, IconChevRight,
+} from '../components/ui/Icons'
 
-function fmt(n) {
-  return new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(n)
+const MONTHS_FULL = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+const MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
+const CAT_PALETTE = ['#4ade80', '#22d3ee', '#818cf8', '#f59e0b', '#f472b6', '#fb923c', '#a78bfa', '#60a5fa', '#34d399', '#94a3b8', '#f87171']
+
+function hashColor(name) {
+  let h = 0
+  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0
+  return CAT_PALETTE[h % CAT_PALETTE.length]
 }
 
 export function Finance() {
   const today = new Date()
-  const [year, setYear] = useState(today.getFullYear())
-  const [month, setMonth] = useState(today.getMonth() + 1)
-  const { categories, transactions, addTransaction, deleteTransaction, addCategory, deleteCategory, getMonthSummary } = useFinanceStore()
+  const [view, setView] = useState({ y: today.getFullYear(), m: today.getMonth() })
+  const [showCats, setShowCats] = useState(false)
+  const [filterCat, setFilterCat] = useState('all')
 
-  const { income, expenses, balance, transactions: monthTxs } = getMonthSummary(year, month)
+  const {
+    categories, transactions,
+    addTransaction, deleteTransaction,
+    addCategory, deleteCategory, renameCategory,
+  } = useFinanceStore()
 
-  const [form, setForm] = useState({ date: today.toISOString().slice(0, 10), amount: '', type: 'expense', category: categories[0] || '', note: '' })
-  const [filterCat, setFilterCat] = useState('All')
-  const [newCat, setNewCat] = useState('')
+  const monthKey = `${view.y}-${String(view.m + 1).padStart(2, '0')}`
+  const monthTx = transactions.filter(t => t.date.startsWith(monthKey))
+  const txFiltered = filterCat === 'all' ? monthTx : monthTx.filter(t => t.category === filterCat)
 
-  const monthLabel = new Date(year, month - 1).toLocaleString('en', { month: 'long', year: 'numeric' })
+  const income = monthTx.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0)
+  const expense = monthTx.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0)
+  const balance = income - expense
 
-  const prevMonth = () => {
-    if (month === 1) { setMonth(12); setYear(y => y - 1) }
-    else setMonth(m => m - 1)
+  const catBreakdown = useMemo(() => {
+    const out = {}
+    monthTx.filter(t => t.type === 'expense').forEach(t => {
+      out[t.category] = (out[t.category] || 0) + t.amount
+    })
+    return Object.entries(out)
+      .map(([name, amount]) => ({ name, amount, pct: expense ? amount / expense : 0, color: hashColor(name) }))
+      .sort((a, b) => b.amount - a.amount)
+  }, [monthTx, expense])
+
+  // 3-month series
+  const series = useMemo(() => {
+    const months = []
+    for (let i = 2; i >= 0; i--) {
+      const d = new Date(view.y, view.m - i, 1)
+      months.push({
+        key: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`,
+        label: MONTHS_SHORT[d.getMonth()],
+      })
+    }
+    const incArr = months.map(m => transactions.filter(t => t.date.startsWith(m.key) && t.type === 'income').reduce((s, t) => s + t.amount, 0))
+    const expArr = months.map(m => transactions.filter(t => t.date.startsWith(m.key) && t.type === 'expense').reduce((s, t) => s + t.amount, 0))
+    const balArr = incArr.map((v, i) => v - expArr[i])
+    return {
+      labels: months.map(m => m.label),
+      data: [
+        { label: 'Income',  color: '#4ade80', values: incArr },
+        { label: 'Expense', color: '#f87171', values: expArr },
+        { label: 'Balance', color: '#60a5fa', values: balArr },
+      ],
+    }
+  }, [transactions, view])
+
+  const goPrev = () => {
+    if (view.m === 0) setView({ y: view.y - 1, m: 11 })
+    else setView({ y: view.y, m: view.m - 1 })
   }
-  const nextMonth = () => {
-    if (month === 12) { setMonth(1); setYear(y => y + 1) }
-    else setMonth(m => m + 1)
-  }
-
-  const handleAdd = () => {
-    if (!form.amount || !form.category) return
-    addTransaction(form)
-    setForm(f => ({ ...f, amount: '', note: '' }))
-  }
-
-  const filtered = filterCat === 'All' ? monthTxs : monthTxs.filter(t => t.category === filterCat)
-
-  const catBreakdown = categories.map(cat => ({
-    cat,
-    total: monthTxs.filter(t => t.category === cat && t.type === 'expense').reduce((s, t) => s + t.amount, 0)
-  })).filter(x => x.total > 0)
-
-  const selectStyle = {
-    background: 'var(--bg)',
-    border: '1px solid var(--border)',
-    borderRadius: 'var(--radius-sm)',
-    color: 'var(--text)',
-    padding: '7px 10px',
-    fontSize: '13px',
-    fontFamily: 'inherit',
-    outline: 'none',
-    cursor: 'pointer',
-    transition: 'border-color var(--transition)',
+  const goNext = () => {
+    if (view.m === 11) setView({ y: view.y + 1, m: 0 })
+    else setView({ y: view.y, m: view.m + 1 })
   }
 
   return (
-    <div style={{ maxWidth: '960px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-        <h1 style={{ fontSize: '22px', fontWeight: 700, letterSpacing: '-0.4px' }}>Finance</h1>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <button onClick={prevMonth} style={{ color: 'var(--text-muted)', fontSize: '18px', padding: '2px 6px', borderRadius: '6px', transition: 'color var(--transition)' }}>‹</button>
-          <span style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-2)', minWidth: '120px', textAlign: 'center' }}>{monthLabel}</span>
-          <button onClick={nextMonth} style={{ color: 'var(--text-muted)', fontSize: '18px', padding: '2px 6px', borderRadius: '6px', transition: 'color var(--transition)' }}>›</button>
+    <>
+      <div className="page-head">
+        <div>
+          <h1>Finance</h1>
+          <div className="sub" style={{ marginTop: 4 }}>{MONTHS_FULL[view.m]} {view.y}</div>
+        </div>
+        <div className="row" style={{ gap: 8 }}>
+          <button className="btn icon" onClick={goPrev}><IconChevLeft size={14} /></button>
+          <div className="mono" style={{ fontSize: 12, padding: '0 10px', minWidth: 110, textAlign: 'center', color: 'var(--text-mid)' }}>
+            {MONTHS_SHORT[view.m]} {view.y}
+          </div>
+          <button className="btn icon" onClick={goNext}><IconChevRight size={14} /></button>
+          <div style={{ width: 1, height: 22, background: 'var(--border)', margin: '0 4px' }}></div>
+          <button className="btn" onClick={() => setShowCats(true)}><IconTarget size={12} /> Categories</button>
+          <AddTxButton categories={categories} onAdd={addTransaction} />
         </div>
       </div>
 
-      {/* Summary */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px', marginBottom: '10px' }}>
-        {[
-          { label: 'Income', value: income, color: 'var(--accent-green)' },
-          { label: 'Expenses', value: expenses, color: 'var(--accent-red)' },
-          { label: 'Balance', value: balance, color: balance >= 0 ? 'var(--accent-green)' : 'var(--accent-red)' },
-        ].map(({ label, value, color }) => (
-          <Card key={label}>
-            <span className="label">{label}</span>
-            <div className="nums" style={{ fontSize: '20px', fontWeight: 700, color, letterSpacing: '-0.5px', lineHeight: 1 }}>{fmt(value)}</div>
-          </Card>
-        ))}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 16 }}>
+        <FinanceStat label="Income"   value={`€${income.toLocaleString()}`}   sub={`${monthTx.filter(t => t.type === 'income').length} entries`} positive />
+        <FinanceStat label="Expenses" value={`€${expense.toLocaleString()}`}  sub={`${monthTx.filter(t => t.type === 'expense').length} entries`} negative />
+        <FinanceStat label="Balance"  value={`${balance < 0 ? '−' : ''}€${Math.abs(balance).toLocaleString()}`} sub={balance >= 0 ? 'positive' : 'overspent'} positive={balance >= 0} negative={balance < 0} />
       </div>
 
-      {/* Category breakdown */}
-      {catBreakdown.length > 0 && (
-        <Card style={{ marginBottom: '10px' }}>
-          <span className="label">By category</span>
-          {catBreakdown.map(({ cat, total }) => (
-            <div key={cat} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-              <span style={{ fontSize: '12px', color: 'var(--text-2)' }}>{cat}</span>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <div style={{ width: '80px', height: '3px', borderRadius: '2px', background: 'var(--bg-elevated)', overflow: 'hidden' }}>
-                  <div style={{ height: '100%', width: `${Math.min((total / expenses) * 100, 100)}%`, background: 'var(--accent-red)', borderRadius: '2px' }} />
-                </div>
-                <span className="nums" style={{ fontSize: '12px', color: 'var(--text-muted)', width: '76px', textAlign: 'right' }}>{fmt(total)}</span>
-              </div>
-            </div>
-          ))}
-        </Card>
-      )}
-
-      {/* Add transaction */}
-      <Card style={{ marginBottom: '10px' }}>
-        <span className="label">Add transaction</span>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-          <Input type="date" value={form.date} onChange={v => setForm(f => ({ ...f, date: v }))} style={{ width: '148px' }} />
-          <Input type="number" value={form.amount} onChange={v => setForm(f => ({ ...f, amount: v }))} placeholder="Amount €" style={{ width: '108px' }} />
-          <select value={form.type} onChange={e => setForm(f => ({ ...f, type: e.target.value }))} style={selectStyle}>
-            <option value="expense">Expense</option>
-            <option value="income">Income</option>
-          </select>
-          <select value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))} style={selectStyle}>
-            {categories.map(c => <option key={c}>{c}</option>)}
-          </select>
-          <Input value={form.note} onChange={v => setForm(f => ({ ...f, note: v }))} placeholder="Note (optional)" style={{ flex: 1, minWidth: '120px' }} />
-          <Button onClick={handleAdd}>Add</Button>
+      <div className="card" style={{ marginBottom: 16 }}>
+        <div className="card-h">
+          <h3>3-Month Comparison</h3>
+          <div className="row" style={{ gap: 14, fontSize: 11, color: 'var(--muted)' }}>
+            {series.data.map(s => (
+              <span key={s.label} className="row" style={{ gap: 5 }}>
+                <span style={{ width: 8, height: 8, background: s.color, borderRadius: 2 }}></span>{s.label}
+              </span>
+            ))}
+          </div>
         </div>
-      </Card>
+        <MultiLineChart months={series.labels} series={series.data} height={200} />
+      </div>
 
-      {/* Transaction list */}
-      <Card style={{ marginBottom: '10px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-          <span className="label" style={{ marginBottom: 0 }}>Transactions</span>
-          <select value={filterCat} onChange={e => setFilterCat(e.target.value)} style={{ ...selectStyle, padding: '4px 8px', fontSize: '12px' }}>
-            <option>All</option>
-            {categories.map(c => <option key={c}>{c}</option>)}
-          </select>
-        </div>
-        {filtered.length === 0 ? (
-          <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>No transactions this month.</p>
-        ) : (
-          filtered.map(t => (
-            <div key={t.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 0', borderBottom: '1px solid var(--border)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                <span className="nums" style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{t.date}</span>
-                <Badge>{t.category}</Badge>
-                {t.note && <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{t.note}</span>}
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <span className="nums" style={{ fontWeight: 600, color: t.type === 'income' ? 'var(--accent-green)' : 'var(--accent-red)' }}>
-                  {t.type === 'income' ? '+' : '−'}{fmt(t.amount)}
-                </span>
-                <button onClick={() => deleteTransaction(t.id)} style={{ color: 'var(--text-muted)', fontSize: '14px', transition: 'color var(--transition)' }}>×</button>
-              </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+        <div className="card">
+          <div className="card-h">
+            <h3>Category Breakdown</h3>
+            <span className="meta">{catBreakdown.length} categories</span>
+          </div>
+          {catBreakdown.length === 0 ? (
+            <div style={{ padding: 32, textAlign: 'center', color: 'var(--muted)', fontSize: 12 }}>
+              No expenses this month.
             </div>
-          ))
+          ) : (
+            <>
+              <div style={{ display: 'flex', height: 12, borderRadius: 4, overflow: 'hidden', background: 'var(--faint)', marginBottom: 16 }}>
+                {catBreakdown.map(c => (
+                  <div key={c.name} style={{ width: `${c.pct * 100}%`, background: c.color, transition: 'width 200ms' }} title={`${c.name} · €${c.amount}`}></div>
+                ))}
+              </div>
+              <div className="col" style={{ gap: 6 }}>
+                {catBreakdown.map(c => (
+                  <div key={c.name} className="row between" style={{ padding: '4px 0' }}>
+                    <div className="row" style={{ gap: 8 }}>
+                      <span style={{ width: 8, height: 8, background: c.color, borderRadius: 2 }}></span>
+                      <span style={{ fontSize: 12 }}>{c.name}</span>
+                    </div>
+                    <div className="row" style={{ gap: 8 }}>
+                      <span className="mono dim" style={{ fontSize: 11 }}>{Math.round(c.pct * 100)}%</span>
+                      <span className="mono" style={{ fontSize: 12, minWidth: 60, textAlign: 'right' }}>€{c.amount}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+
+        <AddTxForm categories={categories} onAdd={addTransaction} />
+      </div>
+
+      <div className="card">
+        <div className="card-h">
+          <h3>Transactions · {MONTHS_FULL[view.m]} {view.y}</h3>
+          <div className="row" style={{ gap: 8 }}>
+            <select className="select" style={{ width: 'auto', padding: '4px 28px 4px 10px', height: 28, fontSize: 11 }}
+                    value={filterCat} onChange={e => setFilterCat(e.target.value)}>
+              <option value="all">All categories</option>
+              {categories.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '110px 160px 1fr 110px 24px', gap: 12, fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em', padding: '4px 0', borderBottom: '1px solid var(--border)' }}>
+          <span>Date</span><span>Category</span><span>Note</span><span style={{ textAlign: 'right' }}>Amount</span><span></span>
+        </div>
+        {txFiltered.length === 0 && (
+          <div style={{ padding: 40, textAlign: 'center', color: 'var(--muted)', fontSize: 12 }}>No transactions for this filter.</div>
         )}
-      </Card>
+        {txFiltered.map(t => {
+          const color = hashColor(t.category)
+          return (
+            <div key={t.id} className="list-row" style={{ gridTemplateColumns: '110px 160px 1fr 110px 24px' }}>
+              <div className="mono dim">{t.date}</div>
+              <div>
+                <span className="chip" style={{ color, background: `color-mix(in oklab, ${color} 12%, var(--faint))` }}>
+                  <span className="dot" style={{ background: color }}></span>{t.category}
+                </span>
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--text-mid)' }}>{t.note}</div>
+              <div className={'mono ' + (t.type === 'income' ? 'delta pos' : '')} style={{ textAlign: 'right', fontSize: 13 }}>
+                {t.type === 'income' ? '+' : '−'}€{t.amount.toLocaleString()}
+              </div>
+              <button className="btn ghost icon" onClick={() => deleteTransaction(t.id)}>
+                <IconTrash size={12} />
+              </button>
+            </div>
+          )
+        })}
+      </div>
 
-      {/* Category management */}
-      <Card>
-        <span className="label">Categories</span>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '12px' }}>
+      {showCats && (
+        <CategoriesModal
+          categories={categories}
+          onClose={() => setShowCats(false)}
+          onAdd={addCategory}
+          onDelete={deleteCategory}
+          onRename={renameCategory}
+        />
+      )}
+    </>
+  )
+}
+
+function FinanceStat({ label, value, sub, positive, negative }) {
+  const color = positive ? 'var(--accent)' : negative ? 'var(--negative)' : 'var(--text)'
+  return (
+    <div className="card">
+      <div style={{ fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>{label}</div>
+      <div className="num num-lg" style={{ color }}>{value}</div>
+      <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4, fontFamily: 'var(--font-mono)' }}>{sub}</div>
+    </div>
+  )
+}
+
+function AddTxButton({ categories, onAdd }) {
+  return (
+    <button className="btn primary" onClick={() => document.getElementById('add-tx-amount')?.focus()}>
+      <IconPlus size={12} /> Add transaction
+    </button>
+  )
+}
+
+function AddTxForm({ categories, onAdd }) {
+  const [form, setForm] = useState({
+    amount: '',
+    type: 'expense',
+    category: categories[0] || '',
+    date: todayISO(),
+    note: '',
+  })
+
+  const handleAdd = () => {
+    if (!form.amount || !form.category) return
+    onAdd({ ...form, amount: parseFloat(form.amount) })
+    setForm({ ...form, amount: '', note: '' })
+  }
+
+  return (
+    <div className="card">
+      <div className="card-h"><h3>Add Transaction</h3></div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+        <div>
+          <label style={{ fontSize: 11, color: 'var(--muted)' }}>Amount (€)</label>
+          <input
+            id="add-tx-amount"
+            className="input"
+            placeholder="42.50"
+            type="number"
+            value={form.amount}
+            onChange={e => setForm(f => ({ ...f, amount: e.target.value }))}
+            style={{ marginTop: 4 }}
+          />
+        </div>
+        <div>
+          <label style={{ fontSize: 11, color: 'var(--muted)' }}>Type</label>
+          <div className="tabs" style={{ marginTop: 4, width: '100%' }}>
+            <button
+              className={form.type === 'expense' ? 'active' : ''}
+              style={{
+                flex: 1,
+                ...(form.type === 'expense' && { background: 'rgba(248,113,113,0.18)', color: '#f87171', borderColor: '#f87171' }),
+              }}
+              onClick={() => setForm(f => ({ ...f, type: 'expense' }))}
+            >Expense</button>
+            <button
+              className={form.type === 'income' ? 'active' : ''}
+              style={{
+                flex: 1,
+                ...(form.type === 'income' && { background: 'rgba(74,222,128,0.18)', color: 'var(--accent)', borderColor: 'var(--accent)' }),
+              }}
+              onClick={() => setForm(f => ({ ...f, type: 'income' }))}
+            >Income</button>
+          </div>
+        </div>
+        <div>
+          <label style={{ fontSize: 11, color: 'var(--muted)' }}>Category</label>
+          <select className="select" style={{ marginTop: 4 }}
+                  value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))}>
+            {categories.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+        </div>
+        <div>
+          <label style={{ fontSize: 11, color: 'var(--muted)' }}>Date</label>
+          <input className="input" type="date" value={form.date}
+                 onChange={e => setForm(f => ({ ...f, date: e.target.value }))} style={{ marginTop: 4 }} />
+        </div>
+        <div style={{ gridColumn: '1 / -1' }}>
+          <label style={{ fontSize: 11, color: 'var(--muted)' }}>Note</label>
+          <input className="input" placeholder="Optional..." value={form.note}
+                 onChange={e => setForm(f => ({ ...f, note: e.target.value }))} style={{ marginTop: 4 }} />
+        </div>
+        <button className="btn primary" onClick={handleAdd} style={{ gridColumn: '1 / -1', justifyContent: 'center' }}>
+          <IconPlus size={12} /> Add transaction
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function CategoriesModal({ categories, onClose, onAdd, onDelete, onRename }) {
+  const [newName, setNewName] = useState('')
+  const [editingName, setEditingName] = useState(null)
+  const [editValue, setEditValue] = useState('')
+
+  return (
+    <div style={{
+      position: 'fixed', inset: 0,
+      background: 'rgba(0,0,0,0.5)',
+      display: 'grid', placeItems: 'center',
+      zIndex: 1000, backdropFilter: 'blur(2px)',
+    }} onClick={onClose}>
+      <div className="card" style={{ width: 480, maxHeight: '80vh', overflow: 'auto' }} onClick={e => e.stopPropagation()}>
+        <div className="card-h">
+          <h3>Categories</h3>
+          <button className="btn ghost icon" onClick={onClose}><IconX size={14} /></button>
+        </div>
+        <div className="col" style={{ gap: 4 }}>
           {categories.map(c => (
-            <div key={c} style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'var(--bg-elevated)', borderRadius: '6px', padding: '4px 10px' }}>
-              <span style={{ fontSize: '12px', color: 'var(--text-2)' }}>{c}</span>
-              <button onClick={() => deleteCategory(c)} style={{ color: 'var(--text-muted)', fontSize: '13px', lineHeight: 1, marginLeft: '2px', transition: 'color var(--transition)' }}>×</button>
+            <div key={c} className="list-row" style={{ gridTemplateColumns: '24px 1fr 24px 24px', padding: '8px 4px' }}>
+              <span style={{ width: 14, height: 14, background: hashColor(c), borderRadius: 3 }}></span>
+              {editingName === c ? (
+                <input
+                  className="input"
+                  autoFocus
+                  value={editValue}
+                  onChange={e => setEditValue(e.target.value)}
+                  onBlur={() => {
+                    if (editValue.trim() && editValue !== c) onRename(c, editValue.trim())
+                    setEditingName(null)
+                  }}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') e.target.blur()
+                    if (e.key === 'Escape') setEditingName(null)
+                  }}
+                  style={{ background: 'transparent', border: 0, padding: 0, height: 'auto', fontSize: 13 }}
+                />
+              ) : (
+                <span style={{ fontSize: 13 }}>{c}</span>
+              )}
+              <button className="btn ghost icon" onClick={() => { setEditingName(c); setEditValue(c) }}>
+                <IconEdit size={11} />
+              </button>
+              <button className="btn ghost icon" onClick={() => onDelete(c)}>
+                <IconTrash size={11} />
+              </button>
             </div>
           ))}
+          <div className="row" style={{ marginTop: 12, gap: 6 }}>
+            <input
+              className="input"
+              placeholder="New category…"
+              value={newName}
+              onChange={e => setNewName(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter' && newName.trim()) {
+                  onAdd(newName.trim())
+                  setNewName('')
+                }
+              }}
+              style={{ flex: 1 }}
+            />
+            <button className="btn" onClick={() => {
+              if (newName.trim()) { onAdd(newName.trim()); setNewName('') }
+            }}>
+              <IconPlus size={12} /> Add
+            </button>
+          </div>
         </div>
-        <div style={{ display: 'flex', gap: '6px' }}>
-          <Input value={newCat} onChange={setNewCat} placeholder="New category…" style={{ flex: 1 }} />
-          <Button onClick={() => { if (newCat.trim()) { addCategory(newCat.trim()); setNewCat('') } }} variant="secondary">Add</Button>
-        </div>
-      </Card>
+      </div>
     </div>
   )
 }
