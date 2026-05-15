@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { useTrainingStore } from '../../store/useTrainingStore'
 import { useScheduleStore } from '../../store/useScheduleStore'
 import { todayISO, isoWeekDates } from '../../lib/dateUtils'
+import { useDashboard } from '../../lib/DashboardContext'
 
 const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 const PROGRAM_DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
@@ -33,8 +34,9 @@ function dayMonthLabel(dateStr) {
 export function ThisWeekCard() {
   const { log, program, logSession, deleteSession } = useTrainingStore()
   const { weekBlocks, addOneoff, removeOneoff } = useScheduleStore()
+  const { viewDate } = useDashboard()
   const todayStr = todayISO()
-  const week = isoWeekDates()
+  const week = isoWeekDates(new Date(viewDate + 'T00:00:00'))
 
   const [addForm, setAddForm] = useState(null)        // dayIdx | null
   const [draft, setDraft] = useState({ kind: 'class', label: '', start: '09:00', end: '10:00' })

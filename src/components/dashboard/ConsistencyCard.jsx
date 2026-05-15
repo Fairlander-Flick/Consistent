@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react'
 import { useJournalStore } from '../../store/useJournalStore'
-import { useTrainingStore } from '../../store/useTrainingStore'
 import { todayISO } from '../../lib/dateUtils'
+import { useDashboard } from '../../lib/DashboardContext'
 
 const MONTH_LABELS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
 const DOW_LABELS = ['Mon', '', 'Wed', '', 'Fri', '', '']
@@ -64,29 +64,24 @@ function buildTooltip(dateStr, entries) {
 
 export function ConsistencyCard() {
   const { entries } = useJournalStore()
-  const { log: trainingLog } = useTrainingStore()
+  const { viewDate, setViewDate } = useDashboard()
   const todayStr = todayISO()
   const currentYear = new Date().getFullYear()
   const years = Array.from({ length: currentYear - 2025 }, (_, i) => 2026 + i)
   const [selectedYear, setSelectedYear] = useState(currentYear)
   const [hover, setHover] = useState(null)
-  const [selectedDate, setSelectedDate] = useState(null)
 
   const { cells, monthCols, totalCols } = useMemo(
     () => buildYearGrid(selectedYear, entries), [selectedYear, entries]
   )
 
   function handleCellClick(dateStr) {
-    if (dateStr === todayStr || dateStr === selectedDate) {
-      setSelectedDate(null)
+    if (dateStr === viewDate || dateStr === todayStr) {
+      setViewDate(todayStr)
     } else {
-      setSelectedDate(dateStr)
+      setViewDate(dateStr)
     }
   }
-
-  const selectedEntry = selectedDate ? entries.find(e => e.date === selectedDate) : null
-  const selectedSession = selectedDate ? trainingLog.find(l => l.date === selectedDate) : null
-  const hasSelectedData = selectedEntry || selectedSession
 
   return (
     <div className="card area-contrib">
@@ -102,7 +97,6 @@ export function ConsistencyCard() {
       </div>
 
       <div style={{ display: 'flex', gap: 8, overflowX: 'auto' }}>
-        {/* Day-of-week gutter */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: GAP, marginTop: 18, flexShrink: 0 }}>
           {DOW_LABELS.map((lbl, i) => (
             <div key={i} style={{ height: CELL, fontSize: 9, color: 'var(--muted)', fontFamily: 'var(--font-mono)', lineHeight: `${CELL}px`, width: 24, textAlign: 'right' }}>
@@ -112,7 +106,6 @@ export function ConsistencyCard() {
         </div>
 
         <div style={{ flexShrink: 0 }}>
-          {/* Floating month labels */}
           <div style={{ position: 'relative', height: 14, marginBottom: 4, width: totalCols * PITCH }}>
             {monthCols.map(({ label, col }) => (
               <div key={label} style={{
@@ -124,7 +117,6 @@ export function ConsistencyCard() {
             ))}
           </div>
 
-          {/* Grid */}
           <div style={{
             display: 'grid',
             gridTemplateRows: `repeat(7, ${CELL}px)`,
@@ -140,12 +132,11 @@ export function ConsistencyCard() {
                 className="cg-square"
                 data-fill={cell.level}
                 data-today={cell.dateStr === todayStr ? '1' : '0'}
-                data-selected={cell.dateStr === selectedDate ? '1' : '0'}
                 style={{
                   width: CELL,
                   height: CELL,
                   cursor: 'pointer',
-                  outline: cell.dateStr === selectedDate ? '1.5px solid var(--accent)' : 'none',
+                  outline: cell.dateStr === viewDate && viewDate !== todayStr ? '1.5px solid var(--accent)' : 'none',
                   outlineOffset: '1px',
                 }}
                 onMouseEnter={(e) => setHover({ dateStr: cell.dateStr, rect: e.currentTarget.getBoundingClientRect() })}
@@ -157,8 +148,7 @@ export function ConsistencyCard() {
         </div>
       </div>
 
-      {/* Tooltip */}
-      {hover && !selectedDate && (
+      {hover && (
         <div
           className="tt"
           style={{
@@ -175,64 +165,6 @@ export function ConsistencyCard() {
         </div>
       )}
 
-      {/* Selected day detail */}
-      {selectedDate && (
-        <div style={{
-          marginTop: 12,
-          padding: '10px 12px',
-          background: 'var(--bg)',
-          borderRadius: 6,
-          border: '1px solid var(--border)',
-          fontSize: 12,
-        }}>
-          <div className="row between" style={{ marginBottom: hasSelectedData ? 8 : 0 }}>
-            <div style={{ fontWeight: 600, fontSize: 13 }}>
-              {new Date(selectedDate + 'T00:00:00').toLocaleString('en', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
-            </div>
-            <button
-              className="btn ghost sm"
-              style={{ padding: '2px 8px', fontSize: 11 }}
-              onClick={() => setSelectedDate(null)}
-            >
-              ✕ Close
-            </button>
-          </div>
-          {!hasSelectedData && (
-            <div style={{ color: 'var(--muted)' }}>No data logged for this day.</div>
-          )}
-          {hasSelectedData && (
-            <div className="row" style={{ gap: 20, flexWrap: 'wrap' }}>
-              {selectedEntry?.score != null && (
-                <div>
-                  <div style={{ fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Score</div>
-                  <div className="num" style={{ fontSize: 16, color: 'var(--accent)' }}>{selectedEntry.score}<span style={{ fontSize: 11, color: 'var(--muted)' }}>/10</span></div>
-                </div>
-              )}
-              {selectedEntry?.sleepHours != null && (
-                <div>
-                  <div style={{ fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Sleep</div>
-                  <div className="num" style={{ fontSize: 16 }}>{selectedEntry.sleepHours}<span style={{ fontSize: 11, color: 'var(--muted)' }}>h</span></div>
-                </div>
-              )}
-              {selectedSession && (
-                <div>
-                  <div style={{ fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Training</div>
-                  <div style={{ fontSize: 13, fontWeight: 500 }}>
-                    {selectedSession.exercises.length} exercises ·{' '}
-                    <span className="mono" style={{ fontSize: 12 }}>
-                      {selectedSession.exercises
-                        .reduce((s, e) => s + e.sets.reduce((vs, set) => vs + set.reps * set.weight, 0), 0)
-                        .toLocaleString()} kg
-                    </span>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Legend */}
       <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 6, marginTop: 12, fontSize: 11, color: 'var(--muted)' }}>
         <span>Less</span>
         {[0, 1, 2, 3, 4].map(l => (

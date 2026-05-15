@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useJournalStore } from '../../store/useJournalStore'
+import { useDashboard } from '../../lib/DashboardContext'
+import { todayISO } from '../../lib/dateUtils'
 
 const MONTH_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
 const DAY_SHORT = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
@@ -10,12 +12,70 @@ const NUTRITION = [
 ]
 const NUTRITION_LABEL = Object.fromEntries(NUTRITION.map(n => [n.value, n.label]))
 
+function dateLabel(iso) {
+  const d = new Date(iso + 'T00:00:00')
+  return `${MONTH_SHORT[d.getMonth()]} ${d.getDate()} · ${DAY_SHORT[d.getDay()]}`
+}
+
+function ReadOnlyView({ entry, label }) {
+  return (
+    <div className="card area-journal">
+      <div className="card-h">
+        <h3>Journal</h3>
+        <span className="meta">{label}</span>
+      </div>
+      {!entry ? (
+        <div style={{ padding: '32px 0', textAlign: 'center', color: 'var(--muted)', fontSize: 13 }}>
+          No journal entry for this day.
+        </div>
+      ) : (
+        <>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 16 }}>
+            <div style={{ background: 'var(--bg)', border: '1px solid var(--border-strong)', borderRadius: 6, padding: '10px 12px' }}>
+              <div style={{ fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>Score</div>
+              <div className="num num-md">{entry.score ?? '—'}<span style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 400 }}> / 10</span></div>
+            </div>
+            <div style={{ background: 'var(--bg)', border: '1px solid var(--border-strong)', borderRadius: 6, padding: '10px 12px' }}>
+              <div style={{ fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>Sleep</div>
+              <div className="num num-md">{entry.sleepHours ?? '—'}<span style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 400 }}> h</span></div>
+            </div>
+            <div style={{ background: 'var(--bg)', border: '1px solid var(--border-strong)', borderRadius: 6, padding: '10px 12px' }}>
+              <div style={{ fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>Nutrition</div>
+              <div style={{ fontSize: 13 }}>{entry.nutrition ? NUTRITION_LABEL[entry.nutrition] : '—'}</div>
+            </div>
+          </div>
+          <div style={{ fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>
+            How you felt
+          </div>
+          <div style={{
+            background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 6,
+            padding: 12, minHeight: 90, fontFamily: 'var(--font-mono)', fontSize: 12,
+            color: 'var(--text-mid)', whiteSpace: 'pre-wrap',
+          }}>
+            {entry.feelings || <span style={{ color: 'var(--muted)' }}>—</span>}
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
 export function JournalCard() {
-  const { getTodayEntry, submitToday, editToday } = useJournalStore()
+  const { entries, getTodayEntry, submitToday, editToday } = useJournalStore()
+  const { viewDate } = useDashboard()
+  const todayStr = todayISO()
+  const isViewingPast = viewDate !== todayStr
+
+  if (isViewingPast) {
+    const pastEntry = entries.find(e => e.date === viewDate) ?? null
+    return <ReadOnlyView entry={pastEntry} label={dateLabel(viewDate)} />
+  }
+
+  // ── Today's interactive view ──────────────────────────────
   const entry = getTodayEntry()
   const submitted = !!entry.submitted
   const today = new Date()
-  const dateLabel = `${MONTH_SHORT[today.getMonth()]} ${today.getDate()} · ${DAY_SHORT[today.getDay()]}`
+  const label = `${MONTH_SHORT[today.getMonth()]} ${today.getDate()} · ${DAY_SHORT[today.getDay()]}`
 
   const [local, setLocal] = useState({
     score: entry.score,
@@ -25,8 +85,6 @@ export function JournalCard() {
   })
   const [sleepEditing, setSleepEditing] = useState(false)
 
-  // Re-sync the form from the stored entry when it (re)opens — covers
-  // "Edit today" and the implicit day-rollover (new date → empty entry).
   useEffect(() => {
     if (submitted) return
     setLocal({
@@ -45,7 +103,7 @@ export function JournalCard() {
       <div className="card area-journal">
         <div className="card-h">
           <h3>Today's Journal</h3>
-          <span className="meta">{dateLabel}</span>
+          <span className="meta">{label}</span>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 16 }}>
           <div style={{ background: 'var(--bg)', border: '1px solid var(--border-strong)', borderRadius: 6, padding: '10px 12px' }}>
@@ -82,11 +140,10 @@ export function JournalCard() {
     <div className="card area-journal">
       <div className="card-h">
         <h3>Today's Journal</h3>
-        <span className="meta">{dateLabel}</span>
+        <span className="meta">{label}</span>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 16 }}>
-        {/* Score */}
         <div style={{ background: 'var(--bg)', border: '1px solid var(--border-strong)', borderRadius: 6, padding: '10px 12px' }}>
           <div style={{ fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>Score</div>
           <div className="num num-md" style={{ marginBottom: 8 }}>
@@ -102,7 +159,6 @@ export function JournalCard() {
           />
         </div>
 
-        {/* Sleep */}
         <div style={{ background: 'var(--bg)', border: '1px solid var(--border-strong)', borderRadius: 6, padding: '10px 12px' }}>
           <div style={{ fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>Sleep</div>
           {sleepEditing ? (
@@ -128,11 +184,10 @@ export function JournalCard() {
           </div>
         </div>
 
-        {/* Nutrition */}
         <div style={{ background: 'var(--bg)', border: '1px solid var(--border-strong)', borderRadius: 6, padding: '10px 12px' }}>
           <div style={{ fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>Nutrition</div>
           <div className="col" style={{ gap: 6 }}>
-            {NUTRITION.map(({ value, label, bg, color }) => (
+            {NUTRITION.map(({ value, label: lbl, bg, color }) => (
               <button
                 key={value}
                 onClick={() => setLocal(p => ({ ...p, nutrition: p.nutrition === value ? null : value }))}
@@ -144,7 +199,7 @@ export function JournalCard() {
                   cursor: 'pointer', textAlign: 'left', transition: 'all 120ms',
                 }}
               >
-                {label}
+                {lbl}
               </button>
             ))}
           </div>
