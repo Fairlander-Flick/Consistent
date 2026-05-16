@@ -5,6 +5,7 @@ import { useScheduleStore } from '../store/useScheduleStore'
 import { useJournalStore } from '../store/useJournalStore'
 import { todayISO, isoToDisplay } from '../lib/dateUtils'
 import { trendSeries, sleepScoreInsight, correlationLabel } from '../lib/wellbeing'
+import { listExercises, exerciseProgression, personalRecords } from '../lib/progression'
 import { WeightChart } from '../components/ui/Widgets'
 import {
   IconPlus, IconCheck, IconTrash, IconEdit, IconChevRight,
@@ -262,12 +263,125 @@ function TrainingSection() {
           <button className={tab === 'today' ? 'active' : ''} onClick={() => setTab('today')}>Today's session</button>
           <button className={tab === 'program' ? 'active' : ''} onClick={() => setTab('program')}>Program editor</button>
           <button className={tab === 'history' ? 'active' : ''} onClick={() => setTab('history')}>History</button>
+          <button className={tab === 'progress' ? 'active' : ''} onClick={() => setTab('progress')}>Progress</button>
         </div>
       </div>
       {tab === 'today' && <DailyLog />}
       {tab === 'program' && <ProgramEditor />}
       {tab === 'history' && <HistoryList />}
+      {tab === 'progress' && <ProgressionView />}
     </>
+  )
+}
+
+// ── Progression / PR tracking ───────────────────────────────
+const PROG_METRICS = [
+  { key: 'best1RM', label: 'Est. 1RM', unit: 'kg' },
+  { key: 'topWeight', label: 'Top weight', unit: 'kg' },
+  { key: 'volume', label: 'Volume', unit: 'kg' },
+]
+
+function ProgressionView() {
+  const { log } = useTrainingStore()
+  const exercises = useMemo(() => listExercises(log), [log])
+  const [exercise, setExercise] = useState('')
+  const [metricKey, setMetricKey] = useState('best1RM')
+
+  const selected = exercise && exercises.includes(exercise) ? exercise : exercises[0]
+  const metric = PROG_METRICS.find(m => m.key === metricKey)
+
+  const prog = useMemo(
+    () => (selected ? exerciseProgression(log, selected) : []),
+    [log, selected]
+  )
+  const pr = useMemo(
+    () => (selected ? personalRecords(log, selected) : null),
+    [log, selected]
+  )
+  const chartData = prog.map(p => ({ date: p.date, value: p[metricKey] }))
+
+  if (exercises.length === 0) {
+    return (
+      <div className="card" style={{ padding: 48, textAlign: 'center' }}>
+        <div className="num num-lg">No data yet</div>
+        <div style={{ color: 'var(--muted)', fontSize: 13, marginTop: 8 }}>
+          Log a few sessions with weights to track progression and personal records.
+        </div>
+      </div>
+    )
+  }
+
+  const first = prog[0]?.[metricKey]
+  const last = prog[prog.length - 1]?.[metricKey]
+  const change = first != null && last != null ? last - first : null
+
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 16, alignItems: 'start' }}>
+      <div className="col gap-4">
+        <div className="card">
+          <div className="card-h">
+            <h3>{selected} · {metric.label}</h3>
+            <div className="tabs">
+              {PROG_METRICS.map(m => (
+                <button key={m.key} className={m.key === metricKey ? 'active' : ''} onClick={() => setMetricKey(m.key)}>
+                  {m.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          {chartData.length >= 2 ? (
+            <>
+              <WeightChart data={chartData} height={240} />
+              {change != null && (
+                <div style={{ fontSize: 12, color: 'var(--text-mid)', marginTop: 10 }}>
+                  {metric.label} {change >= 0 ? 'up' : 'down'}{' '}
+                  <strong style={{ color: change >= 0 ? 'var(--accent)' : 'var(--negative)' }}>
+                    {change >= 0 ? '+' : ''}{change.toFixed(1)} {metric.unit}
+                  </strong>{' '}
+                  over {prog.length} sessions.
+                </div>
+              )}
+            </>
+          ) : (
+            <div style={{ padding: 32, textAlign: 'center', color: 'var(--muted)', fontSize: 12 }}>
+              Log at least two sessions of {selected} to see progression.
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="col gap-4">
+        <div className="card">
+          <div className="card-h"><h3>Exercise</h3></div>
+          <select className="select" value={selected} onChange={e => setExercise(e.target.value)}>
+            {exercises.map(name => <option key={name} value={name}>{name}</option>)}
+          </select>
+        </div>
+
+        {pr && (
+          <div className="card">
+            <div className="card-h"><h3>Personal records</h3><span className="meta">{pr.sessions} sessions</span></div>
+            <div className="col gap-3">
+              <PrRow label="Best est. 1RM" value={`${pr.best1RM} kg`} date={pr.best1RMDate} />
+              <PrRow label="Top weight" value={`${pr.topWeight} kg`} date={pr.topWeightDate} />
+              <PrRow label="Best volume" value={`${Math.round(pr.bestVolume).toLocaleString()} kg`} date={pr.bestVolumeDate} />
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function PrRow({ label, value, date }) {
+  return (
+    <div className="row between">
+      <div>
+        <div style={{ fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{label}</div>
+        <div className="num num-md" style={{ marginTop: 2 }}>{value}</div>
+      </div>
+      <div className="mono dim" style={{ fontSize: 11 }}>{isoToDisplay(date)}</div>
+    </div>
   )
 }
 
