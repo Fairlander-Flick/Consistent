@@ -39,7 +39,10 @@ export function Finance() {
   const { sym, fmt } = useMoney()
 
   const monthKey = `${view.y}-${String(view.m + 1).padStart(2, '0')}`
-  const monthTx = transactions.filter(t => t.date.startsWith(monthKey))
+  const monthTx = useMemo(
+    () => transactions.filter(t => t.date.startsWith(monthKey)),
+    [transactions, monthKey]
+  )
   const txFiltered = filterCat === 'all' ? monthTx : monthTx.filter(t => t.category === filterCat)
 
   const income = monthTx.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0)

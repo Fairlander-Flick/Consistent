@@ -33,10 +33,10 @@ function dayMonthLabel(dateStr) {
 
 export function ThisWeekCard() {
   const { log, program, logSession, deleteSession } = useTrainingStore()
-  const { weekBlocks, addOneoff, removeOneoff } = useScheduleStore()
+  const { weekBlocks, addOneoff, removeOneoff, recurring, oneoffs } = useScheduleStore()
   const { viewDate } = useDashboard()
   const todayStr = todayISO()
-  const week = isoWeekDates(new Date(viewDate + 'T00:00:00'))
+  const week = useMemo(() => isoWeekDates(new Date(viewDate + 'T00:00:00')), [viewDate])
 
   const [addForm, setAddForm] = useState(null)        // dayIdx | null
   const [draft, setDraft] = useState({ kind: 'class', label: '', start: '09:00', end: '10:00' })
@@ -52,7 +52,8 @@ export function ThisWeekCard() {
   }), [week, log, program, todayStr])
 
   const perDay = weekBlocks(week)
-  const allBlocks = perDay.flat()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const allBlocks = useMemo(() => weekBlocks(week).flat(), [weekBlocks, week, recurring, oneoffs])
 
   const { gridStartMin, gridEndMin } = useMemo(() => {
     if (allBlocks.length === 0) return { gridStartMin: 8 * 60, gridEndMin: 18 * 60 }
