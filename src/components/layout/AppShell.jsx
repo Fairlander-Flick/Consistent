@@ -7,7 +7,7 @@ import { useDailyReminder } from '../../lib/useDailyReminder'
 
 export function AppShell() {
   const { init } = useSettingsStore()
-  useEffect(() => { init() }, [])
+  useEffect(() => { init() }, [init])
   useDailyReminder()
 
   return (
