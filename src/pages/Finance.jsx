@@ -10,6 +10,7 @@ import {
 
 const MONTHS_FULL = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
 const MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+const DAY_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
 const CAT_PALETTE = ['#4ade80', '#22d3ee', '#818cf8', '#f59e0b', '#f472b6', '#fb923c', '#a78bfa', '#60a5fa', '#34d399', '#94a3b8', '#f87171']
 
@@ -23,12 +24,19 @@ function daysInMonth(year, month) {
   return new Date(year, month + 1, 0).getDate()
 }
 
+function dayLabel(isoDate) {
+  const d = new Date(isoDate + 'T00:00:00')
+  return `${MONTHS_SHORT[d.getMonth()]} ${d.getDate()} · ${DAY_SHORT[d.getDay()]}`
+}
+
 export function Finance() {
   const today = new Date()
   const [view, setView] = useState({ y: today.getFullYear(), m: today.getMonth() })
   const [section, setSection] = useState('overview')
   const [showCats, setShowCats] = useState(false)
   const [filterCat, setFilterCat] = useState('all')
+  const [txView, setTxView] = useState('daily')
+  const [pendingDelete, setPendingDelete] = useState(null) // full tx object
 
   const {
     categories, transactions, recurring, budgets,
@@ -71,6 +79,21 @@ export function Finance() {
       })
       .sort((a, b) => b.amount - a.amount)
   }, [monthTx, expense, budgets])
+
+  const txByDay = useMemo(() => {
+    const days = {}
+    txFiltered.forEach(t => {
+      if (!days[t.date]) days[t.date] = []
+      days[t.date].push(t)
+    })
+    return Object.entries(days)
+      .sort(([a], [b]) => b.localeCompare(a))
+      .map(([date, txs]) => {
+        const inc = txs.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0)
+        const exp = txs.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0)
+        return { date, txs, inc, exp, net: inc - exp }
+      })
+  }, [txFiltered])
 
   const series = useMemo(() => {
     const months = []
@@ -243,10 +266,14 @@ export function Finance() {
             <AddTxForm categories={categories} onAdd={addTransaction} />
           </div>
 
-          <div className="card">
+          <div className="card" style={{ overflow: 'hidden' }}>
             <div className="card-h">
               <h3>Transactions · {MONTHS_FULL[view.m]} {view.y}</h3>
               <div className="row" style={{ gap: 8 }}>
+                <div className="tabs">
+                  <button className={txView === 'daily' ? 'active' : ''} onClick={() => setTxView('daily')}>Daily</button>
+                  <button className={txView === 'list' ? 'active' : ''} onClick={() => setTxView('list')}>List</button>
+                </div>
                 <select className="select" style={{ width: 'auto', padding: '4px 28px 4px 10px', height: 28, fontSize: 11 }}
                         value={filterCat} onChange={e => setFilterCat(e.target.value)}>
                   <option value="all">All categories</option>
@@ -254,32 +281,66 @@ export function Finance() {
                 </select>
               </div>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '110px 160px 1fr 110px 24px', gap: 12, fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em', padding: '4px 0', borderBottom: '1px solid var(--border)' }}>
-              <span>Date</span><span>Category</span><span>Note</span><span style={{ textAlign: 'right' }}>Amount</span><span></span>
-            </div>
+
             {txFiltered.length === 0 && (
               <div style={{ padding: 40, textAlign: 'center', color: 'var(--muted)', fontSize: 12 }}>No transactions for this filter.</div>
             )}
-            {txFiltered.map(t => {
-              const color = hashColor(t.category)
-              return (
-                <div key={t.id} className="list-row" style={{ gridTemplateColumns: '110px 160px 1fr 110px 24px' }}>
-                  <div className="mono dim">{t.date}</div>
-                  <div>
-                    <span className="chip" style={{ color, background: `color-mix(in oklab, ${color} 12%, var(--faint))` }}>
-                      <span className="dot" style={{ background: color }}></span>{t.category}
-                    </span>
-                  </div>
-                  <div style={{ fontSize: 12, color: 'var(--text-mid)' }}>{t.note}</div>
-                  <div className={'mono ' + (t.type === 'income' ? 'delta pos' : '')} style={{ textAlign: 'right', fontSize: 13 }}>
-                    {t.type === 'income' ? '+' : '−'}{sym}{t.amount.toLocaleString()}
-                  </div>
-                  <button className="btn ghost icon" onClick={() => deleteTransaction(t.id)}>
-                    <IconTrash size={12} />
-                  </button>
+
+            {txFiltered.length > 0 && txView === 'list' && (
+              <>
+                <div style={{ display: 'grid', gridTemplateColumns: '110px 160px 1fr 110px 24px', gap: 12, fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em', padding: '4px 0', borderBottom: '1px solid var(--border)' }}>
+                  <span>Date</span><span>Category</span><span>Note</span><span style={{ textAlign: 'right' }}>Amount</span><span></span>
                 </div>
-              )
-            })}
+                {txFiltered.map(t => <TxRow key={t.id} t={t} sym={sym} pending={pendingDelete?.id === t.id} onPend={() => setPendingDelete(t)} onCancelPend={() => setPendingDelete(null)} />)}
+              </>
+            )}
+
+            {txFiltered.length > 0 && txView === 'daily' && txByDay.map(day => (
+              <div key={day.date}>
+                <div style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  padding: '10px 0 6px', borderBottom: '1px solid var(--border)',
+                  marginTop: 4,
+                }}>
+                  <span style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--text-mid)', fontWeight: 600 }}>
+                    {dayLabel(day.date)}
+                  </span>
+                  <div className="row" style={{ gap: 12 }}>
+                    {day.inc > 0 && <span className="mono delta pos" style={{ fontSize: 11 }}>+{sym}{day.inc.toLocaleString()}</span>}
+                    {day.exp > 0 && <span className="mono" style={{ fontSize: 11, color: 'var(--negative)' }}>−{sym}{day.exp.toLocaleString()}</span>}
+                    {day.inc > 0 && day.exp > 0 && (
+                      <span className={'mono ' + (day.net >= 0 ? 'delta pos' : '')} style={{ fontSize: 11, color: day.net < 0 ? 'var(--negative)' : undefined }}>
+                        net {day.net >= 0 ? '+' : '−'}{sym}{Math.abs(day.net).toLocaleString()}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                {day.txs.map(t => <TxRow key={t.id} t={t} sym={sym} hideDate pending={pendingDelete?.id === t.id} onPend={() => setPendingDelete(t)} onCancelPend={() => setPendingDelete(null)} />)}
+              </div>
+            ))}
+
+            {pendingDelete && (
+              <div style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                padding: '10px 0 0', borderTop: '1px solid var(--border)',
+                marginTop: 8, gap: 12,
+              }}>
+                <span style={{ fontSize: 12, color: 'var(--muted)' }}>
+                  Delete <span style={{ color: pendingDelete.type === 'income' ? 'var(--accent)' : 'var(--negative)', fontFamily: 'var(--font-mono)' }}>
+                    {pendingDelete.type === 'income' ? '+' : '−'}{sym}{pendingDelete.amount.toLocaleString()}
+                  </span>
+                  {pendingDelete.note ? <span style={{ color: 'var(--text-mid)' }}> · {pendingDelete.note}</span> : null}?
+                </span>
+                <div className="row" style={{ gap: 6 }}>
+                  <button className="btn ghost sm" onClick={() => setPendingDelete(null)}>Cancel</button>
+                  <button
+                    className="btn sm"
+                    style={{ background: 'rgba(248,113,113,0.15)', color: 'var(--negative)', borderColor: 'rgba(248,113,113,0.4)' }}
+                    onClick={() => { deleteTransaction(pendingDelete.id); setPendingDelete(null) }}
+                  >Delete</button>
+                </div>
+              </div>
+            )}
           </div>
         </>
       )}
@@ -308,6 +369,41 @@ export function Finance() {
         />
       )}
     </>
+  )
+}
+
+// ── Transaction row ─────────────────────────────────────────
+
+function TxRow({ t, sym, pending, hideDate, onPend, onCancelPend }) {
+  const color = hashColor(t.category)
+  return (
+    <div
+      className="list-row"
+      style={{
+        gridTemplateColumns: hideDate ? '160px 1fr 110px 24px' : '110px 160px 1fr 110px 24px',
+        background: pending ? 'rgba(248,113,113,0.06)' : undefined,
+        transition: 'background 120ms',
+      }}
+    >
+      {!hideDate && <div className="mono dim">{t.date}</div>}
+      <div>
+        <span className="chip" style={{ color, background: `color-mix(in oklab, ${color} 12%, var(--faint))` }}>
+          <span className="dot" style={{ background: color }}></span>{t.category}
+        </span>
+      </div>
+      <div style={{ fontSize: 12, color: 'var(--text-mid)' }}>{t.note}</div>
+      <div className={'mono ' + (t.type === 'income' ? 'delta pos' : '')} style={{ textAlign: 'right', fontSize: 13 }}>
+        {t.type === 'income' ? '+' : '−'}{sym}{t.amount.toLocaleString()}
+      </div>
+      <button
+        className="btn ghost icon"
+        style={pending ? { color: 'var(--negative)' } : {}}
+        onClick={pending ? onCancelPend : onPend}
+        title={pending ? 'Cancel' : 'Delete'}
+      >
+        <IconTrash size={12} />
+      </button>
+    </div>
   )
 }
 
