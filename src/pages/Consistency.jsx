@@ -2,7 +2,9 @@ import { useState, useMemo } from 'react'
 import { useWeightStore } from '../store/useWeightStore'
 import { useTrainingStore } from '../store/useTrainingStore'
 import { useScheduleStore } from '../store/useScheduleStore'
+import { useJournalStore } from '../store/useJournalStore'
 import { todayISO, isoToDisplay } from '../lib/dateUtils'
+import { trendSeries, sleepScoreInsight, correlationLabel } from '../lib/wellbeing'
 import { WeightChart } from '../components/ui/Widgets'
 import {
   IconPlus, IconCheck, IconTrash, IconEdit, IconChevRight,
@@ -23,11 +25,13 @@ export function Consistency() {
         <div className="tabs" style={{ fontSize: 12 }}>
           <button className={section === 'training' ? 'active' : ''} onClick={() => setSection('training')}>Training</button>
           <button className={section === 'weight' ? 'active' : ''} onClick={() => setSection('weight')}>Weight log</button>
+          <button className={section === 'wellbeing' ? 'active' : ''} onClick={() => setSection('wellbeing')}>Wellbeing</button>
         </div>
       </div>
 
       {section === 'weight' && <WeightSection />}
       {section === 'training' && <TrainingSection />}
+      {section === 'wellbeing' && <WellbeingSection />}
     </>
   )
 }
@@ -155,6 +159,95 @@ function StatBlock({ label, value, color }) {
     <div>
       <div style={{ fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{label}</div>
       <div className="num num-md" style={{ marginTop: 4, color }}>{value}</div>
+    </div>
+  )
+}
+
+// ── Wellbeing section (sleep & mood trends) ─────────────────
+function WellbeingSection() {
+  const { entries } = useJournalStore()
+
+  const sleepData = useMemo(() => trendSeries(entries, 'sleepHours'), [entries])
+  const scoreData = useMemo(() => trendSeries(entries, 'score'), [entries])
+  const insight = useMemo(() => sleepScoreInsight(entries), [entries])
+
+  const sleepAvg = sleepData.length
+    ? sleepData.reduce((s, d) => s + d.value, 0) / sleepData.length : null
+  const scoreAvg = scoreData.length
+    ? scoreData.reduce((s, d) => s + d.value, 0) / scoreData.length : null
+
+  const delta = insight.restedAvg != null && insight.shortAvg != null
+    ? insight.restedAvg - insight.shortAvg : null
+
+  return (
+    <div className="col gap-4">
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+        <div className="card">
+          <div className="card-h">
+            <h3>Sleep trend</h3>
+            <span className="meta">{sleepAvg != null ? `avg ${sleepAvg.toFixed(1)} h` : `${sleepData.length} pts`}</span>
+          </div>
+          {sleepData.length >= 2 ? (
+            <WeightChart data={sleepData} height={220} />
+          ) : (
+            <div style={{ padding: 32, textAlign: 'center', color: 'var(--muted)', fontSize: 12 }}>
+              Log sleep on at least two days to see a trend.
+            </div>
+          )}
+        </div>
+
+        <div className="card">
+          <div className="card-h">
+            <h3>Mood trend</h3>
+            <span className="meta">{scoreAvg != null ? `avg ${scoreAvg.toFixed(1)} / 10` : `${scoreData.length} pts`}</span>
+          </div>
+          {scoreData.length >= 2 ? (
+            <WeightChart data={scoreData} height={220} />
+          ) : (
+            <div style={{ padding: 32, textAlign: 'center', color: 'var(--muted)', fontSize: 12 }}>
+              Rate at least two days to see a trend.
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="card-h">
+          <h3>Sleep × mood</h3>
+          <span className="meta">{insight.n} matched {insight.n === 1 ? 'day' : 'days'}</span>
+        </div>
+        {insight.n < 3 ? (
+          <div style={{ padding: 24, textAlign: 'center', color: 'var(--muted)', fontSize: 12 }}>
+            Log sleep and a day score together for a few days to unlock this insight.
+          </div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16 }}>
+            <StatBlock
+              label={`≥ ${insight.threshold}h nights`}
+              value={insight.restedAvg != null ? insight.restedAvg.toFixed(1) : '—'}
+              color="var(--accent)"
+            />
+            <StatBlock
+              label={`< ${insight.threshold}h nights`}
+              value={insight.shortAvg != null ? insight.shortAvg.toFixed(1) : '—'}
+              color={delta != null && delta > 0 ? 'var(--negative)' : undefined}
+            />
+            <StatBlock
+              label="Correlation"
+              value={insight.r != null ? insight.r.toFixed(2) : '—'}
+            />
+            <div style={{ gridColumn: '1 / -1', fontSize: 12, color: 'var(--text-mid)', marginTop: 4 }}>
+              {delta != null && Math.abs(delta) >= 0.1 ? (
+                <>You score <strong style={{ color: delta > 0 ? 'var(--accent)' : 'var(--negative)' }}>
+                  {Math.abs(delta).toFixed(1)} pts {delta > 0 ? 'higher' : 'lower'}
+                </strong> on days after {insight.threshold}h+ of sleep — {correlationLabel(insight.r)}.</>
+              ) : (
+                <>Sleep shows {correlationLabel(insight.r)} with your day score so far.</>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   )
 }
