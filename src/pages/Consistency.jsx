@@ -3,7 +3,9 @@ import { useWeightStore } from '../store/useWeightStore'
 import { useTrainingStore } from '../store/useTrainingStore'
 import { useScheduleStore } from '../store/useScheduleStore'
 import { useJournalStore } from '../store/useJournalStore'
+import { useSettingsStore } from '../store/useSettingsStore'
 import { todayISO, isoToDisplay } from '../lib/dateUtils'
+import { weightProgress } from '../lib/weightGoal'
 import { trendSeries, sleepScoreInsight, correlationLabel } from '../lib/wellbeing'
 import { listExercises, exerciseProgression, personalRecords } from '../lib/progression'
 import { WeightChart } from '../components/ui/Widgets'
@@ -40,8 +42,11 @@ export function Consistency() {
 // ── Weight section ──────────────────────────────────────────
 function WeightSection() {
   const { entries, addEntry, deleteEntry } = useWeightStore()
+  const weightTarget = useSettingsStore(s => s.weightTarget)
   const [val, setVal] = useState('')
   const [date, setDate] = useState(todayISO())
+
+  const goal = useMemo(() => weightProgress(entries, weightTarget), [entries, weightTarget])
 
   const sorted = useMemo(() => [...entries].sort((a, b) => a.date.localeCompare(b.date)), [entries])
   const chartData = sorted.length >= 2
@@ -148,6 +153,50 @@ function WeightSection() {
               <StatBlock label="Min" value={stats.min.toFixed(1)} />
               <StatBlock label="Max" value={stats.max.toFixed(1)} />
             </div>
+          </div>
+        )}
+
+        {goal && (
+          <div className="card">
+            <div className="card-h">
+              <h3>Goal</h3>
+              <span className="meta">{goal.target.toFixed(1)} kg</span>
+            </div>
+            {goal.reached ? (
+              <div style={{ padding: '12px 0', textAlign: 'center' }}>
+                <div className="num num-lg" style={{ color: 'var(--accent)' }}>Reached 🎉</div>
+                <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 6 }}>
+                  You're at your {goal.target.toFixed(1)} kg target.
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="row between" style={{ marginBottom: 8 }}>
+                  <span className="num num-md">{goal.current.toFixed(1)} kg</span>
+                  <span className="mono dim" style={{ fontSize: 12 }}>
+                    {Math.abs(goal.remaining).toFixed(1)} kg to go
+                  </span>
+                </div>
+                <div style={{ height: 6, borderRadius: 3, background: 'var(--faint)', overflow: 'hidden' }}>
+                  <div style={{
+                    width: `${Math.round(goal.pct * 100)}%`,
+                    height: '100%',
+                    background: 'var(--accent)',
+                    transition: 'width 240ms',
+                  }} />
+                </div>
+                <div className="row between" style={{ marginTop: 8, fontSize: 11, color: 'var(--muted)' }}>
+                  <span className="mono">{Math.round(goal.pct * 100)}% there</span>
+                  <span className="mono">
+                    {goal.etaDate
+                      ? `ETA ${isoToDisplay(goal.etaDate)}`
+                      : goal.ratePerWeek != null
+                        ? `${goal.ratePerWeek >= 0 ? '+' : ''}${goal.ratePerWeek.toFixed(2)} kg/wk`
+                        : 'log more to project'}
+                  </span>
+                </div>
+              </>
+            )}
           </div>
         )}
       </div>

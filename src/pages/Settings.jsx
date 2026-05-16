@@ -74,6 +74,7 @@ export function Settings() {
   const {
     confirmGoalDelete, setConfirmGoalDelete,
     weightGoal, setWeightGoal,
+    weightTarget, setWeightTarget,
     reminderEnabled, setReminderEnabled,
     reminderTime, setReminderTime,
   } = useSettingsStore()
@@ -150,6 +151,26 @@ export function Settings() {
                 {g.label}
               </button>
             ))}
+          </div>
+        </div>
+        <div className="setting-row" style={{ borderBottom: 0 }}>
+          <div>
+            <div className="setting-label">Target weight</div>
+            <div className="setting-desc">Shows goal progress and a projected ETA on the Weight log. Leave empty for none.</div>
+          </div>
+          <div className="row" style={{ gap: 6 }}>
+            <input
+              type="number"
+              className="input mono"
+              min="1"
+              step="0.1"
+              placeholder="—"
+              defaultValue={weightTarget ?? ''}
+              onBlur={e => setWeightTarget(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') e.target.blur() }}
+              style={{ width: 90, textAlign: 'right' }}
+            />
+            <span style={{ fontSize: 12, color: 'var(--muted)' }}>kg</span>
           </div>
         </div>
       </div>

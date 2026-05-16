@@ -9,13 +9,14 @@ const DEFAULT = {
   confirmTxDelete: true,
   confirmJournalDelete: true,
   weightGoal: null,
+  weightTarget: null,
   reminderEnabled: false,
   reminderTime: '20:00',
 }
 
 const PERSIST_KEYS = [
   'theme', 'confirmGoalDelete', 'confirmTxDelete', 'confirmJournalDelete',
-  'weightGoal', 'reminderEnabled', 'reminderTime',
+  'weightGoal', 'weightTarget', 'reminderEnabled', 'reminderTime',
 ]
 
 function persist(get, patch) {
@@ -33,12 +34,20 @@ export const useSettingsStore = create((set, get) => {
     confirmTxDelete: stored.confirmTxDelete ?? DEFAULT.confirmTxDelete,
     confirmJournalDelete: stored.confirmJournalDelete ?? DEFAULT.confirmJournalDelete,
     weightGoal: stored.weightGoal ?? DEFAULT.weightGoal,
+    weightTarget: stored.weightTarget ?? DEFAULT.weightTarget,
     reminderEnabled: stored.reminderEnabled ?? DEFAULT.reminderEnabled,
     reminderTime: stored.reminderTime ?? DEFAULT.reminderTime,
 
     setWeightGoal: (val) => {
       persist(get, { weightGoal: val })
       set({ weightGoal: val })
+    },
+
+    setWeightTarget: (val) => {
+      const n = val === null || val === '' ? null : parseFloat(val)
+      const weightTarget = n != null && !isNaN(n) && n > 0 ? n : null
+      persist(get, { weightTarget })
+      set({ weightTarget })
     },
 
     setReminderEnabled: (val) => {
@@ -82,6 +91,7 @@ export const useSettingsStore = create((set, get) => {
         confirmTxDelete: s.confirmTxDelete ?? DEFAULT.confirmTxDelete,
         confirmJournalDelete: s.confirmJournalDelete ?? DEFAULT.confirmJournalDelete,
         weightGoal: s.weightGoal ?? DEFAULT.weightGoal,
+        weightTarget: s.weightTarget ?? DEFAULT.weightTarget,
         reminderEnabled: s.reminderEnabled ?? DEFAULT.reminderEnabled,
         reminderTime: s.reminderTime ?? DEFAULT.reminderTime,
       })
