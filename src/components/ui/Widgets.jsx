@@ -64,7 +64,7 @@ export function WeightChart({ data, height = 170 }) {
 }
 
 // ── Multi-line finance chart ───────────────────────────────
-export function MultiLineChart({ months, series, height = 200, currencySymbol = '€' }) {
+export function MultiLineChart({ months, series, height = 200, currencySymbol = '€', labelInterval = 1, showDots = true }) {
   const w = 720
   const h = height
   const pad = { l: 44, r: 16, t: 16, b: 28 }
@@ -89,14 +89,16 @@ export function MultiLineChart({ months, series, height = 200, currencySymbol = 
         )
       })}
       {months.map((m, i) => (
-        <text key={i} x={xAt(i)} y={h - 8} fontSize="10" fontFamily="var(--font-mono)" fill="var(--muted)" textAnchor="middle">{m}</text>
+        (i % labelInterval === 0 || i === months.length - 1) && (
+          <text key={i} x={xAt(i)} y={h - 8} fontSize="10" fontFamily="var(--font-mono)" fill="var(--muted)" textAnchor="middle">{m}</text>
+        )
       ))}
       {series.map((s, idx) => {
         const path = s.values.map((v, i) => `${i === 0 ? 'M' : 'L'} ${xAt(i).toFixed(1)} ${yAt(v).toFixed(1)}`).join(' ')
         return (
           <g key={idx}>
             <path d={path} fill="none" stroke={s.color} strokeWidth="1.6" />
-            {s.values.map((v, i) => (
+            {showDots && s.values.map((v, i) => (
               <circle key={i} cx={xAt(i)} cy={yAt(v)} r="3" fill={s.color} />
             ))}
           </g>

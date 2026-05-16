@@ -37,6 +37,7 @@ export function Finance() {
   const [filterCat, setFilterCat] = useState('all')
   const [txView, setTxView] = useState('daily')
   const [pendingDelete, setPendingDelete] = useState(null) // full tx object
+  const [chartMode, setChartMode] = useState('monthly')
 
   const {
     categories, transactions, recurring, budgets,
@@ -117,6 +118,29 @@ export function Finance() {
     }
   }, [transactions, view])
 
+  const dailySeries = useMemo(() => {
+    const daysInMonth = new Date(view.y, view.m + 1, 0).getDate()
+    const incArr = [], expArr = [], balArr = [], dayLabels = []
+    for (let d = 1; d <= daysInMonth; d++) {
+      const dayKey = `${monthKey}-${String(d).padStart(2, '0')}`
+      const dayTxs = monthTx.filter(t => t.date === dayKey)
+      const inc = dayTxs.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0)
+      const exp = dayTxs.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0)
+      dayLabels.push(String(d))
+      incArr.push(inc)
+      expArr.push(exp)
+      balArr.push(inc - exp)
+    }
+    return {
+      labels: dayLabels,
+      data: [
+        { label: 'Income',  color: '#4ade80', values: incArr },
+        { label: 'Expense', color: '#f87171', values: expArr },
+        { label: 'Balance', color: '#60a5fa', values: balArr },
+      ],
+    }
+  }, [monthTx, monthKey, view])
+
   const goPrev = () => {
     if (view.m === 0) setView({ y: view.y - 1, m: 11 })
     else setView({ y: view.y, m: view.m - 1 })
@@ -189,16 +213,29 @@ export function Finance() {
 
           <div className="card" style={{ marginBottom: 16 }}>
             <div className="card-h">
-              <h3>3-Month Comparison</h3>
-              <div className="row" style={{ gap: 14, fontSize: 11, color: 'var(--muted)' }}>
-                {series.data.map(s => (
-                  <span key={s.label} className="row" style={{ gap: 5 }}>
-                    <span style={{ width: 8, height: 8, background: s.color, borderRadius: 2 }}></span>{s.label}
-                  </span>
-                ))}
+              <h3>{chartMode === 'monthly' ? '3-Month Comparison' : 'Daily Breakdown'}</h3>
+              <div className="row" style={{ gap: 14 }}>
+                <div className="row" style={{ gap: 14, fontSize: 11, color: 'var(--muted)' }}>
+                  {(chartMode === 'monthly' ? series : dailySeries).data.map(s => (
+                    <span key={s.label} className="row" style={{ gap: 5 }}>
+                      <span style={{ width: 8, height: 8, background: s.color, borderRadius: 2 }}></span>{s.label}
+                    </span>
+                  ))}
+                </div>
+                <div className="tabs" style={{ fontSize: 11 }}>
+                  <button className={chartMode === 'monthly' ? 'active' : ''} onClick={() => setChartMode('monthly')}>Monthly</button>
+                  <button className={chartMode === 'daily' ? 'active' : ''} onClick={() => setChartMode('daily')}>Daily</button>
+                </div>
               </div>
             </div>
-            <MultiLineChart months={series.labels} series={series.data} height={200} currencySymbol={sym} />
+            <MultiLineChart
+              months={chartMode === 'monthly' ? series.labels : dailySeries.labels}
+              series={chartMode === 'monthly' ? series.data : dailySeries.data}
+              height={200}
+              currencySymbol={sym}
+              labelInterval={chartMode === 'daily' ? 5 : 1}
+              showDots={chartMode === 'monthly'}
+            />
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
