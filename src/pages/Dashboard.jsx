@@ -4,6 +4,7 @@ import { ThisWeekCard } from '../components/dashboard/ThisWeekCard'
 import { JournalCard } from '../components/dashboard/JournalCard'
 import { GoalsCard } from '../components/dashboard/GoalsCard'
 import { ConsistencyCard } from '../components/dashboard/ConsistencyCard'
+import { StreakCard } from '../components/dashboard/StreakCard'
 import { DashboardContext } from '../lib/DashboardContext'
 import { todayISO } from '../lib/dateUtils'
 
@@ -56,6 +57,10 @@ export function Dashboard() {
           </button>
         </div>
       )}
+
+      <div className="dash-strip">
+        <StreakCard />
+      </div>
 
       <div className="bento">
         <GraphCard />
