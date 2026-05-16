@@ -1,13 +1,14 @@
 import { NavLink } from 'react-router-dom'
 import { useSettingsStore } from '../../store/useSettingsStore'
 import {
-  IconDashboard, IconConsistency, IconWallet,
+  IconDashboard, IconConsistency, IconWallet, IconCalendar,
   IconPlus, IconScale, IconSun, IconMoon, IconSettings,
 } from '../ui/Icons'
 
 const navItems = [
   { to: '/', label: 'Dashboard', Icon: IconDashboard, end: true },
   { to: '/consistency', label: 'Consistency', Icon: IconConsistency },
+  { to: '/calendar', label: 'Calendar', Icon: IconCalendar },
   { to: '/finance', label: 'Finance', Icon: IconWallet },
 ]
 

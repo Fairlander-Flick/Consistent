@@ -76,3 +76,8 @@ export const IconTarget = (p) => <Icon {...p}>
 export const IconDumbbell = (p) => <Icon {...p}>
   <path d="M6 5v14M3 8v8M18 5v14M21 8v8M6 12h12"/>
 </Icon>
+
+export const IconCalendar = (p) => <Icon {...p}>
+  <rect x="3" y="4" width="18" height="18" rx="2"/>
+  <path d="M3 10h18M8 2v4M16 2v4"/>
+</Icon>
