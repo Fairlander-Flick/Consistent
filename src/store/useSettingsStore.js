@@ -12,11 +12,12 @@ const DEFAULT = {
   weightTarget: null,
   reminderEnabled: false,
   reminderTime: '20:00',
+  currency: 'EUR',
 }
 
 const PERSIST_KEYS = [
   'theme', 'confirmGoalDelete', 'confirmTxDelete', 'confirmJournalDelete',
-  'weightGoal', 'weightTarget', 'reminderEnabled', 'reminderTime',
+  'weightGoal', 'weightTarget', 'reminderEnabled', 'reminderTime', 'currency',
 ]
 
 function persist(get, patch) {
@@ -37,6 +38,12 @@ export const useSettingsStore = create((set, get) => {
     weightTarget: stored.weightTarget ?? DEFAULT.weightTarget,
     reminderEnabled: stored.reminderEnabled ?? DEFAULT.reminderEnabled,
     reminderTime: stored.reminderTime ?? DEFAULT.reminderTime,
+    currency: stored.currency ?? DEFAULT.currency,
+
+    setCurrency: (val) => {
+      persist(get, { currency: val })
+      set({ currency: val })
+    },
 
     setWeightGoal: (val) => {
       persist(get, { weightGoal: val })
@@ -94,6 +101,7 @@ export const useSettingsStore = create((set, get) => {
         weightTarget: s.weightTarget ?? DEFAULT.weightTarget,
         reminderEnabled: s.reminderEnabled ?? DEFAULT.reminderEnabled,
         reminderTime: s.reminderTime ?? DEFAULT.reminderTime,
+        currency: s.currency ?? DEFAULT.currency,
       })
     },
   }

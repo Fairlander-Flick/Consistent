@@ -5,6 +5,7 @@ import { useTrainingStore } from '../../store/useTrainingStore'
 import { RangeOverlay } from '../ui/Widgets'
 import { DUMMY_WEIGHT } from '../../lib/dummyData'
 import { useSettingsStore } from '../../store/useSettingsStore'
+import { symbolFor } from '../../lib/currency'
 import { deltaTone } from '../../lib/deltaTone'
 
 const SVG_W = 600
@@ -34,8 +35,9 @@ export function GraphCard() {
   const { entries: weightEntries } = useWeightStore()
   const { transactions } = useFinanceStore()
   const { log: trainingLog } = useTrainingStore()
-  const { weightGoal } = useSettingsStore()
+  const { weightGoal, currency } = useSettingsStore()
   const weightMode = weightGoal === 'lose' ? 'weightLose' : weightGoal === 'gain' ? 'weightGain' : 'neutral'
+  const curSym = symbolFor(currency)
 
   const [tab, setTab] = useState('weight')
   const [financeVis, setFinanceVis] = useState({ income: true, expense: true, balance: true })
@@ -161,10 +163,10 @@ export function GraphCard() {
       const expenseSum = expense.slice(range.start, range.end + 1).reduce((a, b) => a + b, 0)
       const balDelta = balance[range.end] - (range.start > 0 ? balance[range.start - 1] : 0)
       const lines = []
-      if (financeVis.income) lines.push(`Income: +${incomeSum.toFixed(0)} €`)
-      if (financeVis.expense) lines.push(`Expense: -${expenseSum.toFixed(0)} €`)
+      if (financeVis.income) lines.push(`Income: +${incomeSum.toFixed(0)} ${curSym}`)
+      if (financeVis.expense) lines.push(`Expense: -${expenseSum.toFixed(0)} ${curSym}`)
       if (financeVis.balance) lines.push({
-        text: `Balance: ${balDelta >= 0 ? '+' : ''}${balDelta.toFixed(0)} €`,
+        text: `Balance: ${balDelta >= 0 ? '+' : ''}${balDelta.toFixed(0)} ${curSym}`,
         tone: deltaTone(balDelta, 'finance'),
       })
       return lines
@@ -183,7 +185,7 @@ export function GraphCard() {
       `Duration: ${durSum} min`,
       `Avg: ${avgVol.toFixed(0)} kg · ${avgDur} min/session`,
     ]
-  }, [range, tab, weightData, financeData, volumeData, financeVis, weightMode])
+  }, [range, tab, weightData, financeData, volumeData, financeVis, weightMode, curSym])
 
   // ── Headline ──────────────────────────────────────────────
   const headline = useMemo(() => {
@@ -195,12 +197,12 @@ export function GraphCard() {
     }
     if (tab === 'finance') {
       const net = financeData.balance[financeData.balance.length - 1] ?? 0
-      return { text: `${net >= 0 ? '+' : ''}${net.toFixed(0)} €`, tone: deltaTone(net, 'finance') }
+      return { text: `${net >= 0 ? '+' : ''}${net.toFixed(0)} ${curSym}`, tone: deltaTone(net, 'finance') }
     }
     const lastVol = volumeData.volume[volumeData.volume.length - 1] ?? 0
     const lastDur = volumeData.duration[volumeData.duration.length - 1] ?? 0
     return { text: `${lastVol.toLocaleString()} kg · ${lastDur} min`, tone: '' }
-  }, [tab, weightData, financeData, volumeData, weightMode])
+  }, [tab, weightData, financeData, volumeData, weightMode, curSym])
 
   // ── SVG path builders ─────────────────────────────────────
   function weightSVG() {

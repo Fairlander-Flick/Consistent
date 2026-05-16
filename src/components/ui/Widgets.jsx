@@ -64,7 +64,7 @@ export function WeightChart({ data, height = 170 }) {
 }
 
 // ── Multi-line finance chart ───────────────────────────────
-export function MultiLineChart({ months, series, height = 200 }) {
+export function MultiLineChart({ months, series, height = 200, currencySymbol = '€' }) {
   const w = 720
   const h = height
   const pad = { l: 44, r: 16, t: 16, b: 28 }
@@ -84,7 +84,7 @@ export function MultiLineChart({ months, series, height = 200 }) {
         return (
           <g key={i}>
             <line x1={pad.l} y1={y} x2={w - pad.r} y2={y} stroke="var(--border)" strokeDasharray="2 4" />
-            <text x={6} y={y + 3} fontSize="10" fontFamily="var(--font-mono)" fill="var(--muted)">€{Math.round(v).toLocaleString()}</text>
+            <text x={6} y={y + 3} fontSize="10" fontFamily="var(--font-mono)" fill="var(--muted)">{currencySymbol}{Math.round(v).toLocaleString()}</text>
           </g>
         )
       })}

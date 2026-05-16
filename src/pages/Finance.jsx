@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react'
 import { useFinanceStore } from '../store/useFinanceStore'
 import { todayISO } from '../lib/dateUtils'
+import { useMoney } from '../lib/useMoney'
 import { MultiLineChart } from '../components/ui/Widgets'
 import {
   IconPlus, IconTrash, IconEdit, IconX, IconTarget,
@@ -35,6 +36,7 @@ export function Finance() {
     addCategory, deleteCategory, renameCategory, setBudget,
     addRecurring, updateRecurring, deleteRecurring,
   } = useFinanceStore()
+  const { sym, fmt } = useMoney()
 
   const monthKey = `${view.y}-${String(view.m + 1).padStart(2, '0')}`
   const monthTx = transactions.filter(t => t.date.startsWith(monthKey))
@@ -127,9 +129,9 @@ export function Finance() {
       {section === 'overview' && (
         <>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 16 }}>
-            <FinanceStat label="Income"   value={`€${income.toLocaleString()}`}   sub={`${monthTx.filter(t => t.type === 'income').length} entries`} positive />
-            <FinanceStat label="Expenses" value={`€${expense.toLocaleString()}`}  sub={`${monthTx.filter(t => t.type === 'expense').length} entries`} negative />
-            <FinanceStat label="Balance"  value={`${balance < 0 ? '−' : ''}€${Math.abs(balance).toLocaleString()}`} sub={balance >= 0 ? 'positive' : 'overspent'} positive={balance >= 0} negative={balance < 0} />
+            <FinanceStat label="Income"   value={fmt(income, { round: false })}   sub={`${monthTx.filter(t => t.type === 'income').length} entries`} positive />
+            <FinanceStat label="Expenses" value={fmt(expense, { round: false })}  sub={`${monthTx.filter(t => t.type === 'expense').length} entries`} negative />
+            <FinanceStat label="Balance"  value={fmt(balance, { round: false })} sub={balance >= 0 ? 'positive' : 'overspent'} positive={balance >= 0} negative={balance < 0} />
           </div>
 
           {recurring.length > 0 && (
@@ -143,13 +145,13 @@ export function Finance() {
                 {recurringIncome > 0 && (
                   <span className="row" style={{ gap: 6 }}>
                     <span style={{ color: 'var(--muted)', fontSize: 11 }}>{recurring.filter(r => r.type === 'income').length} income items</span>
-                    <span className="mono delta pos">+€{recurringIncome.toLocaleString()}</span>
+                    <span className="mono delta pos">{fmt(recurringIncome, { signed: true, round: false })}</span>
                   </span>
                 )}
                 {recurringExpense > 0 && (
                   <span className="row" style={{ gap: 6 }}>
                     <span style={{ color: 'var(--muted)', fontSize: 11 }}>{recurring.filter(r => r.type === 'expense').length} expense items</span>
-                    <span className="mono" style={{ color: 'var(--negative)' }}>−€{recurringExpense.toLocaleString()}</span>
+                    <span className="mono" style={{ color: 'var(--negative)' }}>−{sym}{recurringExpense.toLocaleString()}</span>
                   </span>
                 )}
                 <button className="btn ghost sm" style={{ fontSize: 11 }} onClick={() => setSection('recurring')}>
@@ -170,7 +172,7 @@ export function Finance() {
                 ))}
               </div>
             </div>
-            <MultiLineChart months={series.labels} series={series.data} height={200} />
+            <MultiLineChart months={series.labels} series={series.data} height={200} currencySymbol={sym} />
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
@@ -193,7 +195,7 @@ export function Finance() {
                 <>
                   <div style={{ display: 'flex', height: 12, borderRadius: 4, overflow: 'hidden', background: 'var(--faint)', marginBottom: 16 }}>
                     {catBreakdown.map(c => (
-                      <div key={c.name} style={{ width: `${c.pct * 100}%`, background: c.color, transition: 'width 200ms' }} title={`${c.name} · €${c.amount}`}></div>
+                      <div key={c.name} style={{ width: `${c.pct * 100}%`, background: c.color, transition: 'width 200ms' }} title={`${c.name} · ${sym}${c.amount}`}></div>
                     ))}
                   </div>
                   <div className="col" style={{ gap: 10 }}>
@@ -206,7 +208,7 @@ export function Finance() {
                           </div>
                           <div className="row" style={{ gap: 8 }}>
                             <span className="mono dim" style={{ fontSize: 11 }}>{Math.round(c.pct * 100)}%</span>
-                            <span className="mono" style={{ fontSize: 12, minWidth: 60, textAlign: 'right' }}>€{c.amount}</span>
+                            <span className="mono" style={{ fontSize: 12, minWidth: 60, textAlign: 'right' }}>{sym}{c.amount}</span>
                           </div>
                         </div>
                         {c.budget != null && (
@@ -223,8 +225,8 @@ export function Finance() {
                               fontSize: 10, marginTop: 3,
                               color: c.overBudget ? 'var(--negative)' : 'var(--muted)',
                             }}>
-                              €{Math.round(c.amount)} / €{c.budget.toLocaleString()} budget
-                              {c.overBudget && ` · €${Math.round(c.amount - c.budget).toLocaleString()} over`}
+                              {sym}{Math.round(c.amount)} / {sym}{c.budget.toLocaleString()} budget
+                              {c.overBudget && ` · ${sym}${Math.round(c.amount - c.budget).toLocaleString()} over`}
                             </div>
                           </div>
                         )}
@@ -267,7 +269,7 @@ export function Finance() {
                   </div>
                   <div style={{ fontSize: 12, color: 'var(--text-mid)' }}>{t.note}</div>
                   <div className={'mono ' + (t.type === 'income' ? 'delta pos' : '')} style={{ textAlign: 'right', fontSize: 13 }}>
-                    {t.type === 'income' ? '+' : '−'}€{t.amount.toLocaleString()}
+                    {t.type === 'income' ? '+' : '−'}{sym}{t.amount.toLocaleString()}
                   </div>
                   <button className="btn ghost icon" onClick={() => deleteTransaction(t.id)}>
                     <IconTrash size={12} />
@@ -309,6 +311,7 @@ export function Finance() {
 // ── Recurring section ───────────────────────────────────────
 
 function RecurringSection({ year, month, categories, recurring, onAdd, onUpdate, onDelete }) {
+  const { sym, fmt } = useMoney()
   const [form, setForm] = useState({
     type: 'expense', amount: '', category: categories[0] || '', note: '', dayOfMonth: 1,
   })
@@ -344,19 +347,19 @@ function RecurringSection({ year, month, categories, recurring, onAdd, onUpdate,
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
         <FinanceStat
           label="Monthly income"
-          value={`€${totalIncome.toLocaleString()}`}
+          value={fmt(totalIncome, { round: false })}
           sub={`${recurring.filter(r => r.type === 'income').length} recurring items`}
           positive
         />
         <FinanceStat
           label="Monthly expenses"
-          value={`€${totalExpense.toLocaleString()}`}
+          value={fmt(totalExpense, { round: false })}
           sub={`${recurring.filter(r => r.type === 'expense').length} recurring items`}
           negative
         />
         <FinanceStat
           label="Net recurring"
-          value={`${net < 0 ? '−' : ''}€${Math.abs(net).toLocaleString()}`}
+          value={fmt(net, { round: false })}
           sub="per month"
           positive={net >= 0}
           negative={net < 0}
@@ -419,7 +422,7 @@ function RecurringSection({ year, month, categories, recurring, onAdd, onUpdate,
                       <div key={r.id} className="row between" style={{ gap: 12, fontSize: 11, padding: '2px 0' }}>
                         <span style={{ color: 'var(--text-mid)' }}>{r.note || r.category}</span>
                         <span style={{ color: r.type === 'income' ? 'var(--accent)' : 'var(--negative)', fontFamily: 'var(--font-mono)' }}>
-                          {r.type === 'income' ? '+' : '−'}€{r.amount.toLocaleString()}
+                          {r.type === 'income' ? '+' : '−'}{sym}{r.amount.toLocaleString()}
                         </span>
                       </div>
                     ))}
@@ -476,7 +479,7 @@ function RecurringSection({ year, month, categories, recurring, onAdd, onUpdate,
                   className="mono"
                   style={{ textAlign: 'right', fontSize: 13, color: r.type === 'income' ? 'var(--accent)' : 'var(--negative)' }}
                 >
-                  {r.type === 'income' ? '+' : '−'}€{r.amount.toLocaleString()}
+                  {r.type === 'income' ? '+' : '−'}{sym}{r.amount.toLocaleString()}
                 </div>
                 <button className="btn ghost icon" title="Edit" onClick={() => openEdit(r)}>
                   <IconEdit size={12} />
@@ -494,7 +497,7 @@ function RecurringSection({ year, month, categories, recurring, onAdd, onUpdate,
           <div className="card-h"><h3>Add Recurring</h3></div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             <div>
-              <label style={{ fontSize: 11, color: 'var(--muted)' }}>Amount (€)</label>
+              <label style={{ fontSize: 11, color: 'var(--muted)' }}>Amount ({sym})</label>
               <input className="input" placeholder="500" type="number" min="0" value={form.amount}
                      onChange={e => setForm(f => ({ ...f, amount: e.target.value }))} style={{ marginTop: 4 }} />
             </div>
@@ -544,7 +547,7 @@ function RecurringSection({ year, month, categories, recurring, onAdd, onUpdate,
             <h4>Edit Recurring Item</h4>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
               <div>
-                <label style={{ fontSize: 11, color: 'var(--muted)' }}>Amount (€)</label>
+                <label style={{ fontSize: 11, color: 'var(--muted)' }}>Amount ({sym})</label>
                 <input className="input" type="number" min="0" value={editing.amount}
                        onChange={e => setEditing(p => ({ ...p, amount: e.target.value }))} style={{ marginTop: 4 }} />
               </div>
@@ -614,6 +617,7 @@ function AddTxButton() {
 }
 
 function AddTxForm({ categories, onAdd }) {
+  const { sym } = useMoney()
   const [form, setForm] = useState({
     amount: '',
     type: 'expense',
@@ -633,7 +637,7 @@ function AddTxForm({ categories, onAdd }) {
       <div className="card-h"><h3>Add Transaction</h3></div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
         <div>
-          <label style={{ fontSize: 11, color: 'var(--muted)' }}>Amount (€)</label>
+          <label style={{ fontSize: 11, color: 'var(--muted)' }}>Amount ({sym})</label>
           <input
             id="add-tx-amount"
             className="input"

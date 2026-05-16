@@ -5,6 +5,7 @@ import { useFinanceStore } from '../../store/useFinanceStore'
 import { useGoalsStore } from '../../store/useGoalsStore'
 import { periodRecap, monthDates } from '../../lib/recap'
 import { isoWeekDates } from '../../lib/dateUtils'
+import { useMoney } from '../../lib/useMoney'
 
 function Metric({ label, value, sub, tone }) {
   return (
@@ -25,6 +26,7 @@ export function RecapCard() {
   const { entries } = useJournalStore()
   const { transactions } = useFinanceStore()
   const { goals } = useGoalsStore()
+  const { fmt } = useMoney()
   const [period, setPeriod] = useState('week')
 
   const dates = useMemo(() => {
@@ -62,8 +64,8 @@ export function RecapCard() {
         />
         <Metric
           label="Net"
-          value={`${r.net < 0 ? '−' : ''}€${Math.abs(Math.round(r.net)).toLocaleString()}`}
-          sub={`€${Math.round(r.spend).toLocaleString()} spent`}
+          value={fmt(r.net)}
+          sub={`${fmt(r.spend)} spent`}
           tone={r.net < 0 ? 'neg' : r.net > 0 ? 'pos' : undefined}
         />
         <Metric

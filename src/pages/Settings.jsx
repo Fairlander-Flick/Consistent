@@ -5,6 +5,7 @@ import {
   DUMMY_FINANCE_TRANSACTIONS, DUMMY_TRAINING_PROGRAM, DUMMY_TRAINING_LOG, DUMMY_SCHEDULE,
 } from '../lib/dummyData'
 import { STORE_KEYS, exportBackup, parseBackup, restoreBackup } from '../lib/backup'
+import { CURRENCIES } from '../lib/currency'
 
 function Toggle({ checked, onChange }) {
   return (
@@ -75,6 +76,7 @@ export function Settings() {
     confirmGoalDelete, setConfirmGoalDelete,
     weightGoal, setWeightGoal,
     weightTarget, setWeightTarget,
+    currency, setCurrency,
     reminderEnabled, setReminderEnabled,
     reminderTime, setReminderTime,
   } = useSettingsStore()
@@ -183,6 +185,26 @@ export function Settings() {
             <div className="setting-desc">Shows a dialog before removing a goal item.</div>
           </div>
           <Toggle checked={confirmGoalDelete} onChange={setConfirmGoalDelete} />
+        </div>
+      </div>
+
+      <div className="card" style={{ maxWidth: 560, marginTop: 16 }}>
+        <div className="card-h"><h3>Currency</h3></div>
+        <div className="setting-row" style={{ borderBottom: 0 }}>
+          <div>
+            <div className="setting-label">Display currency</div>
+            <div className="setting-desc">Symbol used across Finance and the dashboard. Amounts are not converted.</div>
+          </div>
+          <select
+            className="select"
+            value={currency}
+            onChange={e => setCurrency(e.target.value)}
+            style={{ width: 'auto' }}
+          >
+            {CURRENCIES.map(c => (
+              <option key={c.code} value={c.code}>{c.code} ({c.symbol})</option>
+            ))}
+          </select>
         </div>
       </div>
 
