@@ -74,6 +74,8 @@ export function Settings() {
   const {
     confirmGoalDelete, setConfirmGoalDelete,
     weightGoal, setWeightGoal,
+    reminderEnabled, setReminderEnabled,
+    reminderTime, setReminderTime,
   } = useSettingsStore()
 
   const [deleteOpen, setDeleteOpen] = useState(false)
@@ -81,6 +83,18 @@ export function Settings() {
   const [pendingRestore, setPendingRestore] = useState(null)
   const [importError, setImportError] = useState('')
   const fileInputRef = useRef(null)
+
+  const notifSupported = typeof window !== 'undefined' && 'Notification' in window
+  const [notifPerm, setNotifPerm] = useState(notifSupported ? Notification.permission : 'unsupported')
+
+  async function toggleReminder(on) {
+    if (!on) { setReminderEnabled(false); return }
+    if (!notifSupported) return
+    let perm = Notification.permission
+    if (perm === 'default') perm = await Notification.requestPermission()
+    setNotifPerm(perm)
+    if (perm === 'granted') setReminderEnabled(true)
+  }
 
   function handleFilePicked(e) {
     const file = e.target.files?.[0]
@@ -148,6 +162,43 @@ export function Settings() {
             <div className="setting-desc">Shows a dialog before removing a goal item.</div>
           </div>
           <Toggle checked={confirmGoalDelete} onChange={setConfirmGoalDelete} />
+        </div>
+      </div>
+
+      <div className="card" style={{ maxWidth: 560, marginTop: 16 }}>
+        <div className="card-h"><h3>Reminders</h3></div>
+        <div className="setting-row">
+          <div>
+            <div className="setting-label">Daily journal reminder</div>
+            <div className="setting-desc">
+              {notifSupported
+                ? 'Sends a notification if you haven’t logged your journal yet. Fires only while the app is open in a tab.'
+                : 'Your browser does not support notifications.'}
+            </div>
+            {notifPerm === 'denied' && (
+              <div className="setting-desc" style={{ color: 'var(--negative)' }}>
+                Notifications are blocked in your browser settings — unblock them to enable this.
+              </div>
+            )}
+          </div>
+          <Toggle
+            checked={reminderEnabled && notifPerm === 'granted'}
+            onChange={toggleReminder}
+          />
+        </div>
+        <div className="setting-row" style={{ borderBottom: 0 }}>
+          <div>
+            <div className="setting-label">Reminder time</div>
+            <div className="setting-desc">When the daily reminder should fire.</div>
+          </div>
+          <input
+            type="time"
+            className="input"
+            value={reminderTime}
+            onChange={e => setReminderTime(e.target.value)}
+            disabled={!reminderEnabled}
+            style={{ width: 'auto' }}
+          />
         </div>
       </div>
 

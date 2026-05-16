@@ -9,11 +9,20 @@ const DEFAULT = {
   confirmTxDelete: true,
   confirmJournalDelete: true,
   weightGoal: null,
+  reminderEnabled: false,
+  reminderTime: '20:00',
 }
 
+const PERSIST_KEYS = [
+  'theme', 'confirmGoalDelete', 'confirmTxDelete', 'confirmJournalDelete',
+  'weightGoal', 'reminderEnabled', 'reminderTime',
+]
+
 function persist(get, patch) {
-  const { theme, confirmGoalDelete, confirmTxDelete, confirmJournalDelete, weightGoal } = { ...get(), ...patch }
-  saveData(KEY, { theme, confirmGoalDelete, confirmTxDelete, confirmJournalDelete, weightGoal })
+  const merged = { ...get(), ...patch }
+  const out = {}
+  PERSIST_KEYS.forEach(k => { out[k] = merged[k] })
+  saveData(KEY, out)
 }
 
 export const useSettingsStore = create((set, get) => {
@@ -24,10 +33,22 @@ export const useSettingsStore = create((set, get) => {
     confirmTxDelete: stored.confirmTxDelete ?? DEFAULT.confirmTxDelete,
     confirmJournalDelete: stored.confirmJournalDelete ?? DEFAULT.confirmJournalDelete,
     weightGoal: stored.weightGoal ?? DEFAULT.weightGoal,
+    reminderEnabled: stored.reminderEnabled ?? DEFAULT.reminderEnabled,
+    reminderTime: stored.reminderTime ?? DEFAULT.reminderTime,
 
     setWeightGoal: (val) => {
       persist(get, { weightGoal: val })
       set({ weightGoal: val })
+    },
+
+    setReminderEnabled: (val) => {
+      persist(get, { reminderEnabled: val })
+      set({ reminderEnabled: val })
+    },
+
+    setReminderTime: (val) => {
+      persist(get, { reminderTime: val })
+      set({ reminderTime: val })
     },
 
     toggleTheme: () => {
@@ -61,6 +82,8 @@ export const useSettingsStore = create((set, get) => {
         confirmTxDelete: s.confirmTxDelete ?? DEFAULT.confirmTxDelete,
         confirmJournalDelete: s.confirmJournalDelete ?? DEFAULT.confirmJournalDelete,
         weightGoal: s.weightGoal ?? DEFAULT.weightGoal,
+        reminderEnabled: s.reminderEnabled ?? DEFAULT.reminderEnabled,
+        reminderTime: s.reminderTime ?? DEFAULT.reminderTime,
       })
     },
   }
