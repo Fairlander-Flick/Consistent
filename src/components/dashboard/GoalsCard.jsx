@@ -1,12 +1,25 @@
 import { useState, useRef } from 'react'
 import { useGoalsStore } from '../../store/useGoalsStore'
 import { DUMMY_GOALS } from '../../lib/dummyData'
+import { useDashboard } from '../../lib/DashboardContext'
+import { todayISO } from '../../lib/dateUtils'
 import { IconEdit } from '../ui/Icons'
 
 const PERIODS = ['daily', 'weekly', 'monthly', 'yearly']
 
+const MONTH_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+const DAY_SHORT = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
+
+function dateLabel(iso) {
+  const d = new Date(iso + 'T00:00:00')
+  return `${MONTH_SHORT[d.getMonth()]} ${d.getDate()} · ${DAY_SHORT[d.getDay()]}`
+}
+
 export function GoalsCard() {
   const { goals, toggleTodo, deleteTodo, replacePeriod } = useGoalsStore()
+  const { viewDate } = useDashboard()
+  const todayStr = todayISO()
+  const isViewingPast = viewDate !== todayStr
   const [period, setPeriod] = useState('daily')
 
   const [editOpen, setEditOpen] = useState(false)
@@ -52,6 +65,56 @@ export function GoalsCard() {
 
   function handleDeleteClick(task) {
     if (hasGoals) deleteTodo(period, task.id)
+  }
+
+  if (isViewingPast) {
+    return (
+      <div className="card area-goals">
+        <div className="card-h">
+          <h3>Goals</h3>
+          <div className="row" style={{ gap: 8, alignItems: 'center' }}>
+            <div className="tabs">
+              {PERIODS.map(t => (
+                <button key={t} className={period === t ? 'active' : ''} onClick={() => setPeriod(t)}>
+                  {t[0].toUpperCase() + t.slice(1)}
+                </button>
+              ))}
+            </div>
+            <span className="meta">{dateLabel(viewDate)}</span>
+          </div>
+        </div>
+
+        <div className="row between" style={{ marginBottom: 8 }}>
+          <div style={{ fontSize: 13, fontWeight: 500 }}>{goalTitle || '—'}</div>
+          <div className="mono" style={{ fontSize: 11, color: 'var(--muted)' }}>
+            {goalDone} / {goalTasks.length} done
+          </div>
+        </div>
+
+        <div className="col" style={{ gap: 0 }}>
+          {goalTasks.slice(0, 6).map(t => (
+            <div key={t.id} className={'todo' + (t.done ? ' done' : '')}>
+              <div className="chk" style={{ pointerEvents: 'none' }}></div>
+              <div className="lbl">{t.text}</div>
+            </div>
+          ))}
+          {goalTasks.length === 0 && (
+            <div style={{ fontSize: 12, color: 'var(--muted)', padding: '12px 4px' }}>No goals set.</div>
+          )}
+        </div>
+
+        {goalTasks.length > 0 && (
+          <div style={{ marginTop: 12, height: 3, background: 'var(--faint)', borderRadius: 2, overflow: 'hidden' }}>
+            <div style={{
+              width: `${(goalDone / goalTasks.length) * 100}%`,
+              height: '100%',
+              background: 'var(--accent)',
+              transition: 'width 300ms',
+            }} />
+          </div>
+        )}
+      </div>
+    )
   }
 
   return (
