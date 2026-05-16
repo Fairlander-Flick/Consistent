@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useJournalStore } from '../../store/useJournalStore'
 import { useDashboard } from '../../lib/DashboardContext'
 import { todayISO } from '../../lib/dateUtils'
@@ -60,81 +60,15 @@ function ReadOnlyView({ entry, label }) {
   )
 }
 
-export function JournalCard() {
-  const { entries, getTodayEntry, submitToday, editToday } = useJournalStore()
-  const { viewDate } = useDashboard()
-  const todayStr = todayISO()
-  const isViewingPast = viewDate !== todayStr
-
-  // ── Today's interactive view state (hooks must be unconditional) ──
-  const entry = getTodayEntry()
-  const submitted = !!entry.submitted
-  const today = new Date()
-  const label = `${MONTH_SHORT[today.getMonth()]} ${today.getDate()} · ${DAY_SHORT[today.getDay()]}`
-
-  const [local, setLocal] = useState({
+function TodayEditor({ entry, label, submitToday }) {
+  const [local, setLocal] = useState(() => ({
     score: entry.score,
     sleepHours: entry.sleepHours,
     nutrition: entry.nutrition,
     feelings: entry.feelings ?? '',
-  })
+  }))
   const [sleepEditing, setSleepEditing] = useState(false)
-
-  useEffect(() => {
-    if (submitted) return
-    setLocal({
-      score: entry.score,
-      sleepHours: entry.sleepHours,
-      nutrition: entry.nutrition,
-      feelings: entry.feelings ?? '',
-    })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [entry.date, submitted])
-
-  if (isViewingPast) {
-    const pastEntry = entries.find(e => e.date === viewDate) ?? null
-    return <ReadOnlyView entry={pastEntry} label={dateLabel(viewDate)} />
-  }
-
   const fillPct = local.score !== null ? ((local.score - 1) / 9) * 100 : 0
-
-  if (submitted) {
-    return (
-      <div className="card area-journal">
-        <div className="card-h">
-          <h3>Today's Journal</h3>
-          <span className="meta">{label}</span>
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 16 }}>
-          <div style={{ background: 'var(--bg)', border: '1px solid var(--border-strong)', borderRadius: 6, padding: '10px 12px' }}>
-            <div style={{ fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>Score</div>
-            <div className="num num-md">{entry.score ?? '—'}<span style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 400 }}> / 10</span></div>
-          </div>
-          <div style={{ background: 'var(--bg)', border: '1px solid var(--border-strong)', borderRadius: 6, padding: '10px 12px' }}>
-            <div style={{ fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>Sleep</div>
-            <div className="num num-md">{entry.sleepHours ?? '—'}<span style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 400 }}> h</span></div>
-          </div>
-          <div style={{ background: 'var(--bg)', border: '1px solid var(--border-strong)', borderRadius: 6, padding: '10px 12px' }}>
-            <div style={{ fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>Nutrition</div>
-            <div style={{ fontSize: 13 }}>{entry.nutrition ? NUTRITION_LABEL[entry.nutrition] : '—'}</div>
-          </div>
-        </div>
-        <div style={{ fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>
-          How you felt today
-        </div>
-        <div style={{
-          background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 6,
-          padding: 12, minHeight: 90, fontFamily: 'var(--font-mono)', fontSize: 12,
-          color: 'var(--text-mid)', whiteSpace: 'pre-wrap',
-        }}>
-          {entry.feelings || <span style={{ color: 'var(--muted)' }}>—</span>}
-        </div>
-        <div style={{ textAlign: 'right', marginTop: 12 }}>
-          <button className="btn" onClick={() => editToday()}>Edit today</button>
-        </div>
-      </div>
-    )
-  }
 
   return (
     <div className="card area-journal">
@@ -221,4 +155,61 @@ export function JournalCard() {
       </div>
     </div>
   )
+}
+
+export function JournalCard() {
+  const { entries, getTodayEntry, submitToday, editToday } = useJournalStore()
+  const { viewDate } = useDashboard()
+  const todayStr = todayISO()
+  const isViewingPast = viewDate !== todayStr
+
+  const entry = getTodayEntry()
+  const submitted = !!entry.submitted
+  const today = new Date()
+  const label = `${MONTH_SHORT[today.getMonth()]} ${today.getDate()} · ${DAY_SHORT[today.getDay()]}`
+
+  if (isViewingPast) {
+    const pastEntry = entries.find(e => e.date === viewDate) ?? null
+    return <ReadOnlyView entry={pastEntry} label={dateLabel(viewDate)} />
+  }
+
+  if (submitted) {
+    return (
+      <div className="card area-journal">
+        <div className="card-h">
+          <h3>Today's Journal</h3>
+          <span className="meta">{label}</span>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 16 }}>
+          <div style={{ background: 'var(--bg)', border: '1px solid var(--border-strong)', borderRadius: 6, padding: '10px 12px' }}>
+            <div style={{ fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>Score</div>
+            <div className="num num-md">{entry.score ?? '—'}<span style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 400 }}> / 10</span></div>
+          </div>
+          <div style={{ background: 'var(--bg)', border: '1px solid var(--border-strong)', borderRadius: 6, padding: '10px 12px' }}>
+            <div style={{ fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>Sleep</div>
+            <div className="num num-md">{entry.sleepHours ?? '—'}<span style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 400 }}> h</span></div>
+          </div>
+          <div style={{ background: 'var(--bg)', border: '1px solid var(--border-strong)', borderRadius: 6, padding: '10px 12px' }}>
+            <div style={{ fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>Nutrition</div>
+            <div style={{ fontSize: 13 }}>{entry.nutrition ? NUTRITION_LABEL[entry.nutrition] : '—'}</div>
+          </div>
+        </div>
+        <div style={{ fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>
+          How you felt today
+        </div>
+        <div style={{
+          background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 6,
+          padding: 12, minHeight: 90, fontFamily: 'var(--font-mono)', fontSize: 12,
+          color: 'var(--text-mid)', whiteSpace: 'pre-wrap',
+        }}>
+          {entry.feelings || <span style={{ color: 'var(--muted)' }}>—</span>}
+        </div>
+        <div style={{ textAlign: 'right', marginTop: 12 }}>
+          <button className="btn" onClick={() => editToday()}>Edit today</button>
+        </div>
+      </div>
+    )
+  }
+
+  return <TodayEditor key={entry.date} entry={entry} label={label} submitToday={submitToday} />
 }

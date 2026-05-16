@@ -46,8 +46,7 @@ export function GraphCard() {
   const [drag, setDrag] = useState(null)     // { mode: 'new'|'start'|'end', anchorIdx }
   const svgRef = useRef(null)
 
-  // Reset range on tab change
-  useEffect(() => { setRange(null) }, [tab])
+  function selectTab(t) { setTab(t); setRange(null) }
 
   // Escape key clears range
   useEffect(() => {
@@ -329,9 +328,9 @@ export function GraphCard() {
         </div>
         <div className="row" style={{ gap: 12 }}>
           <div className="tabs">
-            <button className={tab === 'weight' ? 'active' : ''} onClick={() => setTab('weight')}>Weight</button>
-            <button className={tab === 'finance' ? 'active' : ''} onClick={() => setTab('finance')}>Finance</button>
-            <button className={tab === 'volume' ? 'active' : ''} onClick={() => setTab('volume')}>Volume</button>
+            <button className={tab === 'weight' ? 'active' : ''} onClick={() => selectTab('weight')}>Weight</button>
+            <button className={tab === 'finance' ? 'active' : ''} onClick={() => selectTab('finance')}>Finance</button>
+            <button className={tab === 'volume' ? 'active' : ''} onClick={() => selectTab('volume')}>Volume</button>
           </div>
           <span style={{ fontSize: 10, color: 'var(--muted)' }}>↔ drag to select</span>
           <span className={`num num-md ${headline.tone ? 'delta ' + headline.tone : ''}`}>
