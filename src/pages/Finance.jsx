@@ -30,9 +30,9 @@ export function Finance() {
   const [filterCat, setFilterCat] = useState('all')
 
   const {
-    categories, transactions, recurring,
+    categories, transactions, recurring, budgets,
     addTransaction, deleteTransaction,
-    addCategory, deleteCategory, renameCategory,
+    addCategory, deleteCategory, renameCategory, setBudget,
     addRecurring, updateRecurring, deleteRecurring,
   } = useFinanceStore()
 
@@ -53,9 +53,19 @@ export function Finance() {
       out[t.category] = (out[t.category] || 0) + t.amount
     })
     return Object.entries(out)
-      .map(([name, amount]) => ({ name, amount, pct: expense ? amount / expense : 0, color: hashColor(name) }))
+      .map(([name, amount]) => {
+        const budget = budgets[name] ?? null
+        return {
+          name, amount,
+          pct: expense ? amount / expense : 0,
+          color: hashColor(name),
+          budget,
+          budgetPct: budget ? amount / budget : null,
+          overBudget: budget ? amount > budget : false,
+        }
+      })
       .sort((a, b) => b.amount - a.amount)
-  }, [monthTx, expense])
+  }, [monthTx, expense, budgets])
 
   const series = useMemo(() => {
     const months = []
@@ -167,7 +177,13 @@ export function Finance() {
             <div className="card">
               <div className="card-h">
                 <h3>Category Breakdown</h3>
-                <span className="meta">{catBreakdown.length} categories</span>
+                {catBreakdown.some(c => c.overBudget) ? (
+                  <span className="meta" style={{ color: 'var(--negative)' }}>
+                    {catBreakdown.filter(c => c.overBudget).length} over budget
+                  </span>
+                ) : (
+                  <span className="meta">{catBreakdown.length} categories</span>
+                )}
               </div>
               {catBreakdown.length === 0 ? (
                 <div style={{ padding: 32, textAlign: 'center', color: 'var(--muted)', fontSize: 12 }}>
@@ -180,17 +196,38 @@ export function Finance() {
                       <div key={c.name} style={{ width: `${c.pct * 100}%`, background: c.color, transition: 'width 200ms' }} title={`${c.name} · €${c.amount}`}></div>
                     ))}
                   </div>
-                  <div className="col" style={{ gap: 6 }}>
+                  <div className="col" style={{ gap: 10 }}>
                     {catBreakdown.map(c => (
-                      <div key={c.name} className="row between" style={{ padding: '4px 0' }}>
-                        <div className="row" style={{ gap: 8 }}>
-                          <span style={{ width: 8, height: 8, background: c.color, borderRadius: 2 }}></span>
-                          <span style={{ fontSize: 12 }}>{c.name}</span>
+                      <div key={c.name}>
+                        <div className="row between" style={{ padding: '2px 0' }}>
+                          <div className="row" style={{ gap: 8 }}>
+                            <span style={{ width: 8, height: 8, background: c.color, borderRadius: 2 }}></span>
+                            <span style={{ fontSize: 12 }}>{c.name}</span>
+                          </div>
+                          <div className="row" style={{ gap: 8 }}>
+                            <span className="mono dim" style={{ fontSize: 11 }}>{Math.round(c.pct * 100)}%</span>
+                            <span className="mono" style={{ fontSize: 12, minWidth: 60, textAlign: 'right' }}>€{c.amount}</span>
+                          </div>
                         </div>
-                        <div className="row" style={{ gap: 8 }}>
-                          <span className="mono dim" style={{ fontSize: 11 }}>{Math.round(c.pct * 100)}%</span>
-                          <span className="mono" style={{ fontSize: 12, minWidth: 60, textAlign: 'right' }}>€{c.amount}</span>
-                        </div>
+                        {c.budget != null && (
+                          <div style={{ marginTop: 5 }}>
+                            <div style={{ height: 4, borderRadius: 2, background: 'var(--faint)', overflow: 'hidden' }}>
+                              <div style={{
+                                width: `${Math.min(100, c.budgetPct * 100)}%`,
+                                height: '100%',
+                                background: c.overBudget ? 'var(--negative)' : 'var(--accent)',
+                                transition: 'width 200ms',
+                              }} />
+                            </div>
+                            <div className="mono" style={{
+                              fontSize: 10, marginTop: 3,
+                              color: c.overBudget ? 'var(--negative)' : 'var(--muted)',
+                            }}>
+                              €{Math.round(c.amount)} / €{c.budget.toLocaleString()} budget
+                              {c.overBudget && ` · €${Math.round(c.amount - c.budget).toLocaleString()} over`}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -257,10 +294,12 @@ export function Finance() {
       {showCats && (
         <CategoriesModal
           categories={categories}
+          budgets={budgets}
           onClose={() => setShowCats(false)}
           onAdd={addCategory}
           onDelete={deleteCategory}
           onRename={renameCategory}
+          onSetBudget={setBudget}
         />
       )}
     </>
@@ -651,7 +690,7 @@ function AddTxForm({ categories, onAdd }) {
   )
 }
 
-function CategoriesModal({ categories, onClose, onAdd, onDelete, onRename }) {
+function CategoriesModal({ categories, budgets, onClose, onAdd, onDelete, onRename, onSetBudget }) {
   const [newName, setNewName] = useState('')
   const [editingName, setEditingName] = useState(null)
   const [editValue, setEditValue] = useState('')
@@ -669,8 +708,11 @@ function CategoriesModal({ categories, onClose, onAdd, onDelete, onRename }) {
           <button className="btn ghost icon" onClick={onClose}><IconX size={14} /></button>
         </div>
         <div className="col" style={{ gap: 4 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '24px 1fr 110px 24px 24px', gap: 12, fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em', padding: '0 4px 4px' }}>
+            <span></span><span>Category</span><span>Monthly budget</span><span></span><span></span>
+          </div>
           {categories.map(c => (
-            <div key={c} className="list-row" style={{ gridTemplateColumns: '24px 1fr 24px 24px', padding: '8px 4px' }}>
+            <div key={c} className="list-row" style={{ gridTemplateColumns: '24px 1fr 110px 24px 24px', padding: '8px 4px' }}>
               <span style={{ width: 14, height: 14, background: hashColor(c), borderRadius: 3 }}></span>
               {editingName === c ? (
                 <input
@@ -691,6 +733,20 @@ function CategoriesModal({ categories, onClose, onAdd, onDelete, onRename }) {
               ) : (
                 <span style={{ fontSize: 13 }}>{c}</span>
               )}
+              <input
+                className="input mono"
+                type="number"
+                min="0"
+                step="10"
+                placeholder="—"
+                defaultValue={budgets[c] ?? ''}
+                onBlur={e => {
+                  const v = e.target.value
+                  if (String(budgets[c] ?? '') !== v) onSetBudget(c, v)
+                }}
+                onKeyDown={e => { if (e.key === 'Enter') e.target.blur() }}
+                style={{ height: 26, padding: '2px 8px', fontSize: 12, textAlign: 'right' }}
+              />
               <button className="btn ghost icon" onClick={() => { setEditingName(c); setEditValue(c) }}>
                 <IconEdit size={11} />
               </button>

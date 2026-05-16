@@ -7,11 +7,12 @@ const DEFAULT = {
   categories: ['Gym', 'Food', 'Rent & Bills', 'Transport', 'Other'],
   transactions: [],
   recurring: [],
+  budgets: {},
 }
 
 function persist(get) {
-  const { categories, transactions, recurring } = get()
-  saveData(KEY, { categories, transactions, recurring })
+  const { categories, transactions, recurring, budgets } = get()
+  saveData(KEY, { categories, transactions, recurring, budgets })
 }
 
 export const useFinanceStore = create((set, get) => {
@@ -20,6 +21,7 @@ export const useFinanceStore = create((set, get) => {
     categories: stored.categories ?? DEFAULT.categories,
     transactions: stored.transactions ?? DEFAULT.transactions,
     recurring: stored.recurring ?? [],
+    budgets: stored.budgets ?? {},
 
     addTransaction: ({ date, amount, type, category, note }) => {
       const t = { id: Date.now().toString(), date, amount: parseFloat(amount), type, category, note: note || '' }
@@ -43,7 +45,9 @@ export const useFinanceStore = create((set, get) => {
 
     deleteCategory: (name) => {
       const categories = get().categories.filter(c => c !== name)
-      set({ categories })
+      const budgets = { ...get().budgets }
+      delete budgets[name]
+      set({ categories, budgets })
       persist(get)
     },
 
@@ -55,7 +59,25 @@ export const useFinanceStore = create((set, get) => {
       const recurring = get().recurring.map(r =>
         r.category === oldName ? { ...r, category: newName } : r
       )
-      set({ categories, transactions, recurring })
+      const budgets = { ...get().budgets }
+      if (oldName in budgets) {
+        budgets[newName] = budgets[oldName]
+        delete budgets[oldName]
+      }
+      set({ categories, transactions, recurring, budgets })
+      persist(get)
+    },
+
+    // amount <= 0 or falsy removes the budget for that category.
+    setBudget: (category, amount) => {
+      const value = parseFloat(amount)
+      const budgets = { ...get().budgets }
+      if (!value || value <= 0) {
+        delete budgets[category]
+      } else {
+        budgets[category] = value
+      }
+      set({ budgets })
       persist(get)
     },
 
