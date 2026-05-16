@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useSettingsStore } from '../store/useSettingsStore'
 import {
   DUMMY_WEIGHT, DUMMY_TRAINED, DUMMY_GOALS,
   DUMMY_FINANCE_TRANSACTIONS, DUMMY_TRAINING_PROGRAM, DUMMY_TRAINING_LOG, DUMMY_SCHEDULE,
 } from '../lib/dummyData'
+import { STORE_KEYS, exportBackup, parseBackup, restoreBackup } from '../lib/backup'
 
 function Toggle({ checked, onChange }) {
   return (
@@ -18,17 +19,6 @@ const WEIGHT_GOALS = [
   { value: 'lose', label: 'Lose' },
   { value: 'gain', label: 'Gain' },
   { value: null, label: 'No preference' },
-]
-
-const STORE_KEYS = [
-  'consistent:weight',
-  'consistent:journal',
-  'consistent:goals',
-  'consistent:goals-history',
-  'consistent:training-program',
-  'consistent:training-log',
-  'consistent:finance',
-  'consistent:schedule',
 ]
 
 function doGenerateSampleData() {
@@ -88,6 +78,37 @@ export function Settings() {
 
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [deleteInput, setDeleteInput] = useState('')
+  const [pendingRestore, setPendingRestore] = useState(null)
+  const [importError, setImportError] = useState('')
+  const fileInputRef = useRef(null)
+
+  function handleFilePicked(e) {
+    const file = e.target.files?.[0]
+    e.target.value = '' // allow re-picking the same file
+    if (!file) return
+    setImportError('')
+    const reader = new FileReader()
+    reader.onload = () => {
+      try {
+        const data = parseBackup(String(reader.result))
+        const keyCount = STORE_KEYS.filter(k => Object.prototype.hasOwnProperty.call(data, k)).length
+        if (keyCount === 0) {
+          setImportError('Backup contains no recognizable data.')
+          return
+        }
+        setPendingRestore({ data, keyCount, name: file.name })
+      } catch (err) {
+        setImportError(err.message || 'Could not read backup file.')
+      }
+    }
+    reader.onerror = () => setImportError('Could not read the selected file.')
+    reader.readAsText(file)
+  }
+
+  function confirmRestore() {
+    restoreBackup(pendingRestore.data)
+    window.location.reload()
+  }
 
   return (
     <>
@@ -127,6 +148,34 @@ export function Settings() {
             <div className="setting-desc">Shows a dialog before removing a goal item.</div>
           </div>
           <Toggle checked={confirmGoalDelete} onChange={setConfirmGoalDelete} />
+        </div>
+      </div>
+
+      <div className="card" style={{ maxWidth: 560, marginTop: 16 }}>
+        <div className="card-h"><h3>Backup</h3></div>
+        <div className="setting-row">
+          <div>
+            <div className="setting-label">Export backup</div>
+            <div className="setting-desc">Download all your data as a single JSON file you can keep or move to another device.</div>
+          </div>
+          <button className="btn" onClick={() => exportBackup()}>Export</button>
+        </div>
+        <div className="setting-row" style={{ borderBottom: 0 }}>
+          <div>
+            <div className="setting-label">Import backup</div>
+            <div className="setting-desc">Restore from a previously exported file. This overwrites the data contained in the file.</div>
+            {importError && (
+              <div className="setting-desc" style={{ color: 'var(--negative)' }}>{importError}</div>
+            )}
+          </div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="application/json,.json"
+            style={{ display: 'none' }}
+            onChange={handleFilePicked}
+          />
+          <button className="btn" onClick={() => fileInputRef.current?.click()}>Import</button>
         </div>
       </div>
 
@@ -183,6 +232,23 @@ export function Settings() {
               >
                 Delete everything
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {pendingRestore && (
+        <div className="modal-overlay" onClick={() => setPendingRestore(null)}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <h4>Restore this backup?</h4>
+            <p>
+              <span className="highlight" style={{ background: 'var(--faint)', color: 'var(--text)' }}>{pendingRestore.name}</span> will
+              overwrite {pendingRestore.keyCount} data {pendingRestore.keyCount === 1 ? 'store' : 'stores'} with
+              their contents from the file. This cannot be undone.
+            </p>
+            <div className="modal-footer">
+              <button className="btn ghost" onClick={() => setPendingRestore(null)}>Cancel</button>
+              <button className="btn primary" onClick={confirmRestore}>Restore &amp; reload</button>
             </div>
           </div>
         </div>
