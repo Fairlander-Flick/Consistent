@@ -1,5 +1,4 @@
 import '@testing-library/jest-dom'
-import { vi } from 'vitest'
 
 // Provide localStorage for jsdom environment
 if (typeof localStorage === 'undefined') {
@@ -12,7 +11,7 @@ if (typeof localStorage === 'undefined') {
       clear: () => { store = {} },
     }
   })()
-  Object.defineProperty(global, 'localStorage', {
+  Object.defineProperty(globalThis, 'localStorage', {
     value: localStorageMock,
     writable: true,
   })

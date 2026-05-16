@@ -2,8 +2,6 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { act, renderHook } from '@testing-library/react'
 import { useGoalsStore } from './useGoalsStore'
 
-const PERIODS = ['daily', 'weekly', 'monthly', 'yearly']
-
 describe('useGoalsStore', () => {
   beforeEach(() => {
     localStorage.clear()

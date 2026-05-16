@@ -1,6 +1,5 @@
 import { create } from 'zustand'
 import { loadData, saveData } from '../lib/storage'
-import { todayISO } from '../lib/dateUtils'
 
 const PROGRAM_KEY = 'consistent:training-program'
 const LOG_KEY = 'consistent:training-log'

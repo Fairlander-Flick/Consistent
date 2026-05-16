@@ -10,7 +10,7 @@ import { trendSeries, sleepScoreInsight, correlationLabel } from '../lib/wellbei
 import { listExercises, exerciseProgression, personalRecords } from '../lib/progression'
 import { WeightChart } from '../components/ui/Widgets'
 import {
-  IconPlus, IconCheck, IconTrash, IconEdit, IconChevRight,
+  IconPlus, IconCheck, IconTrash, IconChevRight,
 } from '../components/ui/Icons'
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
