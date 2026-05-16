@@ -36,7 +36,8 @@ export function GoalsCard() {
   const goalDone = goalTasks.filter(t => t.done).length
 
   function openEdit() {
-    setEditTitle(storeData?.title || '')
+    const defaultTitle = period === 'daily' && !storeData?.title ? dateLabel(todayStr) : (storeData?.title || '')
+    setEditTitle(defaultTitle)
     setEditTodos(storeData?.todos ? [...storeData.todos] : [])
     setAddText('')
     setEditOpen(true)
