@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react'
 import { useFinanceStore } from '../store/useFinanceStore'
+import { useSettingsStore } from '../store/useSettingsStore'
 import { recurringMonthTotals, recurringForDay } from '../lib/financeUtils'
 import { todayISO } from '../lib/dateUtils'
 import { useMoney } from '../lib/useMoney'
@@ -46,7 +47,16 @@ export function Finance() {
     addCategory, deleteCategory, renameCategory, setBudget,
     addRecurring, updateRecurring, deleteRecurring,
   } = useFinanceStore()
+  const confirmTxDelete = useSettingsStore(s => s.confirmTxDelete)
   const { sym, fmt } = useMoney()
+
+  const handlePend = (t) => {
+    if (confirmTxDelete) {
+      setPendingDelete(t)
+    } else {
+      deleteTransaction(t.id)
+    }
+  }
 
   const monthKey = `${view.y}-${String(view.m + 1).padStart(2, '0')}`
   const monthTx = useMemo(
@@ -339,7 +349,7 @@ export function Finance() {
                 <div style={{ display: 'grid', gridTemplateColumns: '110px 160px 1fr 110px 24px', gap: 12, fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em', padding: '4px 0', borderBottom: '1px solid var(--border)' }}>
                   <span>Date</span><span>Category</span><span>Note</span><span style={{ textAlign: 'right' }}>Amount</span><span></span>
                 </div>
-                {txFiltered.map(t => <TxRow key={t.id} t={t} sym={sym} pending={pendingDelete?.id === t.id} onPend={() => setPendingDelete(t)} onCancelPend={() => setPendingDelete(null)} />)}
+                {txFiltered.map(t => <TxRow key={t.id} t={t} sym={sym} pending={pendingDelete?.id === t.id} onPend={() => handlePend(t)} onCancelPend={() => setPendingDelete(null)} />)}
               </>
             )}
 
@@ -363,7 +373,7 @@ export function Finance() {
                     )}
                   </div>
                 </div>
-                {day.txs.map(t => <TxRow key={t.id} t={t} sym={sym} hideDate pending={pendingDelete?.id === t.id} onPend={() => setPendingDelete(t)} onCancelPend={() => setPendingDelete(null)} />)}
+                {day.txs.map(t => <TxRow key={t.id} t={t} sym={sym} hideDate pending={pendingDelete?.id === t.id} onPend={() => handlePend(t)} onCancelPend={() => setPendingDelete(null)} />)}
               </div>
             ))}
 

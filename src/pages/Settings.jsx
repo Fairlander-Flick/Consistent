@@ -74,6 +74,7 @@ function doDeleteAllData() {
 export function Settings() {
   const {
     confirmGoalDelete, setConfirmGoalDelete,
+    confirmTxDelete, setConfirmTxDelete,
     weightGoal, setWeightGoal,
     weightTarget, setWeightTarget,
     currency, setCurrency,
@@ -185,6 +186,13 @@ export function Settings() {
             <div className="setting-desc">Shows a dialog before removing a goal item.</div>
           </div>
           <Toggle checked={confirmGoalDelete} onChange={setConfirmGoalDelete} />
+        </div>
+        <div className="setting-row" style={{ borderBottom: 0 }}>
+          <div>
+            <div className="setting-label">Confirm before deleting a transaction</div>
+            <div className="setting-desc">Shows a dialog before removing a finance transaction.</div>
+          </div>
+          <Toggle checked={confirmTxDelete} onChange={setConfirmTxDelete} />
         </div>
       </div>
 

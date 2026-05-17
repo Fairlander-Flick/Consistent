@@ -7,7 +7,6 @@ const DEFAULT = {
   theme: 'dark',
   confirmGoalDelete: true,
   confirmTxDelete: true,
-  confirmJournalDelete: true,
   weightGoal: null,
   weightTarget: null,
   reminderEnabled: false,
@@ -16,7 +15,7 @@ const DEFAULT = {
 }
 
 const PERSIST_KEYS = [
-  'theme', 'confirmGoalDelete', 'confirmTxDelete', 'confirmJournalDelete',
+  'theme', 'confirmGoalDelete', 'confirmTxDelete',
   'weightGoal', 'weightTarget', 'reminderEnabled', 'reminderTime', 'currency',
 ]
 
@@ -33,7 +32,6 @@ export const useSettingsStore = create((set, get) => {
     theme: stored.theme ?? DEFAULT.theme,
     confirmGoalDelete: stored.confirmGoalDelete ?? DEFAULT.confirmGoalDelete,
     confirmTxDelete: stored.confirmTxDelete ?? DEFAULT.confirmTxDelete,
-    confirmJournalDelete: stored.confirmJournalDelete ?? DEFAULT.confirmJournalDelete,
     weightGoal: stored.weightGoal ?? DEFAULT.weightGoal,
     weightTarget: stored.weightTarget ?? DEFAULT.weightTarget,
     reminderEnabled: stored.reminderEnabled ?? DEFAULT.reminderEnabled,
@@ -84,11 +82,6 @@ export const useSettingsStore = create((set, get) => {
       set({ confirmTxDelete: val })
     },
 
-    setConfirmJournalDelete: (val) => {
-      persist(get, { confirmJournalDelete: val })
-      set({ confirmJournalDelete: val })
-    },
-
     init: () => {
       const s = loadData(KEY, DEFAULT)
       document.documentElement.setAttribute('data-theme', s.theme ?? DEFAULT.theme)
@@ -96,7 +89,6 @@ export const useSettingsStore = create((set, get) => {
         theme: s.theme ?? DEFAULT.theme,
         confirmGoalDelete: s.confirmGoalDelete ?? DEFAULT.confirmGoalDelete,
         confirmTxDelete: s.confirmTxDelete ?? DEFAULT.confirmTxDelete,
-        confirmJournalDelete: s.confirmJournalDelete ?? DEFAULT.confirmJournalDelete,
         weightGoal: s.weightGoal ?? DEFAULT.weightGoal,
         weightTarget: s.weightTarget ?? DEFAULT.weightTarget,
         reminderEnabled: s.reminderEnabled ?? DEFAULT.reminderEnabled,
