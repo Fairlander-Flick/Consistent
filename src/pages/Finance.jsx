@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react'
 import { useFinanceStore } from '../store/useFinanceStore'
+import { recurringMonthTotals, recurringForDay } from '../lib/financeUtils'
 import { todayISO } from '../lib/dateUtils'
 import { useMoney } from '../lib/useMoney'
 import { MultiLineChart } from '../components/ui/Widgets'
@@ -54,17 +55,23 @@ export function Finance() {
   )
   const txFiltered = filterCat === 'all' ? monthTx : monthTx.filter(t => t.category === filterCat)
 
-  const income = monthTx.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0)
-  const expense = monthTx.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0)
+  const txIncome  = monthTx.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0)
+  const txExpense = monthTx.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0)
+  const recur = recurringMonthTotals(recurring)
+  const income  = txIncome  + recur.income
+  const expense = txExpense + recur.expense
   const balance = income - expense
 
-  const recurringIncome = recurring.filter(r => r.type === 'income').reduce((s, r) => s + r.amount, 0)
-  const recurringExpense = recurring.filter(r => r.type === 'expense').reduce((s, r) => s + r.amount, 0)
+  const recurringIncome = recur.income
+  const recurringExpense = recur.expense
 
   const catBreakdown = useMemo(() => {
     const out = {}
     monthTx.filter(t => t.type === 'expense').forEach(t => {
       out[t.category] = (out[t.category] || 0) + t.amount
+    })
+    recurring.filter(r => r.type === 'expense').forEach(r => {
+      out[r.category] = (out[r.category] || 0) + r.amount
     })
     return Object.entries(out)
       .map(([name, amount]) => {
@@ -79,7 +86,7 @@ export function Finance() {
         }
       })
       .sort((a, b) => b.amount - a.amount)
-  }, [monthTx, expense, budgets])
+  }, [monthTx, expense, budgets, recurring])
 
   const txByDay = useMemo(() => {
     const days = {}
@@ -105,8 +112,9 @@ export function Finance() {
         label: MONTHS_SHORT[d.getMonth()],
       })
     }
-    const incArr = months.map(m => transactions.filter(t => t.date.startsWith(m.key) && t.type === 'income').reduce((s, t) => s + t.amount, 0))
-    const expArr = months.map(m => transactions.filter(t => t.date.startsWith(m.key) && t.type === 'expense').reduce((s, t) => s + t.amount, 0))
+    const recurTotals = recurringMonthTotals(recurring)
+    const incArr = months.map(m => transactions.filter(t => t.date.startsWith(m.key) && t.type === 'income').reduce((s, t) => s + t.amount, 0) + recurTotals.income)
+    const expArr = months.map(m => transactions.filter(t => t.date.startsWith(m.key) && t.type === 'expense').reduce((s, t) => s + t.amount, 0) + recurTotals.expense)
     const balArr = incArr.map((v, i) => v - expArr[i])
     return {
       labels: months.map(m => m.label),
@@ -116,16 +124,19 @@ export function Finance() {
         { label: 'Balance', color: '#60a5fa', values: balArr },
       ],
     }
-  }, [transactions, view])
+  }, [transactions, view, recurring])
 
   const dailySeries = useMemo(() => {
-    const daysInMonth = new Date(view.y, view.m + 1, 0).getDate()
+    const numDays = new Date(view.y, view.m + 1, 0).getDate()
     const incArr = [], expArr = [], balArr = [], dayLabels = []
-    for (let d = 1; d <= daysInMonth; d++) {
+    for (let d = 1; d <= numDays; d++) {
       const dayKey = `${monthKey}-${String(d).padStart(2, '0')}`
       const dayTxs = monthTx.filter(t => t.date === dayKey)
+      const recurDay = recurringForDay(recurring, d, numDays)
       const inc = dayTxs.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0)
+            + recurDay.filter(r => r.type === 'income').reduce((s, r) => s + r.amount, 0)
       const exp = dayTxs.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0)
+            + recurDay.filter(r => r.type === 'expense').reduce((s, r) => s + r.amount, 0)
       dayLabels.push(String(d))
       incArr.push(inc)
       expArr.push(exp)
@@ -139,7 +150,7 @@ export function Finance() {
         { label: 'Balance', color: '#60a5fa', values: balArr },
       ],
     }
-  }, [monthTx, monthKey, view])
+  }, [monthTx, monthKey, view, recurring])
 
   const goPrev = () => {
     if (view.m === 0) setView({ y: view.y - 1, m: 11 })
