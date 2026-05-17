@@ -28,3 +28,24 @@ export function weeklyPreview(periodization) {
   if (!periodization) return [0, 0, 0]
   return [1, 2, 3].map(w => computeWeight({ ...periodization, currentWeek: w }))
 }
+
+export function exerciseType(ex) {
+  return ex && ex.type === 'cardio' ? 'cardio' : 'strength'
+}
+
+export function isCardio(ex) {
+  return exerciseType(ex) === 'cardio'
+}
+
+export function isPeriodized(ex) {
+  return exerciseType(ex) === 'strength' && !!ex && !!ex.periodization
+}
+
+export function resolveProgramSets(ex) {
+  if (isCardio(ex)) return []
+  if (isPeriodized(ex)) {
+    const w = computeWeight(ex.periodization)
+    return (ex.sets || []).map(s => ({ ...s, weight: w }))
+  }
+  return (ex.sets || []).map(s => ({ ...s }))
+}
