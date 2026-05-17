@@ -473,15 +473,18 @@ function RecurringSection({ year, month, categories, recurring, onAdd, onUpdate,
   const dayItems = (day) => recurring.filter(r => r.dayOfMonth === day || (r.dayOfMonth > numDays && day === numDays))
 
   const handleAdd = () => {
-    if (!form.amount || !form.category) return
-    onAdd(form)
+    const amount = parseFloat(form.amount)
+    if (!form.category) return
+    if (!form.amount || isNaN(amount) || amount <= 0) return
+    onAdd({ ...form, amount })
     setForm({ type: 'expense', amount: '', category: categories[0] || '', note: '', dayOfMonth: 1 })
   }
 
   const openEdit = (r) => setEditing({ ...r, amount: String(r.amount), dayOfMonth: String(r.dayOfMonth) })
 
   const saveEdit = () => {
-    if (!editing.amount || !editing.category) return
+    const amount = parseFloat(editing.amount)
+    if (!editing.category || isNaN(amount) || amount <= 0) return
     onUpdate(editing.id, editing)
     setEditing(null)
   }
@@ -772,10 +775,17 @@ function AddTxForm({ categories, onAdd }) {
     date: todayISO(),
     note: '',
   })
+  const [amountError, setAmountError] = useState('')
 
   const handleAdd = () => {
-    if (!form.amount || !form.category) return
-    onAdd({ ...form, amount: parseFloat(form.amount) })
+    const amount = parseFloat(form.amount)
+    if (!form.category) return
+    if (!form.amount || isNaN(amount) || amount <= 0) {
+      setAmountError('Enter an amount greater than 0.')
+      return
+    }
+    setAmountError('')
+    onAdd({ ...form, amount })
     setForm({ ...form, amount: '', note: '' })
   }
 
@@ -790,10 +800,15 @@ function AddTxForm({ categories, onAdd }) {
             className="input"
             placeholder="42.50"
             type="number"
+            min="0.01"
+            step="0.01"
             value={form.amount}
-            onChange={e => setForm(f => ({ ...f, amount: e.target.value }))}
-            style={{ marginTop: 4 }}
+            onChange={e => { setForm(f => ({ ...f, amount: e.target.value })); setAmountError('') }}
+            style={{ marginTop: 4, borderColor: amountError ? 'var(--negative)' : undefined }}
           />
+          {amountError && (
+            <div style={{ fontSize: 11, color: 'var(--negative)', marginTop: 3 }}>{amountError}</div>
+          )}
         </div>
         <div>
           <label style={{ fontSize: 11, color: 'var(--muted)' }}>Type</label>
