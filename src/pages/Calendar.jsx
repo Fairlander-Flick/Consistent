@@ -53,7 +53,7 @@ export function Calendar() {
       cells.push({
         date,
         day: d,
-        hasTraining: !!session,
+        hasTraining: !!(session && (session.exercises?.length ?? 0) > 0),
         scoreLvl: scoreLevel(j?.score),
         sched,
         hasWeight: weight.some(w => w.date === date),

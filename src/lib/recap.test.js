@@ -3,9 +3,9 @@ import { periodRecap, monthDates } from './recap'
 
 const data = {
   log: [
-    { date: '2026-05-11', durationMinutes: 60, exercises: [] },
-    { date: '2026-05-13', durationMinutes: 45, exercises: [] },
-    { date: '2026-04-30', durationMinutes: 30, exercises: [] }, // out of week
+    { date: '2026-05-11', durationMinutes: 60, exercises: [{ name: 'Squat', sets: [{ reps: 5, weight: 100 }] }] },
+    { date: '2026-05-13', durationMinutes: 45, exercises: [{ name: 'Bench', sets: [{ reps: 5, weight: 80 }] }] },
+    { date: '2026-04-30', durationMinutes: 30, exercises: [{ name: 'DL', sets: [] }] }, // out of week
   ],
   journalEntries: [
     { date: '2026-05-11', sleepHours: 8, score: 9 },
@@ -42,6 +42,16 @@ describe('periodRecap', () => {
     expect(r.moodAvg).toBeNull()
     expect(r.goalsTotal).toBe(0)
     expect(r.trainingCount).toBe(0)
+  })
+
+  it('excludes mark-done sessions from trainingCount', () => {
+    const dates = ['2026-05-10', '2026-05-11']
+    const log = [
+      { date: '2026-05-10', exercises: [{ name: 'Squat', sets: [{ reps: 5, weight: 100 }] }], durationMinutes: 0 },
+      { date: '2026-05-11', exercises: [], durationMinutes: 0 },
+    ]
+    const r = periodRecap({ log, journalEntries: [], transactions: [], goalPeriod: null }, dates)
+    expect(r.trainingCount).toBe(1)
   })
 })
 

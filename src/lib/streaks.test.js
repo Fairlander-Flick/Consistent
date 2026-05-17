@@ -47,7 +47,19 @@ describe('date extractors', () => {
     expect(journalDates(entries)).toEqual(['a', 'b'])
   })
 
-  it('trainingDates maps log dates', () => {
-    expect(trainingDates([{ date: 'x' }, { date: 'y' }])).toEqual(['x', 'y'])
+  it('trainingDates maps log dates with exercises', () => {
+    expect(trainingDates([
+      { date: 'x', exercises: [{ name: 'Squat' }] },
+      { date: 'y', exercises: [{ name: 'Bench' }] },
+    ])).toEqual(['x', 'y'])
+  })
+
+  it('trainingDates excludes mark-done sessions (0 exercises)', () => {
+    const log = [
+      { date: '2026-05-10', exercises: [{ name: 'Squat', sets: [] }] },
+      { date: '2026-05-11', exercises: [] },
+      { date: '2026-05-12', exercises: [{ name: 'Bench', sets: [] }] },
+    ]
+    expect(trainingDates(log)).toEqual(['2026-05-10', '2026-05-12'])
   })
 })

@@ -48,7 +48,9 @@ export function journalDates(entries) {
     .map(e => e.date)
 }
 
-// Dates with a logged training session.
+// Dates with a logged training session (excludes mark-done sessions with 0 exercises).
 export function trainingDates(log) {
-  return log.map(s => s.date)
+  return log
+    .filter(s => (s.exercises?.length ?? 0) > 0)
+    .map(s => s.date)
 }

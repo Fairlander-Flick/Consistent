@@ -12,7 +12,7 @@ export function periodRecap({ log, journalEntries, transactions, goalPeriod }, d
   const set = new Set(dates)
   const has = (d) => set.has(d)
 
-  const sessions = log.filter(s => has(s.date))
+  const sessions = log.filter(s => has(s.date) && (s.exercises?.length ?? 0) > 0)
   const trainingMinutes = sessions.reduce((m, s) => m + (s.durationMinutes || 0), 0)
 
   const periodJournal = journalEntries.filter(e => has(e.date))
