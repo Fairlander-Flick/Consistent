@@ -8,6 +8,7 @@ import { todayISO, isoToDisplay } from '../lib/dateUtils'
 import { weightProgress } from '../lib/weightGoal'
 import { trendSeries, sleepScoreInsight, correlationLabel } from '../lib/wellbeing'
 import { listExercises, exerciseProgression, personalRecords } from '../lib/progression'
+import { computeWeight, weeklyPreview, isCardio, isPeriodized, resolveProgramSets } from '../lib/periodization'
 import { WeightChart } from '../components/ui/Widgets'
 import {
   IconPlus, IconCheck, IconTrash, IconChevRight,
@@ -441,18 +442,37 @@ function PrRow({ label, value, date }) {
 
 // ── Daily Log ──────────────────────────────────────────────
 function DailyLog() {
-  const { program, logSession, getSessionForDate } = useTrainingStore()
+  const { program, logSession, getSessionForDate, setExerciseWeek } = useTrainingStore()
   const today = todayISO()
   const d = new Date(today + 'T00:00:00')
   const dayLabel = DAYS[d.getDay() === 0 ? 6 : d.getDay() - 1]
   const todayProgram = program[dayLabel] || { name: '', exercises: [] }
   const logged = getSessionForDate(today)
 
-  const [sets, setSets] = useState(() => {
-    if (logged) return logged.exercises.map(ex => ex.sets.map(s => ({ ...s, done: true })))
-    return todayProgram.exercises.map(ex => ex.sets.map(s => ({ ...s, done: false })))
+  const [strength, setStrength] = useState(() => {
+    const map = {}
+    for (const ex of todayProgram.exercises) {
+      if (isCardio(ex)) continue
+      const loggedEx = logged?.exercises.find(e => e.id === ex.id)
+      map[ex.id] = loggedEx
+        ? (loggedEx.sets || []).map(s => ({ reps: s.reps, weight: s.weight, done: true }))
+        : resolveProgramSets(ex).map(s => ({ reps: s.reps, weight: s.weight, done: false }))
+    }
+    return map
+  })
+  const [cardio, setCardio] = useState(() => {
+    const map = {}
+    for (const ex of todayProgram.exercises) {
+      if (!isCardio(ex)) continue
+      const loggedEx = logged?.exercises.find(e => e.id === ex.id)
+      map[ex.id] = loggedEx
+        ? { durationMinutes: loggedEx.durationMinutes || 0, done: true }
+        : { durationMinutes: ex.durationMinutes || 0, done: false }
+    }
+    return map
   })
   const [durationMinutes, setDurationMinutes] = useState(() => logged?.durationMinutes ?? 0)
+  const [cycleHint, setCycleHint] = useState(false)
 
   if (!todayProgram.exercises || todayProgram.exercises.length === 0) {
     return (
@@ -466,23 +486,61 @@ function DailyLog() {
     )
   }
 
-  const updateSet = (exIdx, sIdx, field, value) => {
-    setSets(prev => {
-      const c = prev.map(arr => arr.map(s => ({ ...s })))
-      c[exIdx][sIdx][field] = field === 'done' ? !c[exIdx][sIdx].done : parseFloat(value) || 0
-      return c
+  const updateSet = (exId, sIdx, field, value) => {
+    setStrength(prev => {
+      const arr = prev[exId].map(s => ({ ...s }))
+      arr[sIdx][field] = field === 'done' ? !arr[sIdx].done : parseFloat(value) || 0
+      return { ...prev, [exId]: arr }
     })
   }
+  const updateCardio = (exId, field, value) => {
+    setCardio(prev => ({
+      ...prev,
+      [exId]: {
+        ...prev[exId],
+        [field]: field === 'done' ? !prev[exId].done : Math.max(0, parseInt(value) || 0),
+      },
+    }))
+  }
 
-  const flat = sets.flat()
-  const sessionVolume = flat.filter(s => s.done).reduce((sum, s) => sum + (s.reps * s.weight), 0)
+  let doneCount = 0
+  let totalCount = 0
+  let sessionVolume = 0
+  for (const ex of todayProgram.exercises) {
+    if (isCardio(ex)) {
+      totalCount += 1
+      if (cardio[ex.id]?.done) doneCount += 1
+      continue
+    }
+    const fixed = isPeriodized(ex) ? computeWeight(ex.periodization) : null
+    for (const s of strength[ex.id] || []) {
+      totalCount += 1
+      if (s.done) {
+        doneCount += 1
+        sessionVolume += s.reps * (fixed != null ? fixed : s.weight)
+      }
+    }
+  }
 
   const handleLog = () => {
-    const exercises = todayProgram.exercises.map((ex, i) => ({
-      ...ex,
-      sets: (sets[i] ?? []).map(({ done, ...rest }) => rest),
-    }))
-    logSession(today, exercises, durationMinutes)
+    const exercises = todayProgram.exercises.map(ex => {
+      if (isCardio(ex)) {
+        const c = cardio[ex.id] || { durationMinutes: 0, done: false }
+        return { id: ex.id, name: ex.name, type: 'cardio', durationMinutes: c.durationMinutes, completed: c.done }
+      }
+      const local = strength[ex.id] || []
+      if (isPeriodized(ex)) {
+        const w = computeWeight(ex.periodization)
+        return {
+          ...ex,
+          sets: local.map(s => ({ reps: s.reps, weight: w })),
+          completed: local.length > 0 && local.every(s => s.done),
+        }
+      }
+      return { ...ex, sets: local.map(({ done, ...rest }) => rest) }
+    })
+    const res = logSession(today, exercises, durationMinutes)
+    setCycleHint(!!(res && res.cycleWrapped))
   }
 
   return (
@@ -491,34 +549,80 @@ function DailyLog() {
         <div className="card">
           <div className="card-h">
             <h3>{dayLabel} · {todayProgram.name || 'Session'}</h3>
-            <span className="meta">
-              {todayProgram.exercises.length} exercises · {todayProgram.exercises.reduce((s, e) => s + e.sets.length, 0)} sets
-            </span>
+            <span className="meta">{todayProgram.exercises.length} exercises</span>
           </div>
           <div className="col gap-4">
-            {todayProgram.exercises.map((ex, exIdx) => (
-              <div key={ex.id || exIdx}>
-                <div className="row between" style={{ marginBottom: 8 }}>
-                  <div style={{ fontSize: 13, fontWeight: 600 }}>{ex.name}</div>
-                  <div className="mono dim" style={{ fontSize: 11 }}>{ex.sets.length} sets</div>
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '24px 1fr 1fr 32px', gap: 8, fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em', padding: '4px 0', borderBottom: '1px solid var(--border)' }}>
-                  <span>#</span><span>Reps</span><span>Weight</span><span></span>
-                </div>
-                {sets[exIdx]?.map((s, sIdx) => (
-                  <div key={sIdx} className="list-row" style={{ gridTemplateColumns: '24px 1fr 1fr 32px', padding: '8px 0', borderBottom: '1px solid var(--border)' }}>
-                    <div className="mono dim">{sIdx + 1}</div>
-                    <input className="input" value={s.reps} onChange={e => updateSet(exIdx, sIdx, 'reps', e.target.value)} style={{ height: 30, padding: '4px 8px' }} />
-                    <input className="input" value={s.weight} onChange={e => updateSet(exIdx, sIdx, 'weight', e.target.value)} style={{ height: 30, padding: '4px 8px' }} />
-                    <button className={'btn ' + (s.done ? 'primary' : '')}
-                            style={{ width: 30, height: 30, padding: 0, display: 'grid', placeItems: 'center' }}
-                            onClick={() => updateSet(exIdx, sIdx, 'done')}>
-                      <IconCheck size={12} />
-                    </button>
+            {todayProgram.exercises.map((ex, exIdx) => {
+              if (isCardio(ex)) {
+                const c = cardio[ex.id] || { durationMinutes: 0, done: false }
+                return (
+                  <div key={ex.id || exIdx}>
+                    <div className="row between" style={{ marginBottom: 8 }}>
+                      <div style={{ fontSize: 13, fontWeight: 600 }}>{ex.name}</div>
+                      <div className="mono dim" style={{ fontSize: 11 }}>cardio</div>
+                    </div>
+                    <div className="list-row" style={{ gridTemplateColumns: '1fr 1fr 32px', padding: '8px 0', borderBottom: '1px solid var(--border)', alignItems: 'center' }}>
+                      <span style={{ fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Duration (min)</span>
+                      <input className="input" type="number" min="0" step="1" value={c.durationMinutes || ''}
+                             onChange={e => updateCardio(ex.id, 'durationMinutes', e.target.value)}
+                             style={{ height: 30, padding: '4px 8px' }} />
+                      <button className={'btn ' + (c.done ? 'primary' : '')}
+                              style={{ width: 30, height: 30, padding: 0, display: 'grid', placeItems: 'center' }}
+                              onClick={() => updateCardio(ex.id, 'done')}>
+                        <IconCheck size={12} />
+                      </button>
+                    </div>
                   </div>
-                ))}
-              </div>
-            ))}
+                )
+              }
+              const periodized = isPeriodized(ex)
+              const fixedWeight = periodized ? computeWeight(ex.periodization) : null
+              const preview = periodized ? weeklyPreview(ex.periodization) : null
+              const week = periodized ? (ex.periodization.currentWeek || 1) : null
+              return (
+                <div key={ex.id || exIdx}>
+                  <div className="row between" style={{ marginBottom: 8 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600 }}>{ex.name}</div>
+                    <div className="mono dim" style={{ fontSize: 11 }}>{(strength[ex.id] || []).length} sets</div>
+                  </div>
+                  {periodized && (
+                    <div className="row between" style={{ marginBottom: 8, flexWrap: 'wrap', gap: 8 }}>
+                      <div className="mono dim" style={{ fontSize: 11 }}>
+                        TM {ex.periodization.trainingMax} kg · H1 {preview[0]} · H2 {preview[1]} · H3 {preview[2]} kg
+                      </div>
+                      <div className="tabs" style={{ fontSize: 11 }}>
+                        {[1, 2, 3].map(w => (
+                          <button key={w} className={w === week ? 'active' : ''}
+                                  onClick={() => setExerciseWeek(dayLabel, ex.id, w)}>
+                            Week {w}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  <div style={{ display: 'grid', gridTemplateColumns: '24px 1fr 1fr 32px', gap: 8, fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em', padding: '4px 0', borderBottom: '1px solid var(--border)' }}>
+                    <span>#</span><span>Reps</span><span>Weight</span><span></span>
+                  </div>
+                  {(strength[ex.id] || []).map((s, sIdx) => (
+                    <div key={sIdx} className="list-row" style={{ gridTemplateColumns: '24px 1fr 1fr 32px', padding: '8px 0', borderBottom: '1px solid var(--border)' }}>
+                      <div className="mono dim">{sIdx + 1}</div>
+                      <input className="input" value={s.reps} onChange={e => updateSet(ex.id, sIdx, 'reps', e.target.value)} style={{ height: 30, padding: '4px 8px' }} />
+                      {periodized ? (
+                        <input className="input" value={fixedWeight} readOnly tabIndex={-1}
+                               style={{ height: 30, padding: '4px 8px', opacity: 0.7, cursor: 'not-allowed' }} />
+                      ) : (
+                        <input className="input" value={s.weight} onChange={e => updateSet(ex.id, sIdx, 'weight', e.target.value)} style={{ height: 30, padding: '4px 8px' }} />
+                      )}
+                      <button className={'btn ' + (s.done ? 'primary' : '')}
+                              style={{ width: 30, height: 30, padding: 0, display: 'grid', placeItems: 'center' }}
+                              onClick={() => updateSet(ex.id, sIdx, 'done')}>
+                        <IconCheck size={12} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )
+            })}
           </div>
         </div>
       </div>
@@ -528,9 +632,9 @@ function DailyLog() {
           <div className="card-h"><h3>Session</h3></div>
           <div className="col gap-3">
             <div>
-              <div style={{ fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Completed sets</div>
+              <div style={{ fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Completed</div>
               <div className="num num-lg" style={{ marginTop: 4 }}>
-                {flat.filter(s => s.done).length}<span className="dim" style={{ fontSize: 14 }}>/{flat.length}</span>
+                {doneCount}<span className="dim" style={{ fontSize: 14 }}>/{totalCount}</span>
               </div>
             </div>
             <div className="divider"></div>
@@ -560,6 +664,11 @@ function DailyLog() {
             <button className="btn primary" onClick={handleLog} style={{ justifyContent: 'center' }}>
               <IconCheck size={12} /> {logged ? 'Update session' : 'Log session'}
             </button>
+            {cycleHint && (
+              <div style={{ fontSize: 11, color: 'var(--accent)', background: 'var(--accent-soft)', padding: '8px 10px', borderRadius: 6 }}>
+                New cycle — consider updating the training max in the Program editor.
+              </div>
+            )}
           </div>
         </div>
       </div>
