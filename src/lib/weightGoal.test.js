@@ -56,4 +56,25 @@ describe('weightProgress', () => {
     ]
     expect(weightProgress(entries, 75).etaDate).toBeNull()
   })
+
+  it('returns overshot=true and reached=false when past target (cutting weight overshoots)', () => {
+    const entries = [
+      { date: '2026-01-01', kg: 80 },
+      { date: '2026-02-01', kg: 72 },
+    ]
+    const p = weightProgress(entries, 75)
+    expect(p.pct).toBe(1)
+    expect(p.reached).toBe(false)
+    expect(p.overshot).toBe(true)
+  })
+
+  it('does not set overshot when within tolerance of target', () => {
+    const entries = [
+      { date: '2026-01-01', kg: 80 },
+      { date: '2026-02-01', kg: 75 },
+    ]
+    const p = weightProgress(entries, 75)
+    expect(p.reached).toBe(true)
+    expect(p.overshot).toBe(false)
+  })
 })

@@ -169,6 +169,13 @@ function WeightSection() {
                   You're at your {goal.target.toFixed(1)} kg target.
                 </div>
               </div>
+            ) : goal.overshot ? (
+              <div style={{ padding: '12px 0', textAlign: 'center' }}>
+                <div className="num num-lg" style={{ color: 'var(--accent)' }}>Overshot</div>
+                <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 6 }}>
+                  You passed your {goal.target.toFixed(1)} kg target — current: {goal.current.toFixed(1)} kg.
+                </div>
+              </div>
             ) : (
               <>
                 <div className="row between" style={{ marginBottom: 8 }}>

@@ -14,6 +14,8 @@ export function weightProgress(entries, target) {
   const pct = Math.max(0, Math.min(1, fraction))
   const remaining = target - current
   const reached = Math.abs(remaining) < 0.05
+  // overshot: past the target (sign of remaining flipped vs span) and not within tolerance
+  const overshot = !reached && span !== 0 && Math.sign(remaining) !== Math.sign(span)
 
   // Recent rate: linear over the last window of up to 14 entries.
   const window = sorted.slice(-14)
@@ -44,6 +46,7 @@ export function weightProgress(entries, target) {
     target,
     remaining,
     reached,
+    overshot,
     pct,
     ratePerWeek,
     etaDate,
