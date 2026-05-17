@@ -677,25 +677,42 @@ function DailyLog() {
 }
 
 // ── Program Editor ─────────────────────────────────────────
+const DEFAULT_MULTIPLIERS = [0.8193, 0.861, 0.9027]
+
 function ProgramEditor() {
-  const { program, setDayName, addExercise, addSet, removeExercise } = useTrainingStore()
+  const {
+    program, setDayName, addExercise, addSet, removeExercise,
+    setExerciseType, setPeriodization, setExerciseWeek, setCardioDuration,
+  } = useTrainingStore()
   const [editingDay, setEditingDay] = useState('Mon')
   const [newExName, setNewExName] = useState('')
+  const [newExType, setNewExType] = useState('strength')
   const [setReps, setSetReps] = useState({})
   const [setWeight, setSetWeight] = useState({})
   const [setSetsCount, setSetSetsCount] = useState({})
+  const [pDraft, setPDraft] = useState({}) // keyed by `${day}-${exId}`
 
-  const handleAddSet = (day, exId) => {
+  const handleAddSet = (day, exId, periodized) => {
     const key = `${day}-${exId}`
     const r = setReps[key]
     const w = setWeight[key]
-    if (!r || !w) return
+    if (!r || (!periodized && !w)) return
     const count = parseInt(setSetsCount[key]) || 1
-    for (let i = 0; i < count; i++) addSet(day, exId, r, w)
+    for (let i = 0; i < count; i++) addSet(day, exId, r, periodized ? 0 : w)
     setSetReps(prev => ({ ...prev, [key]: '' }))
     setSetWeight(prev => ({ ...prev, [key]: '' }))
     setSetSetsCount(prev => ({ ...prev, [key]: '' }))
   }
+
+  const pDraftFor = (key, ex) =>
+    pDraft[key] || {
+      tm: ex.periodization?.trainingMax ?? '',
+      m1: ex.periodization?.multipliers?.[0] ?? DEFAULT_MULTIPLIERS[0],
+      m2: ex.periodization?.multipliers?.[1] ?? DEFAULT_MULTIPLIERS[1],
+      m3: ex.periodization?.multipliers?.[2] ?? DEFAULT_MULTIPLIERS[2],
+    }
+  const setPDraftField = (key, ex, patch) =>
+    setPDraft(prev => ({ ...prev, [key]: { ...pDraftFor(key, ex), ...patch } }))
 
   const editing = program[editingDay]
 
@@ -738,11 +755,19 @@ function ProgramEditor() {
                       paddingTop: eIdx > 0 ? 6 : 0,
                     }}>
                       <div style={{ fontSize: 11, fontWeight: 500 }}>{ex.name}</div>
-                      {ex.sets.length > 0 && (
+                      {isCardio(ex) ? (
+                        <div className="mono dim" style={{ fontSize: 10, marginTop: 2 }}>
+                          {ex.durationMinutes || 0} min
+                        </div>
+                      ) : isPeriodized(ex) ? (
+                        <div className="mono dim" style={{ fontSize: 10, marginTop: 2 }}>
+                          {(ex.sets || []).length}×{ex.sets?.[0]?.reps ?? '?'} @ {computeWeight(ex.periodization)}kg · W{ex.periodization.currentWeek || 1}
+                        </div>
+                      ) : (ex.sets || []).length > 0 ? (
                         <div className="mono dim" style={{ fontSize: 10, marginTop: 2 }}>
                           {ex.sets.length}×{ex.sets[0].reps}@{ex.sets[0].weight}kg
                         </div>
-                      )}
+                      ) : null}
                     </div>
                   ))}
                 </div>
@@ -766,41 +791,142 @@ function ProgramEditor() {
           />
           {editing.exercises.map(ex => {
             const key = `${editingDay}-${ex.id}`
+            const cardioEx = isCardio(ex)
+            const periodized = isPeriodized(ex)
+            const draft = pDraftFor(key, ex)
             return (
               <div key={ex.id} style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 6, padding: 12 }}>
                 <div className="row between" style={{ marginBottom: 8 }}>
                   <div style={{ fontSize: 13, fontWeight: 500 }}>{ex.name}</div>
-                  <button className="btn ghost icon" onClick={() => removeExercise(editingDay, ex.id)}>
-                    <IconTrash size={12} />
-                  </button>
-                </div>
-                <div className="row" style={{ flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
-                  {ex.sets.map((s, sIdx) => (
-                    <div key={sIdx} className="mono" style={{
-                      fontSize: 11,
-                      background: 'var(--faint)',
-                      border: '1px solid var(--border)',
-                      padding: '4px 8px',
-                      borderRadius: 4,
-                    }}>
-                      {s.reps} × {s.weight}<span className="dim">kg</span>
+                  <div className="row" style={{ gap: 8, alignItems: 'center' }}>
+                    <div className="tabs" style={{ fontSize: 11 }}>
+                      <button className={!cardioEx ? 'active' : ''}
+                              onClick={() => setExerciseType(editingDay, ex.id, 'strength')}>
+                        Strength
+                      </button>
+                      <button className={cardioEx ? 'active' : ''}
+                              onClick={() => setExerciseType(editingDay, ex.id, 'cardio')}>
+                        Cardio
+                      </button>
                     </div>
-                  ))}
+                    <button className="btn ghost icon" onClick={() => removeExercise(editingDay, ex.id)}>
+                      <IconTrash size={12} />
+                    </button>
+                  </div>
                 </div>
-                <div className="row" style={{ gap: 6 }}>
-                  <input className="input" placeholder="sets" type="number" min="1" value={setSetsCount[key] || ''}
-                         onChange={e => setSetSetsCount(prev => ({ ...prev, [key]: e.target.value }))}
-                         style={{ width: 60 }} />
-                  <input className="input" placeholder="reps" type="number" value={setReps[key] || ''}
-                         onChange={e => setSetReps(prev => ({ ...prev, [key]: e.target.value }))}
-                         style={{ width: 70 }} />
-                  <input className="input" placeholder="kg" type="number" value={setWeight[key] || ''}
-                         onChange={e => setSetWeight(prev => ({ ...prev, [key]: e.target.value }))}
-                         style={{ width: 70 }} />
-                  <button className="btn" onClick={() => handleAddSet(editingDay, ex.id)}>
-                    <IconPlus size={11} /> Add
-                  </button>
-                </div>
+
+                {cardioEx ? (
+                  <div className="row" style={{ gap: 6, alignItems: 'center' }}>
+                    <span style={{ fontSize: 11, color: 'var(--muted)' }}>Default duration</span>
+                    <input className="input" type="number" min="0" placeholder="min"
+                           value={ex.durationMinutes || ''}
+                           onChange={e => setCardioDuration(editingDay, ex.id, e.target.value)}
+                           style={{ width: 80 }} />
+                    <span style={{ fontSize: 11, color: 'var(--muted)' }}>min</span>
+                  </div>
+                ) : (
+                  <>
+                    <div className="row" style={{ gap: 8, marginBottom: 8, alignItems: 'center' }}>
+                      <button className={'btn ' + (periodized ? 'primary' : '')}
+                              onClick={() => periodized
+                                ? setPeriodization(editingDay, ex.id, null)
+                                : setPeriodization(editingDay, ex.id, { trainingMax: 100, multipliers: DEFAULT_MULTIPLIERS })}>
+                        {periodized ? 'Periodized — make manual' : 'Periodize'}
+                      </button>
+                    </div>
+
+                    {periodized ? (
+                      <>
+                        <div className="row" style={{ gap: 6, flexWrap: 'wrap', marginBottom: 8, alignItems: 'center' }}>
+                          <label style={{ fontSize: 11, color: 'var(--muted)' }}>TM</label>
+                          <input className="input" type="number" step="0.1" value={draft.tm}
+                                 onChange={e => setPDraftField(key, ex, { tm: e.target.value })}
+                                 style={{ width: 80 }} />
+                          <label style={{ fontSize: 11, color: 'var(--muted)' }}>H1</label>
+                          <input className="input" type="number" step="0.0001" value={draft.m1}
+                                 onChange={e => setPDraftField(key, ex, { m1: e.target.value })}
+                                 style={{ width: 80 }} />
+                          <label style={{ fontSize: 11, color: 'var(--muted)' }}>H2</label>
+                          <input className="input" type="number" step="0.0001" value={draft.m2}
+                                 onChange={e => setPDraftField(key, ex, { m2: e.target.value })}
+                                 style={{ width: 80 }} />
+                          <label style={{ fontSize: 11, color: 'var(--muted)' }}>H3</label>
+                          <input className="input" type="number" step="0.0001" value={draft.m3}
+                                 onChange={e => setPDraftField(key, ex, { m3: e.target.value })}
+                                 style={{ width: 80 }} />
+                          <button className="btn" onClick={() => setPeriodization(editingDay, ex.id, {
+                            trainingMax: draft.tm,
+                            multipliers: [draft.m1, draft.m2, draft.m3],
+                          })}>
+                            Save
+                          </button>
+                        </div>
+                        <div className="row between" style={{ marginBottom: 8, flexWrap: 'wrap', gap: 8 }}>
+                          <div className="mono dim" style={{ fontSize: 11 }}>
+                            {(() => { const p = weeklyPreview(ex.periodization); return `H1 ${p[0]} · H2 ${p[1]} · H3 ${p[2]} kg` })()}
+                          </div>
+                          <div className="tabs" style={{ fontSize: 11 }}>
+                            {[1, 2, 3].map(w => (
+                              <button key={w}
+                                      className={w === (ex.periodization.currentWeek || 1) ? 'active' : ''}
+                                      onClick={() => setExerciseWeek(editingDay, ex.id, w)}>
+                                Week {w}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                        <div className="row" style={{ flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+                          {(ex.sets || []).map((s, sIdx) => (
+                            <div key={sIdx} className="mono" style={{
+                              fontSize: 11, background: 'var(--faint)', border: '1px solid var(--border)',
+                              padding: '4px 8px', borderRadius: 4,
+                            }}>
+                              {s.reps} × {computeWeight(ex.periodization)}<span className="dim">kg</span>
+                            </div>
+                          ))}
+                        </div>
+                        <div className="row" style={{ gap: 6 }}>
+                          <input className="input" placeholder="sets" type="number" min="1" value={setSetsCount[key] || ''}
+                                 onChange={e => setSetSetsCount(prev => ({ ...prev, [key]: e.target.value }))}
+                                 style={{ width: 60 }} />
+                          <input className="input" placeholder="reps" type="number" value={setReps[key] || ''}
+                                 onChange={e => setSetReps(prev => ({ ...prev, [key]: e.target.value }))}
+                                 style={{ width: 70 }} />
+                          <button className="btn" onClick={() => handleAddSet(editingDay, ex.id, true)}>
+                            <IconPlus size={11} /> Add sets
+                          </button>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="row" style={{ flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+                          {(ex.sets || []).map((s, sIdx) => (
+                            <div key={sIdx} className="mono" style={{
+                              fontSize: 11, background: 'var(--faint)', border: '1px solid var(--border)',
+                              padding: '4px 8px', borderRadius: 4,
+                            }}>
+                              {s.reps} × {s.weight}<span className="dim">kg</span>
+                            </div>
+                          ))}
+                        </div>
+                        <div className="row" style={{ gap: 6 }}>
+                          <input className="input" placeholder="sets" type="number" min="1" value={setSetsCount[key] || ''}
+                                 onChange={e => setSetSetsCount(prev => ({ ...prev, [key]: e.target.value }))}
+                                 style={{ width: 60 }} />
+                          <input className="input" placeholder="reps" type="number" value={setReps[key] || ''}
+                                 onChange={e => setSetReps(prev => ({ ...prev, [key]: e.target.value }))}
+                                 style={{ width: 70 }} />
+                          <input className="input" placeholder="kg" type="number" value={setWeight[key] || ''}
+                                 onChange={e => setSetWeight(prev => ({ ...prev, [key]: e.target.value }))}
+                                 style={{ width: 70 }} />
+                          <button className="btn" onClick={() => handleAddSet(editingDay, ex.id, false)}>
+                            <IconPlus size={11} /> Add
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </>
+                )}
               </div>
             )
           })}
@@ -812,9 +938,13 @@ function ProgramEditor() {
               onChange={e => setNewExName(e.target.value)}
               style={{ flex: 1, maxWidth: 320 }}
             />
+            <select className="select" value={newExType} onChange={e => setNewExType(e.target.value)} style={{ width: 110 }}>
+              <option value="strength">Strength</option>
+              <option value="cardio">Cardio</option>
+            </select>
             <button className="btn" onClick={() => {
               if (newExName.trim()) {
-                addExercise(editingDay, newExName.trim())
+                addExercise(editingDay, newExName.trim(), newExType)
                 setNewExName('')
               }
             }}>
