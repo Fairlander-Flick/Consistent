@@ -983,8 +983,8 @@ function HistoryList() {
         <span>Date</span><span>Session</span><span>Sets</span><span>Volume</span><span></span>
       </div>
       {log.map((h, i) => {
-        const totalSets = h.exercises.reduce((s, e) => s + e.sets.length, 0)
-        const totalVolume = h.exercises.reduce((s, e) => s + e.sets.reduce((vs, set) => vs + set.reps * set.weight, 0), 0)
+        const totalSets = h.exercises.reduce((s, e) => s + (e.sets?.length || 0), 0)
+        const totalVolume = h.exercises.reduce((s, e) => s + (e.sets || []).reduce((vs, set) => vs + set.reps * set.weight, 0), 0)
         return (
           <div key={h.date + i}>
             <div className="list-row" style={{ gridTemplateColumns: '110px 1fr 80px 100px 24px', cursor: 'pointer' }} onClick={() => setOpen(open === i ? null : i)}>
@@ -1001,7 +1001,9 @@ function HistoryList() {
                     <div key={eIdx}>
                       <div style={{ fontSize: 12, fontWeight: 500, marginBottom: 4 }}>{ex.name}</div>
                       <div className="mono dim" style={{ fontSize: 11 }}>
-                        {ex.sets.map(s => `${s.reps}×${s.weight}`).join(' · ')}
+                        {ex.type === 'cardio'
+                          ? `${ex.durationMinutes || 0} min`
+                          : (ex.sets || []).map(s => `${s.reps}×${s.weight}`).join(' · ')}
                       </div>
                     </div>
                   ))}

@@ -97,7 +97,7 @@ export function GraphCard() {
   const volumeData = useMemo(() => {
     const sessions = [...trainingLog].sort((a, b) => a.date.localeCompare(b.date)).slice(-12)
     const volume = sessions.map(s =>
-      s.exercises.reduce((sum, ex) => sum + ex.sets.reduce((ss, set) => ss + set.reps * set.weight, 0), 0)
+      s.exercises.reduce((sum, ex) => sum + (ex.sets || []).reduce((ss, set) => ss + set.reps * set.weight, 0), 0)
     )
     const duration = sessions.map(s => s.durationMinutes ?? 0)
     const isReal = sessions.map(s => (s.exercises?.length ?? 0) > 0)
