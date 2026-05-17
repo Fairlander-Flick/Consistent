@@ -45,7 +45,7 @@ export function Sidebar() {
       <NavLink to="/consistency" className="sb-item">
         <IconScale size={14} />
         <span>Weigh-in</span>
-        <span style={{ marginLeft: 'auto' }} className="kbd">⌘W</span>
+        <span style={{ marginLeft: 'auto' }} className="kbd">⌘B</span>
       </NavLink>
 
       <div className="sb-foot">
