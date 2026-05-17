@@ -51,9 +51,8 @@ export function ThisWeekCard() {
     return { label: DAY_LABELS[i], date, state, isToday: date === todayStr, dayName }
   }), [week, log, program, todayStr])
 
-  const perDay = weekBlocks(week)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const allBlocks = useMemo(() => weekBlocks(week).flat(), [weekBlocks, week, recurring, oneoffs])
+  const perDay = useMemo(() => weekBlocks(week), [week, recurring, oneoffs])
+  const allBlocks = useMemo(() => perDay.flat(), [perDay])
 
   const { gridStartMin, gridEndMin } = useMemo(() => {
     if (allBlocks.length === 0) return { gridStartMin: 8 * 60, gridEndMin: 18 * 60 }

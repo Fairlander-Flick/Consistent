@@ -57,12 +57,10 @@ function WeightSection() {
     if (sorted.length < 2) return null
     const last = sorted[sorted.length - 1].kg
     const first = sorted[0].kg
-    const sevenAgo = sorted[Math.max(0, sorted.length - 8)]?.kg ?? first
     const vals = sorted.map(e => e.kg)
     return {
       current: last,
       total: last - first,
-      weekDelta: last - sevenAgo,
       min: Math.min(...vals),
       max: Math.max(...vals),
     }
