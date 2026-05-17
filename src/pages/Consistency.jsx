@@ -447,6 +447,7 @@ function DailyLog() {
     if (logged) return logged.exercises.map(ex => ex.sets.map(s => ({ ...s, done: true })))
     return todayProgram.exercises.map(ex => ex.sets.map(s => ({ ...s, done: false })))
   })
+  const [durationMinutes, setDurationMinutes] = useState(() => logged?.durationMinutes ?? 0)
 
   if (!todayProgram.exercises || todayProgram.exercises.length === 0) {
     return (
@@ -476,7 +477,7 @@ function DailyLog() {
       ...ex,
       sets: (sets[i] ?? []).map(({ done, ...rest }) => rest),
     }))
-    logSession(today, exercises)
+    logSession(today, exercises, durationMinutes)
   }
 
   return (
@@ -532,6 +533,23 @@ function DailyLog() {
               <div style={{ fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Volume so far</div>
               <div className="num num-md" style={{ marginTop: 4 }}>
                 {sessionVolume.toLocaleString()} <span className="dim" style={{ fontSize: 11 }}>kg</span>
+              </div>
+            </div>
+            <div className="divider"></div>
+            <div>
+              <div style={{ fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Duration</div>
+              <div className="row" style={{ gap: 6, marginTop: 4, alignItems: 'center' }}>
+                <input
+                  className="input"
+                  type="number"
+                  min="0"
+                  step="1"
+                  placeholder="0"
+                  value={durationMinutes || ''}
+                  onChange={e => setDurationMinutes(Math.max(0, parseInt(e.target.value) || 0))}
+                  style={{ width: 70, textAlign: 'right' }}
+                />
+                <span style={{ fontSize: 12, color: 'var(--muted)' }}>min</span>
               </div>
             </div>
             <button className="btn primary" onClick={handleLog} style={{ justifyContent: 'center' }}>

@@ -101,7 +101,8 @@ export function GraphCard() {
     )
     const duration = sessions.map(s => s.durationMinutes ?? 0)
     const isReal = sessions.map(s => (s.exercises?.length ?? 0) > 0)
-    return { sessions, volume, duration, isReal }
+    const hasDuration = duration.some(d => d > 0)
+    return { sessions, volume, duration, isReal, hasDuration }
   }, [trainingLog])
 
   // ── Pointer helpers ───────────────────────────────────────
@@ -410,7 +411,7 @@ export function GraphCard() {
         <div className="row" style={{ gap: 8, marginTop: 12 }}>
           {[
             { key: 'volume', label: 'Volume', color: 'var(--accent)' },
-            { key: 'duration', label: 'Duration', color: 'var(--text)' },
+            ...(volumeData.hasDuration ? [{ key: 'duration', label: 'Duration', color: 'var(--text)' }] : []),
           ].map(({ key, label, color }) => (
             <button
               key={key}
