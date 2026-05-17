@@ -12,27 +12,14 @@ describe('useGoalsStore', () => {
         monthly: { title: '', todos: [] },
         yearly: { title: '', todos: [] },
       },
-      history: [],
     })
   })
 
-  it('isCompleted returns false when todos empty', () => {
-    const { result } = renderHook(() => useGoalsStore())
-    expect(result.current.isCompleted('daily')).toBe(false)
-  })
-
-  it('isCompleted returns true when all todos checked', () => {
-    useGoalsStore.setState({
-      goals: {
-        daily: { title: 'Day', todos: [{ id: '1', text: 'Run', done: true }] },
-        weekly: { title: '', todos: [] },
-        monthly: { title: '', todos: [] },
-        yearly: { title: '', todos: [] },
-      },
-      history: [],
-    })
-    const { result } = renderHook(() => useGoalsStore())
-    expect(result.current.isCompleted('daily')).toBe(true)
+  it('store does not expose history methods', () => {
+    const store = useGoalsStore.getState()
+    expect(store.isCompleted).toBeUndefined()
+    expect(store.recordHistory).toBeUndefined()
+    expect(store.history).toBeUndefined()
   })
 
   it('toggleTodo flips done state', () => {
@@ -43,7 +30,6 @@ describe('useGoalsStore', () => {
         monthly: { title: '', todos: [] },
         yearly: { title: '', todos: [] },
       },
-      history: [],
     })
     const { result } = renderHook(() => useGoalsStore())
     act(() => result.current.toggleTodo('daily', '1'))

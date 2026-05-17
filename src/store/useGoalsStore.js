@@ -2,7 +2,6 @@ import { create } from 'zustand'
 import { loadData, saveData } from '../lib/storage'
 
 const GOALS_KEY = 'consistent:goals'
-const HISTORY_KEY = 'consistent:goals-history'
 
 const DEFAULT_GOALS = {
   daily: { title: '', todos: [] },
@@ -13,7 +12,6 @@ const DEFAULT_GOALS = {
 
 export const useGoalsStore = create((set, get) => ({
   goals: loadData(GOALS_KEY, DEFAULT_GOALS),
-  history: loadData(HISTORY_KEY, []),
 
   setTitle: (period, title) => {
     const goals = { ...get().goals, [period]: { ...get().goals[period], title } }
@@ -51,15 +49,4 @@ export const useGoalsStore = create((set, get) => ({
     set({ goals })
   },
 
-  isCompleted: (period) => {
-    const { todos } = get().goals[period]
-    return todos.length > 0 && todos.every(t => t.done)
-  },
-
-  recordHistory: (period, date, completed) => {
-    const existing = get().history.filter(h => !(h.date === date && h.period === period))
-    const history = [...existing, { date, period, completed }]
-    saveData(HISTORY_KEY, history)
-    set({ history })
-  },
 }))
