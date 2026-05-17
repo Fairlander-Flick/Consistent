@@ -61,6 +61,7 @@ function ReadOnlyView({ entry, label }) {
 }
 
 function TodayEditor({ entry, label, submitToday }) {
+  const { setTodayScore, setTodaySleepHours, setTodayNutrition, setTodayFeelings } = useJournalStore()
   const [local, setLocal] = useState(() => ({
     score: entry.score,
     sleepHours: entry.sleepHours,
@@ -87,7 +88,11 @@ function TodayEditor({ entry, label, submitToday }) {
           <input
             type="range" className="score-range" min="1" max="10" step="1"
             value={local.score ?? 5}
-            onChange={e => setLocal(p => ({ ...p, score: parseInt(e.target.value) }))}
+            onChange={e => {
+              const score = parseInt(e.target.value)
+              setLocal(p => ({ ...p, score }))
+              setTodayScore(score)
+            }}
             onMouseDown={() => { if (local.score === null) setLocal(p => ({ ...p, score: 5 })) }}
             style={{ '--fill-pct': `${fillPct}%` }}
           />
@@ -100,7 +105,10 @@ function TodayEditor({ entry, label, submitToday }) {
               type="number" className="input" min="0" max="24" step="0.5"
               value={local.sleepHours ?? ''}
               onChange={e => setLocal(p => ({ ...p, sleepHours: parseFloat(e.target.value) || null }))}
-              onBlur={() => setSleepEditing(false)}
+              onBlur={() => {
+                setSleepEditing(false)
+                setTodaySleepHours(local.sleepHours)
+              }}
               autoFocus
               style={{ width: '100%', height: 32, padding: '4px 8px', fontSize: 16 }}
             />
@@ -112,9 +120,17 @@ function TodayEditor({ entry, label, submitToday }) {
           )}
           <div className="row" style={{ gap: 6 }}>
             <button className="btn sm" style={{ flex: 1, justifyContent: 'center' }}
-                    onClick={() => setLocal(p => ({ ...p, sleepHours: Math.max(0, (p.sleepHours ?? 7) - 0.5) }))}>−</button>
+                    onClick={() => {
+                      const h = Math.max(0, (local.sleepHours ?? 7) - 0.5)
+                      setLocal(p => ({ ...p, sleepHours: h }))
+                      setTodaySleepHours(h)
+                    }}>−</button>
             <button className="btn sm" style={{ flex: 1, justifyContent: 'center' }}
-                    onClick={() => setLocal(p => ({ ...p, sleepHours: Math.min(24, (p.sleepHours ?? 7) + 0.5) }))}>+</button>
+                    onClick={() => {
+                      const h = Math.min(24, (local.sleepHours ?? 7) + 0.5)
+                      setLocal(p => ({ ...p, sleepHours: h }))
+                      setTodaySleepHours(h)
+                    }}>+</button>
           </div>
         </div>
 
@@ -124,7 +140,11 @@ function TodayEditor({ entry, label, submitToday }) {
             {NUTRITION.map(({ value, label: lbl, bg, color }) => (
               <button
                 key={value}
-                onClick={() => setLocal(p => ({ ...p, nutrition: p.nutrition === value ? null : value }))}
+                onClick={() => {
+                  const next = local.nutrition === value ? null : value
+                  setLocal(p => ({ ...p, nutrition: next }))
+                  setTodayNutrition(next)
+                }}
                 style={{
                   background: local.nutrition === value ? bg : 'transparent',
                   border: `1px solid ${local.nutrition === value ? color : 'var(--border)'}`,
@@ -147,6 +167,7 @@ function TodayEditor({ entry, label, submitToday }) {
         className="input" placeholder="Write freely…"
         value={local.feelings}
         onChange={e => setLocal(p => ({ ...p, feelings: e.target.value }))}
+        onBlur={e => setTodayFeelings(e.target.value)}
         style={{ minHeight: 110, resize: 'vertical', fontFamily: 'var(--font-mono)', fontSize: 12 }}
       />
 

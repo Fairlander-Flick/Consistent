@@ -6,7 +6,6 @@ const KEY = 'consistent:journal'
 
 const EMPTY_ENTRY = (date) => ({
   date,
-  todos: [],
   feelings: null,
   score: null,
   sleepHours: null,
@@ -67,37 +66,4 @@ export const useJournalStore = create((set, get) => ({
     set({ entries: next })
   },
 
-  addTodayTodo: (text) => {
-    const today = todayISO()
-    const entries = get().entries
-    const existing = entries.find(e => e.date === today)
-    const todo = { id: Date.now().toString(), text, done: false }
-    const next = existing
-      ? entries.map(e => e.date === today ? { ...e, todos: [...e.todos, todo] } : e)
-      : [...entries, { ...EMPTY_ENTRY(today), todos: [todo] }]
-    saveData(KEY, next)
-    set({ entries: next })
-  },
-
-  toggleTodayTodo: (id) => {
-    const today = todayISO()
-    const next = get().entries.map(e =>
-      e.date === today
-        ? { ...e, todos: e.todos.map(t => t.id === id ? { ...t, done: !t.done } : t) }
-        : e
-    )
-    saveData(KEY, next)
-    set({ entries: next })
-  },
-
-  deleteTodayTodo: (id) => {
-    const today = todayISO()
-    const next = get().entries.map(e =>
-      e.date === today
-        ? { ...e, todos: e.todos.filter(t => t.id !== id) }
-        : e
-    )
-    saveData(KEY, next)
-    set({ entries: next })
-  },
 }))
