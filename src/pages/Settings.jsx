@@ -31,7 +31,6 @@ function doGenerateSampleData() {
   const sleep   = [7.5, 8, 7, 6.5, 8, 7.5, 7, 8.5, 6.5, 7, 8, 7.5, 8, 7, 8, 6.5, 8]
   const journalEntries = trainedDates.map((date, i) => ({
     date,
-    todos: [],
     feelings: null,
     score: scores[i % scores.length],
     sleepHours: sleep[i % sleep.length],
@@ -47,7 +46,7 @@ function doGenerateSampleData() {
     '2026-05-06','2026-05-08','2026-05-10','2026-05-13','2026-05-14',
   ]
   restDays.forEach((date, i) => {
-    journalEntries.push({ date, todos: [], feelings: null, score: 5 + (i % 3), sleepHours: 7 + (i % 3) * 0.5, nutrition: null, submitted: true })
+    journalEntries.push({ date, feelings: null, score: 5 + (i % 3), sleepHours: 7 + (i % 3) * 0.5, nutrition: null, submitted: true })
   })
   localStorage.setItem('consistent:journal', JSON.stringify(journalEntries))
 

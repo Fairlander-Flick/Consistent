@@ -51,6 +51,7 @@ export function ThisWeekCard() {
     return { label: DAY_LABELS[i], date, state, isToday: date === todayStr, dayName }
   }), [week, log, program, todayStr])
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const perDay = useMemo(() => weekBlocks(week), [week, recurring, oneoffs])
   const allBlocks = useMemo(() => perDay.flat(), [perDay])
 

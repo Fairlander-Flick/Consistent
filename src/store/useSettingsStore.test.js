@@ -9,7 +9,6 @@ describe('useSettingsStore', () => {
       theme: 'dark',
       confirmGoalDelete: true,
       confirmTxDelete: true,
-      confirmJournalDelete: true,
       weightGoal: null,
     })
   })
@@ -40,7 +39,6 @@ describe('useSettingsStore — confirm flags', () => {
       theme: 'dark',
       confirmGoalDelete: true,
       confirmTxDelete: true,
-      confirmJournalDelete: true,
       weightGoal: null,
     })
   })
@@ -71,7 +69,6 @@ describe('useSettingsStore — weightGoal', () => {
       theme: 'dark',
       confirmGoalDelete: true,
       confirmTxDelete: true,
-      confirmJournalDelete: true,
       weightGoal: null,
     })
   })
