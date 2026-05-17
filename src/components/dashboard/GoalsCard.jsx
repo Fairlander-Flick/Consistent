@@ -69,6 +69,12 @@ export function GoalsCard() {
   }
 
   if (isViewingPast) {
+    // Goals are not stored per date — show today's goals with a disclosure banner.
+    const todayGoal = goals[period]
+    const todayTasks = todayGoal?.todos ?? []
+    const todayDone = todayTasks.filter(t => t.done).length
+    const todayTitle = todayGoal?.title || ''
+
     return (
       <div className="card area-goals">
         <div className="card-h">
@@ -81,33 +87,40 @@ export function GoalsCard() {
                 </button>
               ))}
             </div>
-            <span className="meta">{dateLabel(viewDate)}</span>
           </div>
         </div>
 
+        <div style={{
+          fontSize: 11, color: 'var(--text-mid)',
+          background: 'var(--faint)', border: '1px solid var(--border)',
+          borderRadius: 5, padding: '5px 8px', marginBottom: 10,
+        }}>
+          Current goals — historical goal data is not stored.
+        </div>
+
         <div className="row between" style={{ marginBottom: 8 }}>
-          <div style={{ fontSize: 13, fontWeight: 500 }}>{goalTitle || '—'}</div>
+          <div style={{ fontSize: 13, fontWeight: 500 }}>{todayTitle || '—'}</div>
           <div className="mono" style={{ fontSize: 11, color: 'var(--muted)' }}>
-            {goalDone} / {goalTasks.length} done
+            {todayDone} / {todayTasks.length} done
           </div>
         </div>
 
         <div className="col" style={{ gap: 0 }}>
-          {goalTasks.slice(0, 6).map(t => (
+          {todayTasks.slice(0, 6).map(t => (
             <div key={t.id} className={'todo' + (t.done ? ' done' : '')}>
               <div className="chk" style={{ pointerEvents: 'none' }}></div>
               <div className="lbl">{t.text}</div>
             </div>
           ))}
-          {goalTasks.length === 0 && (
+          {todayTasks.length === 0 && (
             <div style={{ fontSize: 12, color: 'var(--muted)', padding: '12px 4px' }}>No goals set.</div>
           )}
         </div>
 
-        {goalTasks.length > 0 && (
+        {todayTasks.length > 0 && (
           <div style={{ marginTop: 12, height: 3, background: 'var(--faint)', borderRadius: 2, overflow: 'hidden' }}>
             <div style={{
-              width: `${(goalDone / goalTasks.length) * 100}%`,
+              width: `${(todayDone / todayTasks.length) * 100}%`,
               height: '100%',
               background: 'var(--accent)',
               transition: 'width 300ms',
