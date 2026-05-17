@@ -23,3 +23,35 @@ describe('nextWeek', () => {
     expect(nextWeek(3)).toBe(1)
   })
 })
+
+import { computeWeight, weeklyPreview } from './periodization'
+
+const SQUAT = { trainingMax: 173.9, multipliers: [0.8193, 0.861, 0.9027], currentWeek: 1 }
+const BENCH = { trainingMax: 116, multipliers: [0.8193, 0.861, 0.9027], currentWeek: 1 }
+
+describe('computeWeight', () => {
+  it('uses the real squat numbers (TM 173.9)', () => {
+    expect(computeWeight({ ...SQUAT, currentWeek: 1 })).toBe(142.5)
+    expect(computeWeight({ ...SQUAT, currentWeek: 2 })).toBe(150)
+    expect(computeWeight({ ...SQUAT, currentWeek: 3 })).toBe(157.5)
+  })
+  it('works for bench multipliers likewise (TM 116)', () => {
+    expect(computeWeight({ ...BENCH, currentWeek: 1 })).toBe(95)
+    expect(computeWeight({ ...BENCH, currentWeek: 2 })).toBe(100)
+    expect(computeWeight({ ...BENCH, currentWeek: 3 })).toBe(105)
+  })
+  it('returns 0 for missing/invalid periodization', () => {
+    expect(computeWeight(null)).toBe(0)
+    expect(computeWeight({ trainingMax: 0, multipliers: [1], currentWeek: 1 })).toBe(0)
+  })
+})
+
+describe('weeklyPreview', () => {
+  it('returns the three weekly weights regardless of currentWeek', () => {
+    expect(weeklyPreview(SQUAT)).toEqual([142.5, 150, 157.5])
+    expect(weeklyPreview({ ...SQUAT, currentWeek: 3 })).toEqual([142.5, 150, 157.5])
+  })
+  it('returns [0,0,0] for missing periodization', () => {
+    expect(weeklyPreview(null)).toEqual([0, 0, 0])
+  })
+})

@@ -15,3 +15,16 @@ export function roundToNearest(value, step = 2.5) {
 export function nextWeek(week) {
   return week >= 3 ? 1 : week + 1
 }
+
+export function computeWeight(periodization) {
+  if (!periodization) return 0
+  const { trainingMax, multipliers, currentWeek } = periodization
+  const m = (multipliers || [])[(currentWeek || 1) - 1]
+  if (!trainingMax || m == null) return 0
+  return roundToNearest(trainingMax * m, 2.5)
+}
+
+export function weeklyPreview(periodization) {
+  if (!periodization) return [0, 0, 0]
+  return [1, 2, 3].map(w => computeWeight({ ...periodization, currentWeek: w }))
+}
