@@ -2,6 +2,7 @@ import { useState, useMemo, useRef, useEffect } from 'react'
 import { useWeightStore } from '../../store/useWeightStore'
 import { useFinanceStore } from '../../store/useFinanceStore'
 import { useTrainingStore } from '../../store/useTrainingStore'
+import { recurringForDay } from '../../lib/financeUtils'
 import { RangeOverlay } from '../ui/Widgets'
 import { DUMMY_WEIGHT } from '../../lib/dummyData'
 import { useSettingsStore } from '../../store/useSettingsStore'
@@ -33,7 +34,7 @@ function dateKey(d) {
 
 export function GraphCard() {
   const { entries: weightEntries } = useWeightStore()
-  const { transactions } = useFinanceStore()
+  const { transactions, recurring } = useFinanceStore()
   const { log: trainingLog } = useTrainingStore()
   const { weightGoal, currency } = useSettingsStore()
   const weightMode = weightGoal === 'lose' ? 'weightLose' : weightGoal === 'gain' ? 'weightGain' : 'neutral'
@@ -72,12 +73,26 @@ export function GraphCard() {
       const d = new Date(); d.setDate(d.getDate() - (27 - i)); return dateKey(d)
     })
     const recent = transactions.filter(t => t.date >= cutoff)
-    const income = days.map(date => recent.filter(t => t.date === date && t.type === 'income').reduce((s, t) => s + t.amount, 0))
-    const expense = days.map(date => recent.filter(t => t.date === date && t.type === 'expense').reduce((s, t) => s + t.amount, 0))
+    const income = days.map(date => {
+      const txInc = recent.filter(t => t.date === date && t.type === 'income').reduce((s, t) => s + t.amount, 0)
+      const d = new Date(date + 'T00:00:00')
+      const numDays = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate()
+      const recurDay = recurringForDay(recurring, d.getDate(), numDays)
+      const recurInc = recurDay.filter(r => r.type === 'income').reduce((s, r) => s + r.amount, 0)
+      return txInc + recurInc
+    })
+    const expense = days.map(date => {
+      const txExp = recent.filter(t => t.date === date && t.type === 'expense').reduce((s, t) => s + t.amount, 0)
+      const d = new Date(date + 'T00:00:00')
+      const numDays = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate()
+      const recurDay = recurringForDay(recurring, d.getDate(), numDays)
+      const recurExp = recurDay.filter(r => r.type === 'expense').reduce((s, r) => s + r.amount, 0)
+      return txExp + recurExp
+    })
     let running = 0
     const balance = days.map((_, i) => { running += income[i] - expense[i]; return running })
     return { days, income, expense, balance }
-  }, [transactions])
+  }, [transactions, recurring])
 
   const volumeData = useMemo(() => {
     const sessions = [...trainingLog].sort((a, b) => a.date.localeCompare(b.date)).slice(-12)
