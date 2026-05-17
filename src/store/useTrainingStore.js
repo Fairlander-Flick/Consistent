@@ -20,9 +20,25 @@ export const useTrainingStore = create((set, get) => ({
     set({ program })
   },
 
-  addExercise: (day, exerciseName) => {
-    const exercise = { id: Date.now().toString(), name: exerciseName, sets: [] }
+  addExercise: (day, exerciseName, type = 'strength') => {
+    const base = { id: Date.now().toString(), name: exerciseName, type }
+    const exercise = type === 'cardio'
+      ? { ...base, durationMinutes: 0 }
+      : { ...base, sets: [] }
     const exercises = [...get().program[day].exercises, exercise]
+    const program = { ...get().program, [day]: { ...get().program[day], exercises } }
+    saveData(PROGRAM_KEY, program)
+    set({ program })
+  },
+
+  setExerciseType: (day, exId, type) => {
+    const exercises = get().program[day].exercises.map(ex => {
+      if (ex.id !== exId) return ex
+      if (type === 'cardio') {
+        return { id: ex.id, name: ex.name, type: 'cardio', durationMinutes: ex.durationMinutes || 0 }
+      }
+      return { id: ex.id, name: ex.name, type: 'strength', sets: Array.isArray(ex.sets) ? ex.sets : [] }
+    })
     const program = { ...get().program, [day]: { ...get().program[day], exercises } }
     saveData(PROGRAM_KEY, program)
     set({ program })
