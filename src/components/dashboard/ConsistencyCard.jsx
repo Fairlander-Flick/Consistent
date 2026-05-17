@@ -67,7 +67,11 @@ export function ConsistencyCard() {
   const { viewDate, setViewDate } = useDashboard()
   const todayStr = todayISO()
   const currentYear = new Date().getFullYear()
-  const years = Array.from({ length: currentYear - 2025 }, (_, i) => 2026 + i)
+  const years = useMemo(() => {
+    const dataYears = entries.map(e => parseInt(e.date.slice(0, 4))).filter(y => !isNaN(y))
+    const minYear = dataYears.length ? Math.min(...dataYears) : currentYear
+    return Array.from({ length: currentYear - minYear + 1 }, (_, i) => minYear + i)
+  }, [entries, currentYear])
   const [selectedYear, setSelectedYear] = useState(currentYear)
   const [hover, setHover] = useState(null)
 
