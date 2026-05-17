@@ -196,7 +196,9 @@ function s(reps, weight) { return { reps, weight } }
 
 export const DUMMY_TRAINING_PROGRAM = {
   Mon: { name: 'Push A', exercises: [
-    ex('pa-1', 'Bench Press',      [s(5,100),s(5,100),s(5,100),s(5,100),s(5,100)]),
+    { id: 'pa-1', name: 'Bench Press', type: 'strength',
+      periodization: { trainingMax: 116, multipliers: [0.8193, 0.861, 0.9027], currentWeek: 1 },
+      sets: [{ reps: 5 }, { reps: 5 }, { reps: 5 }, { reps: 5 }, { reps: 5 }] },
     ex('pa-2', 'Overhead Press',   [s(6,60), s(6,60), s(6,60), s(6,60)]),
     ex('pa-3', 'Incline DB Press', [s(10,32),s(10,32),s(10,30),s(8,30)]),
     ex('pa-4', 'Tricep Pushdown',  [s(12,35),s(12,35),s(12,35)]),
@@ -210,10 +212,13 @@ export const DUMMY_TRAINING_PROGRAM = {
     ex('pla-5', 'Bicep Curl',     [s(12,16),s(12,16),s(10,16)]),
   ]},
   Wed: { name: 'Legs', exercises: [
-    ex('lg-1', 'Back Squat',         [s(5,120),s(5,120),s(5,120),s(5,120)]),
+    { id: 'lg-1', name: 'Back Squat', type: 'strength',
+      periodization: { trainingMax: 173.9, multipliers: [0.8193, 0.861, 0.9027], currentWeek: 2 },
+      sets: [{ reps: 5 }, { reps: 5 }, { reps: 5 }, { reps: 5 }] },
     ex('lg-2', 'Leg Press',          [s(10,160),s(10,160),s(10,160),s(8,160)]),
     ex('lg-3', 'Romanian Deadlift',  [s(8,90), s(8,90), s(8,90)]),
     ex('lg-4', 'Leg Curl',           [s(12,55),s(12,55),s(12,55)]),
+    { id: 'lg-5', name: 'Zone 2 Bike', type: 'cardio', durationMinutes: 20 },
   ]},
   Thu: { name: 'Push B', exercises: [
     ex('pb-1', 'Close-grip Bench',   [s(6,90), s(6,90), s(6,90), s(6,90)]),
