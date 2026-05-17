@@ -152,3 +152,68 @@ describe('useTrainingStore — periodization config', () => {
     expect(result.current.program.Mon.exercises[0].durationMinutes).toBe(25)
   })
 })
+
+describe('useTrainingStore — logSession periodized auto-advance', () => {
+  // 2026-01-05 is a Monday (store maps Sunday=0 -> index 6, else getDay()-1).
+  const MONDAY = '2026-01-05'
+  const PERIODIZATION = { trainingMax: 116, multipliers: [0.8193, 0.861, 0.9027], currentWeek: 1 }
+  const baseProgram = (currentWeek = 1) => {
+    const PROG = Object.fromEntries(
+      ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(d => [d, { name: '', exercises: [] }])
+    )
+    PROG.Mon = { name: 'Push', exercises: [
+      { id: 'b', name: 'Bench', type: 'strength',
+        periodization: { ...PERIODIZATION, currentWeek },
+        sets: [{ reps: 5 }, { reps: 5 }] },
+    ] }
+    return PROG
+  }
+  const snap = (completed, currentWeek = 1) => [{
+    id: 'b', name: 'Bench', type: 'strength',
+    periodization: { ...PERIODIZATION, currentWeek },
+    sets: [{ reps: 5, weight: 95 }, { reps: 5, weight: 95 }],
+    completed,
+  }]
+  const weekOf = (r) => r.current.program.Mon.exercises[0].periodization.currentWeek
+
+  beforeEach(() => {
+    localStorage.clear()
+    useTrainingStore.setState({ log: [], program: baseProgram(1) })
+  })
+
+  it('advances currentWeek 1 -> 2 when a completed periodized session is logged', () => {
+    const { result } = renderHook(() => useTrainingStore())
+    act(() => result.current.logSession(MONDAY, snap(true), 60))
+    expect(weekOf(result)).toBe(2)
+  })
+
+  it('does not advance when the exercise was not completed', () => {
+    const { result } = renderHook(() => useTrainingStore())
+    act(() => result.current.logSession(MONDAY, snap(false), 60))
+    expect(weekOf(result)).toBe(1)
+  })
+
+  it('re-logging the same completed date does not double-advance', () => {
+    const { result } = renderHook(() => useTrainingStore())
+    act(() => result.current.logSession(MONDAY, snap(true), 60))
+    act(() => result.current.logSession(MONDAY, snap(true), 60))
+    expect(weekOf(result)).toBe(2)
+  })
+
+  it('updating an incomplete session to complete advances exactly once', () => {
+    const { result } = renderHook(() => useTrainingStore())
+    act(() => result.current.logSession(MONDAY, snap(false), 60))
+    expect(weekOf(result)).toBe(1)
+    act(() => result.current.logSession(MONDAY, snap(true), 60))
+    expect(weekOf(result)).toBe(2)
+  })
+
+  it('wraps 3 -> 1 and reports cycleWrapped', () => {
+    useTrainingStore.setState({ log: [], program: baseProgram(3) })
+    const { result } = renderHook(() => useTrainingStore())
+    let ret
+    act(() => { ret = result.current.logSession(MONDAY, snap(true, 3), 60) })
+    expect(weekOf(result)).toBe(1)
+    expect(ret.cycleWrapped).toBe(true)
+  })
+})

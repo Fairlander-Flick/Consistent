@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { loadData, saveData } from '../lib/storage'
+import { nextWeek } from '../lib/periodization'
 
 const PROGRAM_KEY = 'consistent:training-program'
 const LOG_KEY = 'consistent:training-log'
@@ -109,10 +110,51 @@ export const useTrainingStore = create((set, get) => ({
   },
 
   logSession: (date, exercises, durationMinutes = 0) => {
+    const prevSession = get().log.find(l => l.date === date)
     const existing = get().log.filter(l => l.date !== date)
-    const next = [...existing, { date, exercises, durationMinutes }].sort((a, b) => b.date.localeCompare(a.date))
+    const next = [...existing, { date, exercises, durationMinutes }]
+      .sort((a, b) => b.date.localeCompare(a.date))
     saveData(LOG_KEY, next)
-    set({ log: next })
+
+    const d = new Date(date + 'T00:00:00')
+    const dayLabel = DAYS[d.getDay() === 0 ? 6 : d.getDay() - 1]
+    const dayProgram = get().program[dayLabel]
+    let program = get().program
+    let programChanged = false
+    let cycleWrapped = false
+
+    if (dayProgram) {
+      const wasCompleted = (exId) => {
+        const pe = (prevSession?.exercises || []).find(e => e.id === exId)
+        return !!pe && pe.completed === true
+      }
+      const advanceIds = new Set()
+      for (const submitted of exercises) {
+        if (!submitted || submitted.completed !== true) continue
+        const tmpl = dayProgram.exercises.find(e => e.id === submitted.id)
+        if (!tmpl || !tmpl.periodization) continue
+        if (wasCompleted(submitted.id)) continue
+        advanceIds.add(submitted.id)
+      }
+      if (advanceIds.size > 0) {
+        const exercisesNext = dayProgram.exercises.map(e => {
+          if (!advanceIds.has(e.id) || !e.periodization) return e
+          const to = nextWeek(e.periodization.currentWeek || 1)
+          if (to === 1) cycleWrapped = true
+          return { ...e, periodization: { ...e.periodization, currentWeek: to } }
+        })
+        program = { ...get().program, [dayLabel]: { ...dayProgram, exercises: exercisesNext } }
+        programChanged = true
+      }
+    }
+
+    if (programChanged) {
+      saveData(PROGRAM_KEY, program)
+      set({ log: next, program })
+    } else {
+      set({ log: next })
+    }
+    return { cycleWrapped }
   },
 
   deleteSession: (date) => {
