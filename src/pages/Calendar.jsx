@@ -8,6 +8,16 @@ import { IconChevLeft, IconChevRight } from '../components/ui/Icons'
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 const MONTHS_FULL = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+const HOURS = Array.from({ length: 24 }, (_, i) => i)
+
+function timeToMin(t) {
+  if (!t) return 0
+  const [h, m] = t.split(':').map(Number)
+  return (h || 0) * 60 + (m || 0)
+}
+
+const PX_PER_HOUR = 44
+const LABEL_W = 36
 
 function iso(y, m, d) {
   return `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
@@ -25,6 +35,70 @@ function sessionVolume(session) {
   return (session.exercises || []).reduce(
     (sum, ex) => sum + (ex.sets || []).reduce((s, set) => s + (set.reps || 0) * (set.weight || 0), 0),
     0
+  )
+}
+
+function DayTimeline({ blocks }) {
+  const totalH = 24 * PX_PER_HOUR
+
+  return (
+    <div style={{ position: 'relative', height: 320, overflowY: 'auto', marginLeft: -4, marginRight: -4 }}>
+      <div style={{ position: 'relative', height: totalH }}>
+        {HOURS.map(h => (
+          <div
+            key={h}
+            style={{
+              position: 'absolute',
+              top: h * PX_PER_HOUR,
+              left: 0,
+              right: 0,
+              display: 'flex',
+              alignItems: 'flex-start',
+              pointerEvents: 'none',
+            }}
+          >
+            <span className="mono" style={{ fontSize: 9, color: 'var(--muted)', width: LABEL_W, paddingRight: 6, textAlign: 'right', lineHeight: 1 }}>
+              {String(h).padStart(2, '0')}:00
+            </span>
+            <div style={{ flex: 1, borderTop: `1px solid var(--border)`, opacity: h % 6 === 0 ? 0.9 : 0.35 }} />
+          </div>
+        ))}
+
+        {blocks.map(b => {
+          const startMin = timeToMin(b.start)
+          const endMin = b.end ? timeToMin(b.end) : startMin + 60
+          const top = (startMin / 60) * PX_PER_HOUR
+          const height = Math.max(((endMin - startMin) / 60) * PX_PER_HOUR, 18)
+          return (
+            <div
+              key={b.id}
+              style={{
+                position: 'absolute',
+                top,
+                height,
+                left: LABEL_W + 2,
+                right: 4,
+                background: 'color-mix(in oklab, var(--accent) 22%, var(--faint))',
+                borderLeft: '2.5px solid var(--accent)',
+                borderRadius: '0 4px 4px 0',
+                padding: '2px 6px',
+                overflow: 'hidden',
+                boxSizing: 'border-box',
+              }}
+            >
+              <div style={{ fontSize: 11, fontWeight: 600, lineHeight: 1.3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {b.label || b.kind}
+              </div>
+              {height >= 28 && (
+                <div className="mono" style={{ fontSize: 9, color: 'var(--muted)' }}>
+                  {b.start}{b.end ? `–${b.end}` : ''}
+                </div>
+              )}
+            </div>
+          )
+        })}
+      </div>
+    </div>
   )
 }
 
@@ -194,21 +268,8 @@ export function Calendar() {
             )}
 
             <div>
-              <div style={{ fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>Schedule</div>
-              {detail.blocks.length === 0 ? (
-                <div style={{ fontSize: 13, color: 'var(--muted)' }}>Nothing scheduled.</div>
-              ) : (
-                <div className="col" style={{ gap: 6 }}>
-                  {detail.blocks.map(b => (
-                    <div key={b.id} className="row between" style={{ fontSize: 12 }}>
-                      <span>{b.label || b.kind}</span>
-                      <span className="mono dim" style={{ fontSize: 11 }}>
-                        {b.start}{b.end ? `–${b.end}` : ''} · {b.source}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
+              <div style={{ fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>Schedule</div>
+              <DayTimeline blocks={detail.blocks} />
             </div>
           </div>
         </div>
