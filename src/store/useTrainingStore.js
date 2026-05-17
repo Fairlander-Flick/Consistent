@@ -59,6 +59,7 @@ export const useTrainingStore = create((set, get) => ({
         periodization: {
           trainingMax: Number(config.trainingMax) || 0,
           multipliers: (config.multipliers || []).map(Number),
+          step: Number(config.step) || 2.5,
           currentWeek,
         },
         sets: Array.isArray(ex.sets) ? ex.sets : [],

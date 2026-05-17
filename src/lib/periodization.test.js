@@ -44,6 +44,13 @@ describe('computeWeight', () => {
     expect(computeWeight(null)).toBe(0)
     expect(computeWeight({ trainingMax: 0, multipliers: [1], currentWeek: 1 })).toBe(0)
   })
+  it('rounds to 1.25 when step is 1.25 (pull-up added weight)', () => {
+    // TM 40, multipliers [0.7637, 0.8054, 0.8471], step 1.25
+    const pullup = { trainingMax: 40, multipliers: [0.7637, 0.8054, 0.8471], currentWeek: 1, step: 1.25 }
+    expect(computeWeight({ ...pullup, currentWeek: 1 })).toBe(30)     // 40 * 0.7637 = 30.548 -> 30
+    expect(computeWeight({ ...pullup, currentWeek: 2 })).toBe(32.5)   // 40 * 0.8054 = 32.216 -> 32.5
+    expect(computeWeight({ ...pullup, currentWeek: 3 })).toBe(33.75)  // 40 * 0.8471 = 33.884 -> 33.75
+  })
 })
 
 describe('weeklyPreview', () => {

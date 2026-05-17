@@ -710,6 +710,7 @@ function ProgramEditor() {
       m1: ex.periodization?.multipliers?.[0] ?? DEFAULT_MULTIPLIERS[0],
       m2: ex.periodization?.multipliers?.[1] ?? DEFAULT_MULTIPLIERS[1],
       m3: ex.periodization?.multipliers?.[2] ?? DEFAULT_MULTIPLIERS[2],
+      step: ex.periodization?.step ?? 2.5,
     }
   const setPDraftField = (key, ex, patch) =>
     setPDraft(prev => ({ ...prev, [key]: { ...pDraftFor(key, ex), ...patch } }))
@@ -830,7 +831,7 @@ function ProgramEditor() {
                       <button className={'btn ' + (periodized ? 'primary' : '')}
                               onClick={() => periodized
                                 ? setPeriodization(editingDay, ex.id, null)
-                                : setPeriodization(editingDay, ex.id, { trainingMax: 100, multipliers: DEFAULT_MULTIPLIERS })}>
+                                : setPeriodization(editingDay, ex.id, { trainingMax: 100, multipliers: DEFAULT_MULTIPLIERS, step: 2.5 })}>
                         {periodized ? 'Periodized — make manual' : 'Periodize'}
                       </button>
                     </div>
@@ -854,9 +855,17 @@ function ProgramEditor() {
                           <input className="input" type="number" step="0.0001" value={draft.m3}
                                  onChange={e => setPDraftField(key, ex, { m3: e.target.value })}
                                  style={{ width: 80 }} />
+                          <label style={{ fontSize: 11, color: 'var(--muted)' }}>Step</label>
+                          <select className="select" value={draft.step}
+                                  onChange={e => setPDraftField(key, ex, { step: parseFloat(e.target.value) })}
+                                  style={{ width: 70 }}>
+                            <option value={2.5}>2.5</option>
+                            <option value={1.25}>1.25</option>
+                          </select>
                           <button className="btn" onClick={() => setPeriodization(editingDay, ex.id, {
                             trainingMax: draft.tm,
                             multipliers: [draft.m1, draft.m2, draft.m3],
+                            step: draft.step,
                           })}>
                             Save
                           </button>

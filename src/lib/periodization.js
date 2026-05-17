@@ -1,9 +1,9 @@
 // Pure periodization helpers. No imports, no side effects, fully unit-testable.
 //
 // A periodized strength exercise carries:
-//   periodization: { trainingMax, multipliers: [m1, m2, m3], currentWeek: 1..3 }
+//   periodization: { trainingMax, multipliers: [m1, m2, m3], currentWeek: 1..3, step: 2.5 }
 // Working weight for the current week is
-//   roundToNearest(trainingMax * multipliers[currentWeek - 1], 2.5).
+//   roundToNearest(trainingMax * multipliers[currentWeek - 1], step).
 
 export function roundToNearest(value, step = 2.5) {
   if (!step) return value
@@ -18,10 +18,10 @@ export function nextWeek(week) {
 
 export function computeWeight(periodization) {
   if (!periodization) return 0
-  const { trainingMax, multipliers, currentWeek } = periodization
+  const { trainingMax, multipliers, currentWeek, step = 2.5 } = periodization
   const m = (multipliers || [])[(currentWeek || 1) - 1]
   if (!trainingMax || m == null) return 0
-  return roundToNearest(trainingMax * m, 2.5)
+  return roundToNearest(trainingMax * m, step)
 }
 
 export function weeklyPreview(periodization) {
