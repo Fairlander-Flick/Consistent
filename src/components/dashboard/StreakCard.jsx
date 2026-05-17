@@ -3,6 +3,7 @@ import { useJournalStore } from '../../store/useJournalStore'
 import { useTrainingStore } from '../../store/useTrainingStore'
 import { computeStreak, journalDates, trainingDates } from '../../lib/streaks'
 import { todayISO } from '../../lib/dateUtils'
+import { useDashboard } from '../../lib/DashboardContext'
 
 function StreakStat({ label, current, longest }) {
   return (
@@ -27,6 +28,8 @@ export function StreakCard() {
   const { entries } = useJournalStore()
   const { log } = useTrainingStore()
   const today = todayISO()
+  const { viewDate } = useDashboard()
+  const isViewingPast = viewDate !== today
 
   const journal = useMemo(
     () => computeStreak(journalDates(entries), today),
@@ -41,7 +44,10 @@ export function StreakCard() {
     <div className="card">
       <div className="card-h">
         <h3>Streaks</h3>
-        {journal.current >= 3 && <span className="meta">🔥 on a roll</span>}
+        {isViewingPast
+          ? <span className="meta" style={{ color: 'var(--text-mid)' }}>as of today</span>
+          : journal.current >= 3 && <span className="meta">🔥 on a roll</span>
+        }
       </div>
       <div style={{ display: 'flex', gap: 20 }}>
         <StreakStat label="Journal" current={journal.current} longest={journal.longest} />

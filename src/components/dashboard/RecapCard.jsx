@@ -4,8 +4,9 @@ import { useJournalStore } from '../../store/useJournalStore'
 import { useFinanceStore } from '../../store/useFinanceStore'
 import { useGoalsStore } from '../../store/useGoalsStore'
 import { periodRecap, monthDates } from '../../lib/recap'
-import { isoWeekDates } from '../../lib/dateUtils'
+import { isoWeekDates, todayISO } from '../../lib/dateUtils'
 import { useMoney } from '../../lib/useMoney'
+import { useDashboard } from '../../lib/DashboardContext'
 
 function Metric({ label, value, sub, tone }) {
   return (
@@ -28,6 +29,8 @@ export function RecapCard() {
   const { goals } = useGoalsStore()
   const { fmt } = useMoney()
   const [period, setPeriod] = useState('week')
+  const { viewDate } = useDashboard()
+  const isViewingPast = viewDate !== todayISO()
 
   const dates = useMemo(() => {
     if (period === 'week') return isoWeekDates(new Date())
@@ -46,9 +49,14 @@ export function RecapCard() {
     <div className="card">
       <div className="card-h">
         <h3>Recap</h3>
-        <div className="tabs">
-          <button className={period === 'week' ? 'active' : ''} onClick={() => setPeriod('week')}>This week</button>
-          <button className={period === 'month' ? 'active' : ''} onClick={() => setPeriod('month')}>This month</button>
+        <div className="row" style={{ gap: 8, alignItems: 'center' }}>
+          {isViewingPast && (
+            <span className="meta" style={{ color: 'var(--text-mid)' }}>as of today</span>
+          )}
+          <div className="tabs">
+            <button className={period === 'week' ? 'active' : ''} onClick={() => setPeriod('week')}>This week</button>
+            <button className={period === 'month' ? 'active' : ''} onClick={() => setPeriod('month')}>This month</button>
+          </div>
         </div>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
