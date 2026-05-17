@@ -44,6 +44,52 @@ export const useTrainingStore = create((set, get) => ({
     set({ program })
   },
 
+  setPeriodization: (day, exId, config) => {
+    const exercises = get().program[day].exercises.map(ex => {
+      if (ex.id !== exId) return ex
+      if (!config) {
+        const { periodization, ...rest } = ex
+        return { ...rest, type: 'strength', sets: Array.isArray(ex.sets) ? ex.sets : [] }
+      }
+      const currentWeek = ex.periodization?.currentWeek || 1
+      return {
+        ...ex,
+        type: 'strength',
+        periodization: {
+          trainingMax: Number(config.trainingMax) || 0,
+          multipliers: (config.multipliers || []).map(Number),
+          currentWeek,
+        },
+        sets: Array.isArray(ex.sets) ? ex.sets : [],
+      }
+    })
+    const program = { ...get().program, [day]: { ...get().program[day], exercises } }
+    saveData(PROGRAM_KEY, program)
+    set({ program })
+  },
+
+  setExerciseWeek: (day, exId, week) => {
+    const w = Math.min(3, Math.max(1, parseInt(week) || 1))
+    const exercises = get().program[day].exercises.map(ex =>
+      ex.id === exId && ex.periodization
+        ? { ...ex, periodization: { ...ex.periodization, currentWeek: w } }
+        : ex
+    )
+    const program = { ...get().program, [day]: { ...get().program[day], exercises } }
+    saveData(PROGRAM_KEY, program)
+    set({ program })
+  },
+
+  setCardioDuration: (day, exId, minutes) => {
+    const m = Math.max(0, parseInt(minutes) || 0)
+    const exercises = get().program[day].exercises.map(ex =>
+      ex.id === exId && ex.type === 'cardio' ? { ...ex, durationMinutes: m } : ex
+    )
+    const program = { ...get().program, [day]: { ...get().program[day], exercises } }
+    saveData(PROGRAM_KEY, program)
+    set({ program })
+  },
+
   addSet: (day, exerciseId, reps, weight) => {
     const exercises = get().program[day].exercises.map(ex =>
       ex.id === exerciseId

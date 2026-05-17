@@ -93,3 +93,62 @@ describe('useTrainingStore — exercise type', () => {
     expect(ex.durationMinutes).toBeUndefined()
   })
 })
+
+describe('useTrainingStore — periodization config', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    useTrainingStore.setState({ log: [], program: PROG_BLANK })
+  })
+
+  const seedStrength = (result) => {
+    act(() => result.current.addExercise('Mon', 'Squat'))
+    return result.current.program.Mon.exercises[0].id
+  }
+
+  it('setPeriodization enables periodization and sets currentWeek to 1', () => {
+    const { result } = renderHook(() => useTrainingStore())
+    const id = seedStrength(result)
+    act(() => result.current.setPeriodization('Mon', id, {
+      trainingMax: 173.9, multipliers: [0.8193, 0.861, 0.9027],
+    }))
+    const p = result.current.program.Mon.exercises[0].periodization
+    expect(p.trainingMax).toBe(173.9)
+    expect(p.multipliers).toEqual([0.8193, 0.861, 0.9027])
+    expect(p.currentWeek).toBe(1)
+  })
+
+  it('setPeriodization(null) reverts to manual strength but keeps sets', () => {
+    const { result } = renderHook(() => useTrainingStore())
+    const id = seedStrength(result)
+    act(() => result.current.addSet('Mon', id, 5, 100))
+    act(() => result.current.setPeriodization('Mon', id, {
+      trainingMax: 173.9, multipliers: [0.8193, 0.861, 0.9027],
+    }))
+    act(() => result.current.setPeriodization('Mon', id, null))
+    const ex = result.current.program.Mon.exercises[0]
+    expect(ex.periodization).toBeUndefined()
+    expect(ex.sets).toEqual([{ reps: 5, weight: 100 }])
+  })
+
+  it('setExerciseWeek clamps to 1..3', () => {
+    const { result } = renderHook(() => useTrainingStore())
+    const id = seedStrength(result)
+    act(() => result.current.setPeriodization('Mon', id, {
+      trainingMax: 100, multipliers: [1, 1, 1],
+    }))
+    act(() => result.current.setExerciseWeek('Mon', id, 3))
+    expect(result.current.program.Mon.exercises[0].periodization.currentWeek).toBe(3)
+    act(() => result.current.setExerciseWeek('Mon', id, 9))
+    expect(result.current.program.Mon.exercises[0].periodization.currentWeek).toBe(3)
+    act(() => result.current.setExerciseWeek('Mon', id, 0))
+    expect(result.current.program.Mon.exercises[0].periodization.currentWeek).toBe(1)
+  })
+
+  it('setCardioDuration sets the template default duration', () => {
+    const { result } = renderHook(() => useTrainingStore())
+    act(() => result.current.addExercise('Mon', 'Bike', 'cardio'))
+    const id = result.current.program.Mon.exercises[0].id
+    act(() => result.current.setCardioDuration('Mon', id, 25))
+    expect(result.current.program.Mon.exercises[0].durationMinutes).toBe(25)
+  })
+})
