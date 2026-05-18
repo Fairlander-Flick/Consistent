@@ -1,17 +1,30 @@
 import { create } from 'zustand'
 import { loadData, saveData } from '../lib/storage'
+import { todayISO } from '../lib/dateUtils'
 
 const GOALS_KEY = 'consistent:goals'
 
 const DEFAULT_GOALS = {
+  dailyDate: '',
   daily: { title: '', todos: [] },
   weekly: { title: '', todos: [] },
   monthly: { title: '', todos: [] },
   yearly: { title: '', todos: [] },
 }
 
+function loadGoals() {
+  const stored = loadData(GOALS_KEY, DEFAULT_GOALS)
+  const today = todayISO()
+  if ((stored.dailyDate || '') !== today) {
+    const reset = { ...stored, dailyDate: today, daily: { title: '', todos: [] } }
+    saveData(GOALS_KEY, reset)
+    return reset
+  }
+  return stored
+}
+
 export const useGoalsStore = create((set, get) => ({
-  goals: loadData(GOALS_KEY, DEFAULT_GOALS),
+  goals: loadGoals(),
 
   setTitle: (period, title) => {
     const goals = { ...get().goals, [period]: { ...get().goals[period], title } }
