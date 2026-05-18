@@ -49,3 +49,15 @@ export function monthDates(year, month) {
     return `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
   })
 }
+
+// All YYYY-MM-DD dates in a calendar year.
+export function yearDates(year) {
+  const dates = []
+  for (let m = 0; m < 12; m++) {
+    const days = new Date(year, m + 1, 0).getDate()
+    for (let d = 1; d <= days; d++) {
+      dates.push(`${year}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`)
+    }
+  }
+  return dates
+}

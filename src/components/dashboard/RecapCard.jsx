@@ -3,7 +3,7 @@ import { useTrainingStore } from '../../store/useTrainingStore'
 import { useJournalStore } from '../../store/useJournalStore'
 import { useFinanceStore } from '../../store/useFinanceStore'
 import { useGoalsStore } from '../../store/useGoalsStore'
-import { periodRecap, monthDates } from '../../lib/recap'
+import { periodRecap, monthDates, yearDates } from '../../lib/recap'
 import { isoWeekDates, todayISO } from '../../lib/dateUtils'
 import { useMoney } from '../../lib/useMoney'
 import { useDashboard } from '../../lib/DashboardContext'
@@ -33,12 +33,13 @@ export function RecapCard() {
   const isViewingPast = viewDate !== todayISO()
 
   const dates = useMemo(() => {
-    if (period === 'week') return isoWeekDates(new Date())
     const now = new Date()
-    return monthDates(now.getFullYear(), now.getMonth())
+    if (period === 'week') return isoWeekDates(now)
+    if (period === 'month') return monthDates(now.getFullYear(), now.getMonth())
+    return yearDates(now.getFullYear())
   }, [period])
 
-  const goalPeriod = period === 'week' ? goals.weekly : goals.monthly
+  const goalPeriod = period === 'week' ? goals.weekly : period === 'month' ? goals.monthly : goals.yearly
 
   const r = useMemo(
     () => periodRecap({ log, journalEntries: entries, transactions, goalPeriod }, dates),
@@ -56,6 +57,7 @@ export function RecapCard() {
           <div className="tabs">
             <button className={period === 'week' ? 'active' : ''} onClick={() => setPeriod('week')}>This week</button>
             <button className={period === 'month' ? 'active' : ''} onClick={() => setPeriod('month')}>This month</button>
+            <button className={period === 'year' ? 'active' : ''} onClick={() => setPeriod('year')}>This year</button>
           </div>
         </div>
       </div>

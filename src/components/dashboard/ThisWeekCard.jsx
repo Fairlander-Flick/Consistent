@@ -107,7 +107,7 @@ export function ThisWeekCard() {
         <span className="meta">{rangeLabel} · {totals.work}h work · {totals.class}h class</span>
       </div>
 
-      <div style={{ display: 'flex', gap: 0, overflowX: 'auto' }}>
+      <div style={{ display: 'flex', gap: 0, overflowX: 'auto', paddingBottom: 24 }}>
         {/* Hour axis */}
         <div style={{ flexShrink: 0, width: 38, position: 'relative', marginTop: 72 }}>
           <div style={{ position: 'relative', height: bodyH }}>
