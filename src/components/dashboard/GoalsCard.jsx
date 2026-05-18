@@ -2,43 +2,92 @@ import { useState, useRef } from 'react'
 import { useGoalsStore } from '../../store/useGoalsStore'
 import { DUMMY_GOALS } from '../../lib/dummyData'
 import { useDashboard } from '../../lib/DashboardContext'
-import { todayISO } from '../../lib/dateUtils'
+import { todayISO, getWeekStart } from '../../lib/dateUtils'
 import { IconEdit } from '../ui/Icons'
 
 const PERIODS = ['daily', 'weekly', 'monthly', 'yearly']
 
 const MONTH_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
-const DAY_SHORT = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
+const MONTH_FULL  = ['January','February','March','April','May','June','July','August','September','October','November','December']
+const DAY_SHORT   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
+
+const KEY_FIELDS = {
+  daily:   'dailyDate',
+  weekly:  'weeklyDate',
+  monthly: 'monthlyDate',
+  yearly:  'yearlyDate',
+}
+
+function isoFromDate(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
 
 function dateLabel(iso) {
   const d = new Date(iso + 'T00:00:00')
   return `${MONTH_SHORT[d.getMonth()]} ${d.getDate()} · ${DAY_SHORT[d.getDay()]}`
 }
 
-export function GoalsCard() {
-  const { goals, toggleTodo, deleteTodo, replacePeriod } = useGoalsStore()
-  const { viewDate } = useDashboard()
-  const todayStr = todayISO()
-  const isViewingPast = viewDate !== todayStr
-  const [period, setPeriod] = useState('daily')
+// Returns the log key for a given period + date string
+function viewKey(period, dateStr) {
+  if (period === 'daily')   return dateStr
+  if (period === 'weekly')  return isoFromDate(getWeekStart(new Date(dateStr + 'T00:00:00')))
+  if (period === 'monthly') return dateStr.slice(0, 7)
+  return dateStr.slice(0, 4)
+}
 
-  const [editOpen, setEditOpen] = useState(false)
+// Human-readable label for the period being shown
+function periodLabel(period, dateStr) {
+  if (period === 'daily') return dateLabel(dateStr)
+  if (period === 'weekly') {
+    const ws = getWeekStart(new Date(dateStr + 'T00:00:00'))
+    const we = new Date(ws)
+    we.setDate(we.getDate() + 6)
+    return ws.getMonth() === we.getMonth()
+      ? `${MONTH_SHORT[ws.getMonth()]} ${ws.getDate()} – ${we.getDate()}`
+      : `${MONTH_SHORT[ws.getMonth()]} ${ws.getDate()} – ${MONTH_SHORT[we.getMonth()]} ${we.getDate()}`
+  }
+  if (period === 'monthly') {
+    const d = new Date(dateStr + 'T00:00:00')
+    return `${MONTH_FULL[d.getMonth()]} ${d.getFullYear()}`
+  }
+  return dateStr.slice(0, 4)
+}
+
+export function GoalsCard() {
+  const { goals, goalsLog, toggleTodo, deleteTodo, replacePeriod } = useGoalsStore()
+  const { viewDate } = useDashboard()
+  const todayStr     = todayISO()
+  const isViewingPast = viewDate !== todayStr
+
+  const [period, setPeriod] = useState('daily')
+  const [editOpen, setEditOpen]   = useState(false)
   const [editTitle, setEditTitle] = useState('')
   const [editTodos, setEditTodos] = useState([])
-  const [addText, setAddText] = useState('')
+  const [addText, setAddText]     = useState('')
   const addInputRef = useRef(null)
 
-  const storeData = goals[period]
-  const hasGoals = (storeData?.todos?.length ?? 0) > 0 || storeData?.title
-  const goalSet = hasGoals ? storeData : DUMMY_GOALS[period]
+  // Resolve which data to display for the current period + viewDate
+  const key              = viewKey(period, viewDate)
+  const isCurrentPeriod  = goals[KEY_FIELDS[period]] === key
+  const viewedData       = isCurrentPeriod
+    ? goals[period]
+    : (goalsLog?.[period]?.[key] ?? null)
+
+  const hasGoals  = (viewedData?.todos?.length ?? 0) > 0 || !!viewedData?.title
+  const goalSet   = hasGoals ? viewedData : (isCurrentPeriod ? DUMMY_GOALS[period] : null)
   const goalTitle = goalSet?.title || ''
   const goalTasks = goalSet?.todos || []
-  const goalDone = goalTasks.filter(t => t.done).length
+  const goalDone  = goalTasks.filter(t => t.done).length
+
+  // Editing is only allowed when showing the current live period from today's view
+  const canEdit = isCurrentPeriod && !isViewingPast
 
   function openEdit() {
-    const defaultTitle = period === 'daily' && !storeData?.title ? dateLabel(todayStr) : (storeData?.title || '')
+    const defaultTitle = period === 'daily' && !goals[period]?.title
+      ? dateLabel(todayStr)
+      : (goals[period]?.title || '')
     setEditTitle(defaultTitle)
-    setEditTodos(storeData?.todos ? [...storeData.todos] : [])
+    setEditTodos(goals[period]?.todos ? [...goals[period].todos] : [])
     setAddText('')
     setEditOpen(true)
   }
@@ -56,79 +105,8 @@ export function GoalsCard() {
     addInputRef.current?.focus()
   }
 
-  function handleAddKeyDown(e) {
-    if (e.key === 'Enter') handleAddTodo()
-  }
-
   function handleRemoveEditTodo(id) {
     setEditTodos(prev => prev.filter(t => t.id !== id))
-  }
-
-  function handleDeleteClick(task) {
-    if (hasGoals) deleteTodo(period, task.id)
-  }
-
-  if (isViewingPast) {
-    // Goals are not stored per date — show today's goals with a disclosure banner.
-    const todayGoal = goals[period]
-    const todayTasks = todayGoal?.todos ?? []
-    const todayDone = todayTasks.filter(t => t.done).length
-    const todayTitle = todayGoal?.title || ''
-
-    return (
-      <div className="card area-goals">
-        <div className="card-h">
-          <h3>Goals</h3>
-          <div className="row" style={{ gap: 8, alignItems: 'center' }}>
-            <div className="tabs">
-              {PERIODS.map(t => (
-                <button key={t} className={period === t ? 'active' : ''} onClick={() => setPeriod(t)}>
-                  {t[0].toUpperCase() + t.slice(1)}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        <div style={{
-          fontSize: 11, color: 'var(--text-mid)',
-          background: 'var(--faint)', border: '1px solid var(--border)',
-          borderRadius: 5, padding: '5px 8px', marginBottom: 10,
-        }}>
-          Current goals — historical goal data is not stored.
-        </div>
-
-        <div className="row between" style={{ marginBottom: 8 }}>
-          <div style={{ fontSize: 13, fontWeight: 500 }}>{todayTitle || '—'}</div>
-          <div className="mono" style={{ fontSize: 11, color: 'var(--muted)' }}>
-            {todayDone} / {todayTasks.length} done
-          </div>
-        </div>
-
-        <div className="col" style={{ gap: 0 }}>
-          {todayTasks.slice(0, 6).map(t => (
-            <div key={t.id} className={'todo' + (t.done ? ' done' : '')}>
-              <div className="chk" style={{ pointerEvents: 'none' }}></div>
-              <div className="lbl">{t.text}</div>
-            </div>
-          ))}
-          {todayTasks.length === 0 && (
-            <div style={{ fontSize: 12, color: 'var(--muted)', padding: '12px 4px' }}>No goals set.</div>
-          )}
-        </div>
-
-        {todayTasks.length > 0 && (
-          <div style={{ marginTop: 12, height: 3, background: 'var(--faint)', borderRadius: 2, overflow: 'hidden' }}>
-            <div style={{
-              width: `${(todayDone / todayTasks.length) * 100}%`,
-              height: '100%',
-              background: 'var(--accent)',
-              transition: 'width 300ms',
-            }} />
-          </div>
-        )}
-      </div>
-    )
   }
 
   return (
@@ -144,11 +122,27 @@ export function GoalsCard() {
                 </button>
               ))}
             </div>
-            <button className="btn icon" onClick={openEdit} title="Edit goals">
-              <IconEdit size={13} />
-            </button>
+            {canEdit && (
+              <button className="btn icon" onClick={openEdit} title="Edit goals">
+                <IconEdit size={13} />
+              </button>
+            )}
           </div>
         </div>
+
+        {/* Period label when viewing past */}
+        {isViewingPast && (
+          <div style={{
+            fontSize: 11, background: 'var(--faint)', border: '1px solid var(--border)',
+            borderRadius: 5, padding: '5px 8px', marginBottom: 10,
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+          }}>
+            <span style={{ color: 'var(--text-mid)' }}>{periodLabel(period, viewDate)}</span>
+            {isCurrentPeriod && (
+              <span style={{ color: 'var(--accent)', fontSize: 10, fontFamily: 'var(--font-mono)' }}>live</span>
+            )}
+          </div>
+        )}
 
         <div className="row between" style={{ marginBottom: 8 }}>
           <div style={{ fontSize: 13, fontWeight: 500 }}>{goalTitle || '—'}</div>
@@ -162,15 +156,16 @@ export function GoalsCard() {
             <div
               key={t.id}
               className={'todo' + (t.done ? ' done' : '')}
-              onClick={() => hasGoals && toggleTodo(period, t.id)}
+              onClick={() => canEdit && hasGoals && toggleTodo(period, t.id)}
+              style={{ cursor: canEdit ? 'pointer' : 'default' }}
             >
-              <div className="chk"></div>
+              <div className="chk" style={{ pointerEvents: canEdit ? undefined : 'none' }} />
               <div className="lbl">{t.text}</div>
-              {hasGoals && (
+              {canEdit && hasGoals && (
                 <div
                   className="x"
                   style={{ color: 'var(--negative)', fontSize: 16 }}
-                  onClick={(e) => { e.stopPropagation(); handleDeleteClick(t) }}
+                  onClick={e => { e.stopPropagation(); deleteTodo(period, t.id) }}
                 >
                   ×
                 </div>
@@ -179,10 +174,10 @@ export function GoalsCard() {
           ))}
           {goalTasks.length === 0 && (
             <div style={{ fontSize: 12, color: 'var(--muted)', padding: '12px 4px' }}>
-              No goals yet.{' '}
-              <button className="btn ghost sm" style={{ padding: '2px 6px' }} onClick={openEdit}>
-                Add one
-              </button>
+              {isViewingPast
+                ? 'No goals recorded.'
+                : <>No goals yet.{' '}<button className="btn ghost sm" style={{ padding: '2px 6px' }} onClick={openEdit}>Add one</button></>
+              }
             </div>
           )}
         </div>
@@ -191,9 +186,7 @@ export function GoalsCard() {
           <div style={{ marginTop: 12, height: 3, background: 'var(--faint)', borderRadius: 2, overflow: 'hidden' }}>
             <div style={{
               width: `${(goalDone / goalTasks.length) * 100}%`,
-              height: '100%',
-              background: 'var(--accent)',
-              transition: 'width 300ms',
+              height: '100%', background: 'var(--accent)', transition: 'width 300ms',
             }} />
           </div>
         )}
@@ -219,15 +212,13 @@ export function GoalsCard() {
               <div className="col" style={{ gap: 0 }}>
                 {editTodos.map(t => (
                   <div key={t.id} className="todo">
-                    <div className="chk" style={{ pointerEvents: 'none' }}></div>
+                    <div className="chk" style={{ pointerEvents: 'none' }} />
                     <div className="lbl">{t.text}</div>
                     <div
                       className="x"
                       style={{ color: 'var(--negative)', fontSize: 16, opacity: 1 }}
                       onClick={() => handleRemoveEditTodo(t.id)}
-                    >
-                      ×
-                    </div>
+                    >×</div>
                   </div>
                 ))}
                 {editTodos.length === 0 && (
@@ -244,7 +235,7 @@ export function GoalsCard() {
                 placeholder="Add a task..."
                 value={addText}
                 onChange={e => setAddText(e.target.value)}
-                onKeyDown={handleAddKeyDown}
+                onKeyDown={e => e.key === 'Enter' && handleAddTodo()}
               />
               <button className="btn primary sm" onClick={handleAddTodo}>Add</button>
             </div>
