@@ -55,16 +55,8 @@ export function ThisWeekCard() {
   const perDay = useMemo(() => weekBlocks(week), [week, recurring, oneoffs])
   const allBlocks = useMemo(() => perDay.flat(), [perDay])
 
-  const { gridStartMin, gridEndMin } = useMemo(() => {
-    if (allBlocks.length === 0) return { gridStartMin: 8 * 60, gridEndMin: 18 * 60 }
-    const starts = allBlocks.map(b => hhmmToMin(b.start))
-    const ends = allBlocks.map(b => hhmmToMin(b.end))
-    let s = Math.floor(Math.min(...starts) / 60) * 60
-    let e = Math.ceil(Math.max(...ends) / 60) * 60
-    s = Math.min(s, 8 * 60)
-    e = Math.max(e, 18 * 60)
-    return { gridStartMin: s, gridEndMin: e }
-  }, [allBlocks])
+  const gridStartMin = 0
+  const gridEndMin = 24 * 60
 
   const totalMin = gridEndMin - gridStartMin
   const bodyH = (totalMin / 60) * HOUR_PX
