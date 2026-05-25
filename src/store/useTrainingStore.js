@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { loadData, saveData } from '../lib/storage'
 import { nextWeek } from '../lib/periodization'
+import SEED_PROGRAM from '../data/seedProgram.json'
 
 const PROGRAM_KEY = 'consistent:training-program'
 const LOG_KEY = 'consistent:training-log'
@@ -11,8 +12,15 @@ const DEFAULT_PROGRAM = Object.fromEntries(
   DAYS.map(d => [d, { name: '', exercises: [] }])
 )
 
+function loadProgram() {
+  const stored = loadData(PROGRAM_KEY, null)
+  if (stored) return stored
+  saveData(PROGRAM_KEY, SEED_PROGRAM)
+  return SEED_PROGRAM
+}
+
 export const useTrainingStore = create((set, get) => ({
-  program: loadData(PROGRAM_KEY, DEFAULT_PROGRAM),
+  program: loadProgram(),
   log: loadData(LOG_KEY, []),
 
   setDayName: (day, name) => {
