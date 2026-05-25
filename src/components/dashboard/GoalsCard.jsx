@@ -1,7 +1,10 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useMemo } from 'react'
 import { useGoalsStore } from '../../store/useGoalsStore'
-import { DUMMY_GOALS } from '../../lib/dummyData'
 import { useDashboard } from '../../lib/DashboardContext'
+import { DUMMY_GOALS } from '../../lib/dummyData'
+import { useScheduleStore } from '../../store/useScheduleStore'
+import { useScheduleDoneStore } from '../../store/useScheduleDoneStore'
+import { todosForDate } from '../../lib/scheduleTodos'
 import { todayISO, getWeekStart } from '../../lib/dateUtils'
 import { IconEdit } from '../ui/Icons'
 
@@ -66,6 +69,13 @@ export function GoalsCard() {
   const [addText, setAddText]     = useState('')
   const addInputRef = useRef(null)
 
+  // Schedule store (consulted only when showing today's daily live view)
+  const recurring          = useScheduleStore(s => s.recurring)
+  const oneoffs            = useScheduleStore(s => s.oneoffs)
+  const done               = useScheduleDoneStore(s => s.done)
+  const toggleScheduleDone = useScheduleDoneStore(s => s.toggle)
+  const today = todayISO()
+
   // Resolve which data to display for the current period + viewDate
   const key              = viewKey(period, viewDate)
   const isCurrentPeriod  = goals[KEY_FIELDS[period]] === key
@@ -81,6 +91,16 @@ export function GoalsCard() {
 
   // Editing is only allowed when showing the current live period from today's view
   const canEdit = isCurrentPeriod && !isViewingPast
+
+  // Schedule todos: daily + live + viewing today
+  const showSchedule = period === 'daily' && isCurrentPeriod && !isViewingPast
+  const scheduleTodos = useMemo(
+    () => showSchedule ? todosForDate(today, { recurring, oneoffs }) : [],
+    [showSchedule, today, recurring, oneoffs]
+  )
+  const scheduleDoneCount = scheduleTodos.filter(st => done[today]?.[st.key]).length
+  const totalCount = goalTasks.length + scheduleTodos.length
+  const totalDone  = goalDone + scheduleDoneCount
 
   function openEdit() {
     const defaultTitle = period === 'daily' && !goals[period]?.title
@@ -147,11 +167,25 @@ export function GoalsCard() {
         <div className="row between" style={{ marginBottom: 8 }}>
           <div style={{ fontSize: 13, fontWeight: 500 }}>{goalTitle || '—'}</div>
           <div className="mono" style={{ fontSize: 11, color: 'var(--muted)' }}>
-            {goalDone} / {goalTasks.length} done
+            {totalDone} / {totalCount} done
           </div>
         </div>
 
         <div className="col" style={{ gap: 0 }}>
+          {scheduleTodos.map(st => {
+            const isDone = !!done[today]?.[st.key]
+            return (
+              <div
+                key={'sch-' + st.key}
+                className={'todo' + (isDone ? ' done' : '')}
+                onClick={() => toggleScheduleDone(today, st.key)}
+                title="From your calendar"
+              >
+                <div className="chk"></div>
+                <div className="lbl">{st.label}</div>
+              </div>
+            )
+          })}
           {goalTasks.slice(0, 6).map(t => (
             <div
               key={t.id}
@@ -172,7 +206,7 @@ export function GoalsCard() {
               )}
             </div>
           ))}
-          {goalTasks.length === 0 && (
+          {totalCount === 0 && (
             <div style={{ fontSize: 12, color: 'var(--muted)', padding: '12px 4px' }}>
               {isViewingPast
                 ? 'No goals recorded.'
@@ -182,10 +216,10 @@ export function GoalsCard() {
           )}
         </div>
 
-        {goalTasks.length > 0 && (
+        {totalCount > 0 && (
           <div style={{ marginTop: 12, height: 3, background: 'var(--faint)', borderRadius: 2, overflow: 'hidden' }}>
             <div style={{
-              width: `${(goalDone / goalTasks.length) * 100}%`,
+              width: `${(totalDone / totalCount) * 100}%`,
               height: '100%', background: 'var(--accent)', transition: 'width 300ms',
             }} />
           </div>
