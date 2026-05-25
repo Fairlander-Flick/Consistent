@@ -54,38 +54,10 @@ export const DUMMY_TRAINED = new Set([
 ])
 
 export const DUMMY_GOALS = {
-  daily: {
-    title: 'Wednesday, May 14',
-    todos: [
-      { id: 'd1', text: 'Morning training — push day', done: true },
-      { id: 'd2', text: '2.5 L water', done: true },
-      { id: 'd3', text: 'Read — Meditations (30 min)', done: false },
-      { id: 'd4', text: 'No processed food', done: false },
-    ],
-  },
-  weekly: {
-    title: 'Week 20',
-    todos: [
-      { id: 'w1', text: 'Train 5 days', done: false },
-      { id: 'w2', text: 'Meal prep Sunday', done: true },
-      { id: 'w3', text: 'Review expenses', done: false },
-    ],
-  },
-  monthly: {
-    title: 'May 2026',
-    todos: [
-      { id: 'm1', text: 'Drop below 80 kg', done: false },
-      { id: 'm2', text: 'Read 3 books', done: false },
-      { id: 'm3', text: 'No missed training weeks', done: false },
-    ],
-  },
-  yearly: {
-    title: '2026',
-    todos: [
-      { id: 'y1', text: 'First powerlifting competition', done: false },
-      { id: 'y2', text: '6-month emergency fund', done: false },
-    ],
-  },
+  daily:   { title: '', todos: [] },
+  weekly:  { title: '', todos: [] },
+  monthly: { title: '', todos: [] },
+  yearly:  { title: '', todos: [] },
 }
 
 // ── Finance ────────────────────────────────────────────────────
