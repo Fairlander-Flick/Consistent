@@ -5,6 +5,8 @@ import {
   DUMMY_FINANCE_TRANSACTIONS, DUMMY_TRAINING_PROGRAM, DUMMY_TRAINING_LOG, DUMMY_SCHEDULE,
 } from '../lib/dummyData'
 import { STORE_KEYS, exportBackup, parseBackup, restoreBackup } from '../lib/backup'
+import { parseIcs, summarizeImport } from '../lib/icsImport'
+import { useScheduleStore } from '../store/useScheduleStore'
 import { CURRENCIES } from '../lib/currency'
 
 function Toggle({ checked, onChange }) {
@@ -23,6 +25,12 @@ const WEIGHT_GOALS = [
 ]
 
 function doGenerateSampleData() {
+  if (!confirm('This OVERWRITES all current data with sample data. A backup of your current data will be downloaded first. Continue?')) return
+  try {
+    exportBackup()
+  } catch {
+    if (!confirm('Could not save backup automatically. Continue anyway and LOSE current data?')) return
+  }
   localStorage.setItem('consistent:weight', JSON.stringify(DUMMY_WEIGHT))
 
   // Journal: one entry per training day + some rest days for a fuller grid
@@ -87,6 +95,13 @@ export function Settings() {
   const [importError, setImportError] = useState('')
   const fileInputRef = useRef(null)
 
+  const importEvents = useScheduleStore(s => s.importEvents)
+  const icsInputRef = useRef(null)
+  const [pendingIcs, setPendingIcs] = useState(null) // { events, summary, name }
+  const [icsError, setIcsError] = useState('')
+  const [icsReplace, setIcsReplace] = useState(false)
+  const [icsResult, setIcsResult] = useState(null) // { added, skipped }
+
   const notifSupported = typeof window !== 'undefined' && 'Notification' in window
   const [notifPerm, setNotifPerm] = useState(notifSupported ? Notification.permission : 'unsupported')
 
@@ -125,6 +140,36 @@ export function Settings() {
   function confirmRestore() {
     restoreBackup(pendingRestore.data)
     window.location.reload()
+  }
+
+  function handleIcsPicked(e) {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    setIcsError('')
+    setIcsResult(null)
+    const reader = new FileReader()
+    reader.onload = () => {
+      try {
+        const events = parseIcs(String(reader.result))
+        if (events.length === 0) {
+          setIcsError('No usable events found in this file. Make sure it is an .ics export with timed events.')
+          return
+        }
+        setPendingIcs({ events, summary: summarizeImport(events), name: file.name })
+      } catch (err) {
+        setIcsError(err.message || 'Could not parse calendar file.')
+      }
+    }
+    reader.onerror = () => setIcsError('Could not read the selected file.')
+    reader.readAsText(file)
+  }
+
+  function confirmIcsImport() {
+    const result = importEvents(pendingIcs.events, { replace: icsReplace })
+    setIcsResult(result)
+    setPendingIcs(null)
+    setIcsReplace(false)
   }
 
   return (
@@ -281,14 +326,47 @@ export function Settings() {
       </div>
 
       <div className="card" style={{ maxWidth: 560, marginTop: 16 }}>
-        <div className="card-h"><h3>Data</h3></div>
-        <div className="setting-row">
+        <div className="card-h"><h3>Import calendar</h3></div>
+        <div className="setting-row" style={{ borderBottom: 0 }}>
           <div>
-            <div className="setting-label">Generate sample data</div>
-            <div className="setting-desc">Populates weight, journal, goals, finance, training program, training log, and schedule with example data.</div>
+            <div className="setting-label">Import from .ics file</div>
+            <div className="setting-desc">
+              Export your calendar from Google Calendar (⚙ Settings → Import &amp; export → Export),
+              unzip, then pick the .ics file here. Weekly-repeating events become recurring blocks;
+              everything else is added as one-offs.
+            </div>
+            {icsError && (
+              <div className="setting-desc" style={{ color: 'var(--negative)' }}>{icsError}</div>
+            )}
+            {icsResult && (
+              <div className="setting-desc" style={{ color: 'var(--accent)' }}>
+                Imported {icsResult.added} event{icsResult.added === 1 ? '' : 's'}
+                {icsResult.skipped > 0 && ` · skipped ${icsResult.skipped} duplicate${icsResult.skipped === 1 ? '' : 's'}`}.
+              </div>
+            )}
           </div>
-          <button className="btn" onClick={doGenerateSampleData}>Generate</button>
+          <input
+            ref={icsInputRef}
+            type="file"
+            accept=".ics,text/calendar"
+            style={{ display: 'none' }}
+            onChange={handleIcsPicked}
+          />
+          <button className="btn" onClick={() => icsInputRef.current?.click()}>Import</button>
         </div>
+      </div>
+
+      <div className="card" style={{ maxWidth: 560, marginTop: 16 }}>
+        <div className="card-h"><h3>Data</h3></div>
+        {import.meta.env.DEV && (
+          <div className="setting-row">
+            <div>
+              <div className="setting-label">Generate sample data <span className="chip" style={{ marginLeft: 6, fontSize: 10 }}>DEV</span></div>
+              <div className="setting-desc">Overwrites all current data with sample entries. Available in development builds only. Your current data is exported as a backup first.</div>
+            </div>
+            <button className="btn" onClick={doGenerateSampleData}>Generate</button>
+          </div>
+        )}
         <div className="setting-row" style={{ borderBottom: 0 }}>
           <div>
             <div className="setting-label">Delete all data</div>
@@ -333,6 +411,31 @@ export function Settings() {
               >
                 Delete everything
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {pendingIcs && (
+        <div className="modal-overlay" onClick={() => setPendingIcs(null)}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <h4>Import this calendar?</h4>
+            <p>
+              <span className="highlight" style={{ background: 'var(--faint)', color: 'var(--text)' }}>{pendingIcs.name}</span> contains{' '}
+              <strong>{pendingIcs.summary.total}</strong> timed event{pendingIcs.summary.total === 1 ? '' : 's'}:
+            </p>
+            <ul style={{ fontSize: 12, color: 'var(--muted)', margin: '0 0 12px 18px', padding: 0 }}>
+              <li>{pendingIcs.summary.recurring} recurring (weekly)</li>
+              <li>{pendingIcs.summary.oneoff} one-off</li>
+              <li>{pendingIcs.summary.byKind.work} work · {pendingIcs.summary.byKind.class} class · {pendingIcs.summary.byKind.oneoff} other</li>
+            </ul>
+            <label className="row" style={{ gap: 8, alignItems: 'center', marginBottom: 16, fontSize: 13 }}>
+              <input type="checkbox" checked={icsReplace} onChange={e => setIcsReplace(e.target.checked)} />
+              <span>Replace existing schedule (otherwise merge &amp; skip duplicates)</span>
+            </label>
+            <div className="modal-footer">
+              <button className="btn ghost" onClick={() => setPendingIcs(null)}>Cancel</button>
+              <button className="btn primary" onClick={confirmIcsImport}>Import</button>
             </div>
           </div>
         </div>

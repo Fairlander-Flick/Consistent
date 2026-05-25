@@ -4,7 +4,6 @@ import { useFinanceStore } from '../../store/useFinanceStore'
 import { useTrainingStore } from '../../store/useTrainingStore'
 import { recurringForDay } from '../../lib/financeUtils'
 import { RangeOverlay } from '../ui/Widgets'
-import { DUMMY_WEIGHT } from '../../lib/dummyData'
 import { useSettingsStore } from '../../store/useSettingsStore'
 import { symbolFor } from '../../lib/currency'
 import { deltaTone } from '../../lib/deltaTone'
@@ -57,15 +56,10 @@ export function GraphCard() {
   }, [])
 
   // ── Data per tab ──────────────────────────────────────────
-  const realWeight = useMemo(() => [...weightEntries]
+  const weightData = useMemo(() => [...weightEntries]
     .sort((a, b) => a.date.localeCompare(b.date))
     .slice(-28)
     .map(e => ({ date: e.date, value: e.kg })), [weightEntries])
-  const weightIsSample = realWeight.length < 2
-  const weightData = useMemo(
-    () => weightIsSample ? DUMMY_WEIGHT.map(e => ({ date: e.date, value: e.kg })) : realWeight,
-    [weightIsSample, realWeight]
-  )
 
   const financeData = useMemo(() => {
     const cutoff = isoMinus(27)
@@ -221,6 +215,36 @@ export function GraphCard() {
 
   // ── SVG path builders ─────────────────────────────────────
   function weightSVG() {
+    if (weightData.length === 0) {
+      return (
+        <g>
+          <text x={SVG_W / 2} y={SVG_H / 2 - 6} fontSize="12"
+                fill="var(--muted)" textAnchor="middle">
+            No weight logged yet
+          </text>
+          <text x={SVG_W / 2} y={SVG_H / 2 + 12} fontSize="10"
+                fill="var(--muted)" textAnchor="middle" fontFamily="var(--font-mono)">
+            Add an entry in Consistency → Weight log
+          </text>
+        </g>
+      )
+    }
+    if (weightData.length === 1) {
+      const only = weightData[0]
+      return (
+        <g>
+          <circle cx={SVG_W / 2} cy={SVG_H / 2} r="3" fill="var(--text)" />
+          <text x={SVG_W / 2} y={SVG_H / 2 - 12} fontSize="11"
+                fill="var(--text)" textAnchor="middle">
+            {only.value.toFixed(1)} kg
+          </text>
+          <text x={SVG_W / 2} y={SVG_H / 2 + 22} fontSize="10"
+                fill="var(--muted)" textAnchor="middle">
+            Need ≥ 2 entries to draw trend
+          </text>
+        </g>
+      )
+    }
     const vals = weightData.map(d => d.value)
     const min = Math.min(...vals) - 0.4
     const max = Math.max(...vals) + 0.4
@@ -338,9 +362,6 @@ export function GraphCard() {
       <div className="card-h">
         <div className="row" style={{ gap: 8, alignItems: 'center' }}>
           <h3>Graph</h3>
-          {tab === 'weight' && weightIsSample && (
-            <span className="chip" style={{ color: 'var(--muted)' }}>Sample data</span>
-          )}
         </div>
         <div className="row" style={{ gap: 12 }}>
           <div className="tabs">
