@@ -1,7 +1,6 @@
 import { useState, useRef, useMemo } from 'react'
 import { useGoalsStore } from '../../store/useGoalsStore'
 import { useDashboard } from '../../lib/DashboardContext'
-import { DUMMY_GOALS } from '../../lib/dummyData'
 import { useScheduleStore } from '../../store/useScheduleStore'
 import { useScheduleDoneStore } from '../../store/useScheduleDoneStore'
 import { todosForDate } from '../../lib/scheduleTodos'
@@ -84,7 +83,7 @@ export function GoalsCard() {
     : (goalsLog?.[period]?.[key] ?? null)
 
   const hasGoals  = (viewedData?.todos?.length ?? 0) > 0 || !!viewedData?.title
-  const goalSet   = hasGoals ? viewedData : (isCurrentPeriod ? DUMMY_GOALS[period] : null)
+  const goalSet   = hasGoals ? viewedData : null
   const goalTitle = goalSet?.title || ''
   const goalTasks = goalSet?.todos || []
   const goalDone  = goalTasks.filter(t => t.done).length

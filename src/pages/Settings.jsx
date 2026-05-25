@@ -1,9 +1,5 @@
 import { useRef, useState } from 'react'
 import { useSettingsStore } from '../store/useSettingsStore'
-import {
-  DUMMY_WEIGHT, DUMMY_TRAINED, DUMMY_GOALS,
-  DUMMY_FINANCE_TRANSACTIONS, DUMMY_TRAINING_PROGRAM, DUMMY_TRAINING_LOG, DUMMY_SCHEDULE,
-} from '../lib/dummyData'
 import { STORE_KEYS, exportBackup, parseBackup, restoreBackup } from '../lib/backup'
 import { parseIcs, summarizeImport } from '../lib/icsImport'
 import { useScheduleStore } from '../store/useScheduleStore'
@@ -24,54 +20,6 @@ const WEIGHT_GOALS = [
   { value: null, label: 'No preference' },
 ]
 
-function doGenerateSampleData() {
-  if (!confirm('This OVERWRITES all current data with sample data. A backup of your current data will be downloaded first. Continue?')) return
-  try {
-    exportBackup()
-  } catch {
-    if (!confirm('Could not save backup automatically. Continue anyway and LOSE current data?')) return
-  }
-  localStorage.setItem('consistent:weight', JSON.stringify(DUMMY_WEIGHT))
-
-  // Journal: one entry per training day + some rest days for a fuller grid
-  const trainedDates = [...DUMMY_TRAINED]
-  const scores = [7, 8, 8, 9, 7, 6, 8, 9, 7, 8, 6, 8, 9, 7, 8, 7, 9]
-  const sleep   = [7.5, 8, 7, 6.5, 8, 7.5, 7, 8.5, 6.5, 7, 8, 7.5, 8, 7, 8, 6.5, 8]
-  const journalEntries = trainedDates.map((date, i) => ({
-    date,
-    feelings: null,
-    score: scores[i % scores.length],
-    sleepHours: sleep[i % sleep.length],
-    nutrition: null,
-    submitted: true,
-  }))
-  // Add a handful of rest-day entries to fill out the grid
-  const restDays = [
-    '2026-04-08','2026-04-10','2026-04-12','2026-04-13',
-    '2026-04-15','2026-04-17','2026-04-19','2026-04-20',
-    '2026-04-22','2026-04-24','2026-04-26','2026-04-27',
-    '2026-04-29','2026-05-01','2026-05-03','2026-05-04',
-    '2026-05-06','2026-05-08','2026-05-10','2026-05-13','2026-05-14',
-  ]
-  restDays.forEach((date, i) => {
-    journalEntries.push({ date, feelings: null, score: 5 + (i % 3), sleepHours: 7 + (i % 3) * 0.5, nutrition: null, submitted: true })
-  })
-  localStorage.setItem('consistent:journal', JSON.stringify(journalEntries))
-
-  localStorage.setItem('consistent:goals', JSON.stringify(DUMMY_GOALS))
-
-  localStorage.setItem('consistent:finance', JSON.stringify({
-    categories: ['Gym', 'Food', 'Rent & Bills', 'Transport', 'Other'],
-    transactions: DUMMY_FINANCE_TRANSACTIONS,
-  }))
-
-  localStorage.setItem('consistent:training-program', JSON.stringify(DUMMY_TRAINING_PROGRAM))
-  localStorage.setItem('consistent:training-log', JSON.stringify(DUMMY_TRAINING_LOG))
-
-  localStorage.setItem('consistent:schedule', JSON.stringify(DUMMY_SCHEDULE))
-
-  window.location.reload()
-}
 
 function doDeleteAllData() {
   STORE_KEYS.forEach(k => localStorage.removeItem(k))
@@ -358,16 +306,7 @@ export function Settings() {
 
       <div className="card" style={{ maxWidth: 560, marginTop: 16 }}>
         <div className="card-h"><h3>Data</h3></div>
-        {import.meta.env.DEV && (
-          <div className="setting-row">
-            <div>
-              <div className="setting-label">Generate sample data <span className="chip" style={{ marginLeft: 6, fontSize: 10 }}>DEV</span></div>
-              <div className="setting-desc">Overwrites all current data with sample entries. Available in development builds only. Your current data is exported as a backup first.</div>
-            </div>
-            <button className="btn" onClick={doGenerateSampleData}>Generate</button>
-          </div>
-        )}
-        <div className="setting-row" style={{ borderBottom: 0 }}>
+<div className="setting-row" style={{ borderBottom: 0 }}>
           <div>
             <div className="setting-label">Delete all data</div>
             <div className="setting-desc">Permanently clears all stored entries. Settings are kept.</div>
