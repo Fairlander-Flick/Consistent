@@ -2,31 +2,6 @@
 
 A local-first dashboard for the things that compound — training, weight, money, and the days you show up.
 
-```
-┌──────────────────────────────────────────────────────────────────┐
-│  Dashboard                                  Today · Mon 25 May   │
-├──────────────────────────────────────────────────────────────────┤
-│                                                                    │
-│   Weight                          This week                        │
-│   ──────                          ─────────                        │
-│    78.4 kg     ▁▁▂▂▃▃▂▂            ●  ●  ○  ●  ○  ○  ○            │
-│   −0.6 / 14d  ▔▔▔▔▔▔▔▔            M  T  W  T  F  S  S            │
-│                                    3 sessions · target 4           │
-│                                                                    │
-│   Goals                                                            │
-│   ─────                                                            │
-│    □  Submit thesis draft                                          │
-│    ☑  Finish bench periodization wave 2                            │
-│    □  Quarterly tax filing                                         │
-│                                                                    │
-│   Activity · last 12 months                                        │
-│   ─────────                                                        │
-│   ▢▣▣▢▢▣▣▢▣▢▢▣▣▣▢▣▣▢▢▣▣▢▣▣▢▢▣▣▣▢▣▢▢▣▣▢▣▣▣▢▢▣▣▢▣▣▢▣              │
-│   ▢▣▢▢▣▣▢▣▣▢▣▣▢▢▣▣▢▣▣▣▢▢▣▣▢▣▣▣▢▢▢▣▣▢▣▣▣▢▢▣▣▢▢▣▣▣▢              │
-│                                                                    │
-└──────────────────────────────────────────────────────────────────┘
-```
-
 Consistent is built around a single idea: small actions, tracked honestly over time, compound into outcomes. It runs entirely in your browser. No login, no cloud, no telemetry, no analytics. Your data is one JSON file you control.
 
 ---
@@ -37,72 +12,27 @@ Consistent is built around a single idea: small actions, tracked honestly over t
 
 Your weekly program runs itself. Set a training max for the main lifts and the working weight for every set, every week of the cycle, is computed and rounded to the nearest plate. Accessory work is editable inline — per-set reps and kg, click to change, no save button.
 
-```
-┌── Program editor · Mon · Upper ──────────────────────────────────┐
-│                                                                    │
-│  Bench Press                              [ Periodized ] W 2 of 3 │
-│    TM 100 kg · H1 0.8193 · H2 0.8610 · H3 0.9027 · step 2.5      │
-│    #1   4   ×  86.0 kg  (auto)                                    │
-│    #2   4   ×  86.0 kg  (auto)                                    │
-│    #3   4   ×  86.0 kg  (auto)                                    │
-│                                                                    │
-│  Incline Smith Press                                  [ Manual ]  │
-│    #1  [ 8 ]  ×  [ 80 ]  kg                                  🗑   │
-│    #2  [ 8 ]  ×  [ 80 ]  kg                                  🗑   │
-│                                                                    │
-│  Scott Dumbbell Curl                                  [ Manual ]  │
-│    #1  [ 12 ] ×  [ 22.5 ] kg                                 🗑   │
-│    #2  [ 12 ] ×  [ 22.5 ] kg                                 🗑   │
-│                                                                    │
-└────────────────────────────────────────────────────────────────────┘
-```
-
-A built-in 5-day Upper/Lower/Pull/Upper/Lower template ships out of the box. Replace it, edit it, or rebuild it from scratch in the editor.
+A built-in 5-day Upper/Lower/Pull/Upper/Lower template ships out of the box. Replace it, edit it, or rebuild it from scratch in the editor. Strength and cardio exercises live side by side. Periodization runs a 3-week wave that auto-advances when you mark a session done.
 
 ### Weight
 
 A single number per day, plotted as a continuous line against a target. Projects your rate per week and tells you whether you're on pace.
 
-```
-   Weight · 90 days
-   ─────────────────
-   82 │
-   80 │  ●●
-   78 │     ●●●●          ●●●●
-   76 │          ●●●●●●●●     ●●●●●●●●
-   74 │                                ──── target 74.0
-   72 │
-       └────────────────────────────────────────
-        Feb            Mar            Apr
-```
-
 ### Calendar
 
-A weekly grid with recurring blocks (training, class, work) and one-off events. Import your existing calendar from a `.ics` export — Google, Apple, Outlook — and recurring events become recurring blocks; everything else lands as one-offs.
+A weekly grid with recurring blocks (training, class, work) and one-off events. Import your existing calendar from a `.ics` export — Google, Apple, Outlook — and recurring events become recurring blocks; everything else lands as one-offs. Your weekly training program auto-fills as gym blocks on the right days.
 
 ### Finance
 
 Monthly ledger of what came in and what went out, with custom categories and colors. Per-month navigation, running balance, sortable transactions, per-category filter. Currency picker in Settings.
 
-```
-┌── February 2026 ───────────────────────  €1,234.50  ─┐
-│                                                        │
-│   In   €2,100.00              Out    €865.50          │
-│                                                        │
-│   ● Rent         €450.00     ● Groceries   €180.50    │
-│   ● Transport     €68.00     ● Other       €167.00    │
-│                                                        │
-│   Recent                                               │
-│   25 Feb  Groceries     Weekly shop          −32.40   │
-│   24 Feb  Rent          February                −450  │
-│   23 Feb  Salary        February          +2,100.00   │
-│                                                        │
-└────────────────────────────────────────────────────────┘
-```
-
 ### Journal & wellbeing
 
 A short entry per day — sleep hours, day score 1–10, a note. Over time the app correlates sleep against your day score and tells you whether you actually feel different on rested days. Quiet input, useful output.
+
+### Dashboard
+
+Everything above, surfaced. Weight trend, weekly training ring against your target, goals checklist, GitHub-style activity heatmap, streak counter, today's plan, yesterday's recap, latest journal entry. One screen, no navigation needed for the daily check-in.
 
 ---
 
