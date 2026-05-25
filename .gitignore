@@ -11,3 +11,9 @@ coverage/
 *.log
 npm-debug.log*
 .superpowers/
+
+# Personal artifacts — never commit
+calendar_*.ics
+calendar_*.pdf
+inject-program.js
+consistent-backup-*.json

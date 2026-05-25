@@ -6,6 +6,10 @@ import { Calendar } from './pages/Calendar'
 import { Finance } from './pages/Finance'
 import { Settings } from './pages/Settings'
 import { ErrorBoundary } from './components/ui/ErrorBoundary'
+// Side-effect import: ensures the training store initializes (and seeds the
+// default program if localStorage is missing/empty) regardless of which
+// route the user lands on first.
+import './store/useTrainingStore'
 
 export default function App() {
   return (

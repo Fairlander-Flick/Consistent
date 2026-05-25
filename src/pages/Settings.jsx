@@ -3,6 +3,7 @@ import { useSettingsStore } from '../store/useSettingsStore'
 import { STORE_KEYS, exportBackup, parseBackup, restoreBackup } from '../lib/backup'
 import { parseIcs, summarizeImport } from '../lib/icsImport'
 import { useScheduleStore } from '../store/useScheduleStore'
+import { useTrainingStore } from '../store/useTrainingStore'
 import { CURRENCIES } from '../lib/currency'
 
 function Toggle({ checked, onChange }) {
@@ -52,6 +53,9 @@ export function Settings() {
 
   const notifSupported = typeof window !== 'undefined' && 'Notification' in window
   const [notifPerm, setNotifPerm] = useState(notifSupported ? Notification.permission : 'unsupported')
+
+  const resetProgramToDefault = useTrainingStore(s => s.resetProgramToDefault)
+  const [resetProgramOpen, setResetProgramOpen] = useState(false)
 
   async function toggleReminder(on) {
     if (!on) { setReminderEnabled(false); return }
@@ -306,7 +310,14 @@ export function Settings() {
 
       <div className="card" style={{ maxWidth: 560, marginTop: 16 }}>
         <div className="card-h"><h3>Data</h3></div>
-<div className="setting-row" style={{ borderBottom: 0 }}>
+        <div className="setting-row">
+          <div>
+            <div className="setting-label">Reset training program</div>
+            <div className="setting-desc">Restores the built-in weekly program (Mon/Tue/Thu/Fri/Sat). Your training log and weights stay intact.</div>
+          </div>
+          <button className="btn" onClick={() => setResetProgramOpen(true)}>Reset</button>
+        </div>
+        <div className="setting-row" style={{ borderBottom: 0 }}>
           <div>
             <div className="setting-label">Delete all data</div>
             <div className="setting-desc">Permanently clears all stored entries. Settings are kept.</div>
@@ -320,6 +331,26 @@ export function Settings() {
           </button>
         </div>
       </div>
+
+      {resetProgramOpen && (
+        <div className="modal-overlay" onClick={() => setResetProgramOpen(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <h4>Reset weekly program?</h4>
+            <p>This replaces the current program with the built-in default (Bench/Squat/RDL/Sumo/etc. with periodization).</p>
+            <p>Your past training log and weight history are <strong>not</strong> touched.</p>
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 12 }}>
+              <button className="btn" onClick={() => setResetProgramOpen(false)}>Cancel</button>
+              <button
+                className="btn"
+                style={{ borderColor: 'var(--accent)', color: 'var(--accent)' }}
+                onClick={() => { resetProgramToDefault(); setResetProgramOpen(false) }}
+              >
+                Reset program
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {deleteOpen && (
         <div className="modal-overlay" onClick={() => setDeleteOpen(false)}>

@@ -12,9 +12,19 @@ const DEFAULT_PROGRAM = Object.fromEntries(
   DAYS.map(d => [d, { name: '', exercises: [] }])
 )
 
+function isProgramEmpty(prog) {
+  if (!prog || typeof prog !== 'object') return true
+  return DAYS.every(d => {
+    const day = prog[d]
+    if (!day) return true
+    const ex = Array.isArray(day.exercises) ? day.exercises : []
+    return ex.length === 0
+  })
+}
+
 function loadProgram() {
   const stored = loadData(PROGRAM_KEY, null)
-  if (stored) return stored
+  if (stored && !isProgramEmpty(stored)) return stored
   saveData(PROGRAM_KEY, SEED_PROGRAM)
   return SEED_PROGRAM
 }
@@ -111,6 +121,32 @@ export const useTrainingStore = create((set, get) => ({
     set({ program })
   },
 
+  updateProgramSet: (day, exerciseId, setIdx, field, value) => {
+    const exercises = get().program[day].exercises.map(ex => {
+      if (ex.id !== exerciseId) return ex
+      const sets = (ex.sets || []).map((s, i) => {
+        if (i !== setIdx) return s
+        const parsed = field === 'reps' ? parseInt(value) : parseFloat(value)
+        return { ...s, [field]: Number.isFinite(parsed) ? parsed : 0 }
+      })
+      return { ...ex, sets }
+    })
+    const program = { ...get().program, [day]: { ...get().program[day], exercises } }
+    saveData(PROGRAM_KEY, program)
+    set({ program })
+  },
+
+  removeProgramSet: (day, exerciseId, setIdx) => {
+    const exercises = get().program[day].exercises.map(ex => {
+      if (ex.id !== exerciseId) return ex
+      const sets = (ex.sets || []).filter((_, i) => i !== setIdx)
+      return { ...ex, sets }
+    })
+    const program = { ...get().program, [day]: { ...get().program[day], exercises } }
+    saveData(PROGRAM_KEY, program)
+    set({ program })
+  },
+
   removeExercise: (day, exerciseId) => {
     const exercises = get().program[day].exercises.filter(ex => ex.id !== exerciseId)
     const program = { ...get().program, [day]: { ...get().program[day], exercises } }
@@ -175,4 +211,9 @@ export const useTrainingStore = create((set, get) => ({
   getSessionForDate: (date) => get().log.find(l => l.date === date) || null,
 
   isWorkedOut: (date) => !!get().log.find(l => l.date === date),
+
+  resetProgramToDefault: () => {
+    saveData(PROGRAM_KEY, SEED_PROGRAM)
+    set({ program: SEED_PROGRAM })
+  },
 }))

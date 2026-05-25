@@ -1,24 +1,24 @@
 {
   "Mon": {
-    "name": "Üst Vücut — İtiş",
+    "name": "Upper",
     "exercises": [
       {
         "id": "mon-1", "name": "Bench Press", "type": "strength",
-        "periodization": { "trainingMax": 135, "multipliers": [0.8193, 0.861, 0.9027], "step": 2.5, "currentWeek": 1 },
+        "periodization": { "trainingMax": 100, "multipliers": [0.8193, 0.861, 0.9027], "step": 2.5, "currentWeek": 1 },
         "sets": [{ "reps": 4 }, { "reps": 4 }, { "reps": 4 }]
       },
       {
         "id": "mon-2", "name": "Pull Up", "type": "strength",
-        "periodization": { "trainingMax": 32.5, "multipliers": [0.7637, 0.8054, 0.8471], "step": 1.25, "currentWeek": 1 },
+        "periodization": { "trainingMax": 0, "multipliers": [0.7637, 0.8054, 0.8471], "step": 1.25, "currentWeek": 1 },
         "sets": [{ "reps": 6 }, { "reps": 6 }, { "reps": 6 }]
       },
       {
         "id": "mon-3", "name": "Incline Smith Press", "type": "strength",
-        "sets": [{ "reps": 8, "weight": 80 }, { "reps": 8, "weight": 80 }]
+        "sets": [{ "reps": 8, "weight": 0 }, { "reps": 8, "weight": 0 }]
       },
       {
         "id": "mon-4", "name": "Scott Dumbbell Curl", "type": "strength",
-        "sets": [{ "reps": 12, "weight": 22.5 }, { "reps": 12, "weight": 22.5 }]
+        "sets": [{ "reps": 12, "weight": 0 }, { "reps": 12, "weight": 0 }]
       },
       {
         "id": "mon-5", "name": "Rope Tricep Pushdown", "type": "strength",
@@ -26,96 +26,96 @@
       },
       {
         "id": "mon-6", "name": "Lateral Raise (SS)", "type": "strength",
-        "sets": [{ "reps": 12, "weight": 50 }, { "reps": 12, "weight": 50 }]
+        "sets": [{ "reps": 12, "weight": 0 }, { "reps": 12, "weight": 0 }]
       },
       {
         "id": "mon-7", "name": "Rear Delt (SS)", "type": "strength",
-        "sets": [{ "reps": 12, "weight": 70 }, { "reps": 12, "weight": 70 }]
+        "sets": [{ "reps": 12, "weight": 0 }, { "reps": 12, "weight": 0 }]
       }
     ]
   },
   "Tue": {
-    "name": "Alt Vücut",
+    "name": "Lower",
     "exercises": [
       {
         "id": "tue-1", "name": "Barbell Squat", "type": "strength",
-        "periodization": { "trainingMax": 175, "multipliers": [0.8193, 0.861, 0.9027], "step": 2.5, "currentWeek": 1 },
+        "periodization": { "trainingMax": 100, "multipliers": [0.8193, 0.861, 0.9027], "step": 2.5, "currentWeek": 1 },
         "sets": [{ "reps": 4 }, { "reps": 4 }, { "reps": 4 }]
       },
       {
         "id": "tue-2", "name": "RDL", "type": "strength",
-        "periodization": { "trainingMax": 200, "multipliers": [0.7081, 0.7498, 0.7915], "step": 2.5, "currentWeek": 1 },
+        "periodization": { "trainingMax": 100, "multipliers": [0.7081, 0.7498, 0.7915], "step": 2.5, "currentWeek": 1 },
         "sets": [{ "reps": 8 }, { "reps": 8 }, { "reps": 8 }]
       },
       {
         "id": "tue-3", "name": "Hack Squat", "type": "strength",
-        "sets": [{ "reps": 10, "weight": 100 }, { "reps": 10, "weight": 100 }]
+        "sets": [{ "reps": 10, "weight": 0 }, { "reps": 10, "weight": 0 }]
       },
       {
         "id": "tue-4", "name": "Leg Curl", "type": "strength",
-        "sets": [{ "reps": 8, "weight": 85 }, { "reps": 8, "weight": 85 }]
+        "sets": [{ "reps": 8, "weight": 0 }, { "reps": 8, "weight": 0 }]
       },
       {
         "id": "tue-5", "name": "Quad Extension", "type": "strength",
-        "sets": [{ "reps": 8, "weight": 50 }, { "reps": 8, "weight": 50 }]
+        "sets": [{ "reps": 8, "weight": 0 }, { "reps": 8, "weight": 0 }]
       },
       {
         "id": "tue-6", "name": "Rope Ab Crunches", "type": "strength",
-        "sets": [{ "reps": 15, "weight": 75 }, { "reps": 15, "weight": 75 }]
+        "sets": [{ "reps": 15, "weight": 0 }, { "reps": 15, "weight": 0 }]
       }
     ]
   },
   "Wed": { "name": "", "exercises": [] },
   "Thu": {
-    "name": "Çekiş & Deadlift",
+    "name": "Pull",
     "exercises": [
       {
         "id": "thu-1", "name": "Sumo Deadlift", "type": "strength",
-        "periodization": { "trainingMax": 260, "multipliers": [0.8471, 0.8888, 0.9305], "step": 2.5, "currentWeek": 1 },
+        "periodization": { "trainingMax": 100, "multipliers": [0.8471, 0.8888, 0.9305], "step": 2.5, "currentWeek": 1 },
         "sets": [{ "reps": 3 }, { "reps": 3 }, { "reps": 3 }]
       },
       {
         "id": "thu-2", "name": "T-Bar Row (Wide Grip)", "type": "strength",
-        "sets": [{ "reps": 8, "weight": 70 }, { "reps": 8, "weight": 70 }]
+        "sets": [{ "reps": 8, "weight": 0 }, { "reps": 8, "weight": 0 }]
       },
       {
         "id": "thu-3", "name": "Lat Pulldown", "type": "strength",
-        "sets": [{ "reps": 8, "weight": 95 }, { "reps": 8, "weight": 80 }]
+        "sets": [{ "reps": 8, "weight": 0 }, { "reps": 8, "weight": 0 }]
       },
       {
         "id": "thu-4", "name": "Hyper Extension", "type": "strength",
-        "sets": [{ "reps": 8, "weight": 60 }, { "reps": 8, "weight": 60 }]
+        "sets": [{ "reps": 8, "weight": 0 }, { "reps": 8, "weight": 0 }]
       },
       {
         "id": "thu-5", "name": "Scott Dumbbell Curl", "type": "strength",
-        "sets": [{ "reps": 12, "weight": 22.5 }, { "reps": 12, "weight": 22.5 }]
+        "sets": [{ "reps": 12, "weight": 0 }, { "reps": 12, "weight": 0 }]
       },
       {
         "id": "thu-6", "name": "Rear Delt", "type": "strength",
-        "sets": [{ "reps": 12, "weight": 40 }, { "reps": 12, "weight": 40 }]
+        "sets": [{ "reps": 12, "weight": 0 }, { "reps": 12, "weight": 0 }]
       }
     ]
   },
   "Fri": {
-    "name": "Üst Vücut — Hacim",
+    "name": "Upper",
     "exercises": [
       {
         "id": "fri-1", "name": "Bench Press", "type": "strength",
-        "periodization": { "trainingMax": 135, "multipliers": [0.7637, 0.8054, 0.8471], "step": 2.5, "currentWeek": 1 },
+        "periodization": { "trainingMax": 100, "multipliers": [0.7637, 0.8054, 0.8471], "step": 2.5, "currentWeek": 1 },
         "sets": [{ "reps": 6 }, { "reps": 6 }, { "reps": 6 }]
       },
       {
         "id": "fri-2", "name": "Pull Up", "type": "strength",
-        "periodization": { "trainingMax": 32.5, "multipliers": [0.7637, 0.8054, 0.8471], "step": 1.25, "currentWeek": 1 },
+        "periodization": { "trainingMax": 0, "multipliers": [0.7637, 0.8054, 0.8471], "step": 1.25, "currentWeek": 1 },
         "sets": [{ "reps": 6 }, { "reps": 6 }, { "reps": 6 }]
       },
       {
         "id": "fri-3", "name": "Seated OHP", "type": "strength",
-        "sets": [{ "reps": 8, "weight": 60 }, { "reps": 8, "weight": 60 }]
+        "sets": [{ "reps": 8, "weight": 0 }, { "reps": 8, "weight": 0 }]
       },
       {
         "id": "fri-4", "name": "Scott Dumbbell Curl", "type": "strength",
-        "sets": [{ "reps": 12, "weight": 22.5 }, { "reps": 12, "weight": 22.5 }]
+        "sets": [{ "reps": 12, "weight": 0 }, { "reps": 12, "weight": 0 }]
       },
       {
         "id": "fri-5", "name": "Rope Tricep Pushdown", "type": "strength",
@@ -123,42 +123,42 @@
       },
       {
         "id": "fri-6", "name": "Lateral Raise (SS)", "type": "strength",
-        "sets": [{ "reps": 12, "weight": 50 }, { "reps": 12, "weight": 50 }]
+        "sets": [{ "reps": 12, "weight": 0 }, { "reps": 12, "weight": 0 }]
       },
       {
         "id": "fri-7", "name": "Rear Delt (SS)", "type": "strength",
-        "sets": [{ "reps": 12, "weight": 70 }, { "reps": 12, "weight": 70 }]
+        "sets": [{ "reps": 12, "weight": 0 }, { "reps": 12, "weight": 0 }]
       }
     ]
   },
   "Sat": {
-    "name": "Alt Vücut",
+    "name": "Lower",
     "exercises": [
       {
         "id": "sat-1", "name": "Barbell Squat", "type": "strength",
-        "periodization": { "trainingMax": 175, "multipliers": [0.8193, 0.861, 0.9027], "step": 2.5, "currentWeek": 1 },
+        "periodization": { "trainingMax": 100, "multipliers": [0.8193, 0.861, 0.9027], "step": 2.5, "currentWeek": 1 },
         "sets": [{ "reps": 4 }, { "reps": 4 }, { "reps": 4 }]
       },
       {
         "id": "sat-2", "name": "RDL", "type": "strength",
-        "periodization": { "trainingMax": 200, "multipliers": [0.7081, 0.7498, 0.7915], "step": 2.5, "currentWeek": 1 },
+        "periodization": { "trainingMax": 100, "multipliers": [0.7081, 0.7498, 0.7915], "step": 2.5, "currentWeek": 1 },
         "sets": [{ "reps": 8 }, { "reps": 8 }, { "reps": 8 }]
       },
       {
         "id": "sat-3", "name": "Hack Squat", "type": "strength",
-        "sets": [{ "reps": 10, "weight": 100 }, { "reps": 10, "weight": 100 }]
+        "sets": [{ "reps": 10, "weight": 0 }, { "reps": 10, "weight": 0 }]
       },
       {
         "id": "sat-4", "name": "Leg Curl", "type": "strength",
-        "sets": [{ "reps": 8, "weight": 85 }, { "reps": 8, "weight": 85 }]
+        "sets": [{ "reps": 8, "weight": 0 }, { "reps": 8, "weight": 0 }]
       },
       {
         "id": "sat-5", "name": "Quad Extension", "type": "strength",
-        "sets": [{ "reps": 8, "weight": 50 }, { "reps": 8, "weight": 50 }]
+        "sets": [{ "reps": 8, "weight": 0 }, { "reps": 8, "weight": 0 }]
       },
       {
         "id": "sat-6", "name": "Rope Ab Crunches", "type": "strength",
-        "sets": [{ "reps": 15, "weight": 75 }, { "reps": 15, "weight": 75 }]
+        "sets": [{ "reps": 15, "weight": 0 }, { "reps": 15, "weight": 0 }]
       }
     ]
   },

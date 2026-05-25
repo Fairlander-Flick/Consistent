@@ -683,6 +683,7 @@ function ProgramEditor() {
   const {
     program, setDayName, addExercise, addSet, removeExercise,
     setExerciseType, setPeriodization, setExerciseWeek, setCardioDuration,
+    updateProgramSet, removeProgramSet,
   } = useTrainingStore()
   const [editingDay, setEditingDay] = useState('Mon')
   const [newExName, setNewExName] = useState('')
@@ -884,13 +885,20 @@ function ProgramEditor() {
                             ))}
                           </div>
                         </div>
-                        <div className="row" style={{ flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+                        <div className="col" style={{ gap: 4, marginBottom: 8 }}>
                           {(ex.sets || []).map((s, sIdx) => (
-                            <div key={sIdx} className="mono" style={{
-                              fontSize: 11, background: 'var(--faint)', border: '1px solid var(--border)',
-                              padding: '4px 8px', borderRadius: 4,
-                            }}>
-                              {s.reps} × {computeWeight(ex.periodization)}<span className="dim">kg</span>
+                            <div key={sIdx} className="row" style={{ gap: 6, alignItems: 'center' }}>
+                              <span className="mono dim" style={{ fontSize: 11, width: 28 }}>#{sIdx + 1}</span>
+                              <input className="input" type="number" min="1" value={s.reps}
+                                     onChange={e => updateProgramSet(editingDay, ex.id, sIdx, 'reps', e.target.value)}
+                                     style={{ width: 60, height: 28, padding: '2px 6px' }} />
+                              <span className="mono dim" style={{ fontSize: 11 }}>×</span>
+                              <span className="mono" style={{ fontSize: 11, color: 'var(--muted)' }}>
+                                {computeWeight(ex.periodization)} kg <span className="dim">(auto)</span>
+                              </span>
+                              <button className="btn ghost icon" onClick={() => removeProgramSet(editingDay, ex.id, sIdx)} style={{ marginLeft: 'auto' }}>
+                                <IconTrash size={11} />
+                              </button>
                             </div>
                           ))}
                         </div>
@@ -908,13 +916,21 @@ function ProgramEditor() {
                       </>
                     ) : (
                       <>
-                        <div className="row" style={{ flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+                        <div className="col" style={{ gap: 4, marginBottom: 8 }}>
                           {(ex.sets || []).map((s, sIdx) => (
-                            <div key={sIdx} className="mono" style={{
-                              fontSize: 11, background: 'var(--faint)', border: '1px solid var(--border)',
-                              padding: '4px 8px', borderRadius: 4,
-                            }}>
-                              {s.reps} × {s.weight}<span className="dim">kg</span>
+                            <div key={sIdx} className="row" style={{ gap: 6, alignItems: 'center' }}>
+                              <span className="mono dim" style={{ fontSize: 11, width: 28 }}>#{sIdx + 1}</span>
+                              <input className="input" type="number" min="1" value={s.reps}
+                                     onChange={e => updateProgramSet(editingDay, ex.id, sIdx, 'reps', e.target.value)}
+                                     style={{ width: 60, height: 28, padding: '2px 6px' }} />
+                              <span className="mono dim" style={{ fontSize: 11 }}>×</span>
+                              <input className="input" type="number" step="0.5" value={s.weight}
+                                     onChange={e => updateProgramSet(editingDay, ex.id, sIdx, 'weight', e.target.value)}
+                                     style={{ width: 80, height: 28, padding: '2px 6px' }} />
+                              <span className="mono dim" style={{ fontSize: 11 }}>kg</span>
+                              <button className="btn ghost icon" onClick={() => removeProgramSet(editingDay, ex.id, sIdx)} style={{ marginLeft: 'auto' }}>
+                                <IconTrash size={11} />
+                              </button>
                             </div>
                           ))}
                         </div>
