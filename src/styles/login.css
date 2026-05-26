@@ -118,6 +118,29 @@
   letter-spacing: 0.1em;
   color: #999;
 }
+.af-pw-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.af-pw-wrap .input {
+  width: 100%;
+  padding-right: 40px;
+}
+.af-pw-toggle {
+  position: absolute;
+  right: 10px;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: #aaa;
+  display: flex;
+  align-items: center;
+  transition: color 120ms;
+}
+.af-pw-toggle:hover { color: #555; }
+
 .af .input {
   background: #fff;
   color: #000;
