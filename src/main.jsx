@@ -1,6 +1,7 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import './styles/tokens.css'
+import './styles/login.css'
 import App from './App.jsx'
 import { registerSW } from './lib/registerSW'
 
