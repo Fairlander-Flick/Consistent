@@ -1,8 +1,11 @@
+import { useEffect, useRef } from 'react'
 import { NavLink } from 'react-router-dom'
 import { useSettingsStore } from '../../store/useSettingsStore'
+import { useAuthStore } from '../../store/useAuthStore'
+import { consumeBrandRect } from '../../lib/brandTransition'
 import {
   IconDashboard, IconConsistency, IconWallet, IconCalendar,
-  IconPlus, IconScale, IconSun, IconMoon, IconSettings,
+  IconPlus, IconScale, IconSun, IconMoon, IconSettings, IconChevRight,
 } from '../ui/Icons'
 
 const navItems = [
@@ -14,12 +17,48 @@ const navItems = [
 
 export function Sidebar() {
   const { theme, toggleTheme } = useSettingsStore()
+  const { user, signOut } = useAuthStore()
   const dark = theme === 'dark'
+
+  const logoRef = useRef(null)
+
+  useEffect(() => {
+    const from = consumeBrandRect()
+    if (!from || !logoRef.current) return
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+
+    const node = logoRef.current
+    const to = node.getBoundingClientRect()
+
+    const dx = from.left + from.width  / 2 - (to.left + to.width  / 2)
+    const dy = from.top  + from.height / 2 - (to.top  + to.height / 2)
+    const sx = from.width  / to.width
+    const sy = from.height / to.height
+    const scale = Math.max(sx, sy)
+
+    node.animate(
+      [
+        { transform: `translate(${dx}px, ${dy}px) scale(${scale})`, opacity: 1 },
+        { transform: 'translate(0, 0) scale(1)', opacity: 1 },
+      ],
+      {
+        duration: 700,
+        easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
+        fill: 'both',
+      }
+    )
+  }, [])
 
   return (
     <aside className="sb">
       <div className="sb-brand">
-        <img src="/sisyphus.png" alt="logo" className="sb-brand-mark" style={{ background: 'none', objectFit: 'contain' }} />
+        <img
+          ref={logoRef}
+          src="/sisyphus.png"
+          alt=""
+          className="sb-brand-mark brand-mark"
+          style={{ background: 'none', objectFit: 'contain' }}
+        />
         <div className="sb-brand-name">Consistent</div>
       </div>
 
@@ -57,6 +96,15 @@ export function Sidebar() {
           <IconSettings size={14} />
           <span>Settings</span>
         </NavLink>
+        {user && (
+          <div className="sb-item" onClick={signOut} role="button" title={`@${user.username}`}>
+            <IconChevRight size={14} />
+            <span>Sign out</span>
+            <span style={{ marginLeft: 'auto', fontSize: 10, color: 'var(--muted)' }}>
+              @{user.username}
+            </span>
+          </div>
+        )}
       </div>
     </aside>
   )
