@@ -691,3 +691,14 @@ a { color: inherit; text-decoration: none; }
   transform: translateX(16px);
   background: #0a0a0a;
 }
+
+/* ===== Login surface (scoped — used only on /login) ===== */
+:root {
+  --login-paper:        #f1ede4;
+  --login-paper-text:   #1a1a1a;
+  --login-paper-mute:   rgba(26, 26, 26, 0.55);
+  --login-paper-rule:   rgba(26, 26, 26, 0.3);
+  --login-form-bg:      #fafafa;
+  --login-divider:      #e0dac9;
+  --login-serif:        'Cormorant Garamond', Georgia, serif;
+}
