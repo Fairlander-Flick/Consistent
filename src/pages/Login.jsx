@@ -16,7 +16,9 @@ export function Login() {
   return (
     <div className="login-root">
       <BrandPanel />
-      <AuthForm onAuthSuccess={onAuthSuccess} />
+      <div className="login-form-col">
+        <AuthForm onAuthSuccess={onAuthSuccess} />
+      </div>
     </div>
   )
 }

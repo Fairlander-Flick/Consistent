@@ -80,6 +80,13 @@
   margin-top: 10px;
 }
 
+/* ---------- Form column (right grid cell) ---------- */
+.login-form-col {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 /* ---------- Auth form ---------- */
 .af {
   background: var(--login-form-bg);
@@ -97,6 +104,7 @@
   letter-spacing: -0.01em;
   margin: 0 0 24px;
   color: #000;
+  text-align: center;
 }
 .af-field {
   display: flex;

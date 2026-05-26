@@ -28,7 +28,7 @@ export function AuthForm({ onAuthSuccess }) {
 
   return (
     <form className="af" onSubmit={onSubmit}>
-      <h1 className="af-title">{isSignup ? 'Create account' : 'Sign in'}</h1>
+      <h1 className="af-title">{isSignup ? 'Create Account' : 'Sign In'}</h1>
 
       <label className="af-field">
         <span className="af-label">Username</span>
@@ -58,8 +58,8 @@ export function AuthForm({ onAuthSuccess }) {
 
       {error && <div className="af-error">{error}</div>}
 
-      <button type="submit" className="btn primary af-submit" disabled={busy}>
-        {busy ? '…' : (isSignup ? 'Create account' : 'Sign in')}
+      <button type="submit" className="af-submit" disabled={busy}>
+        {busy ? '…' : (isSignup ? 'Create Account' : 'Sign In')}
       </button>
 
       <div className="af-toggle">
@@ -69,7 +69,7 @@ export function AuthForm({ onAuthSuccess }) {
           className="af-toggle-link"
           onClick={() => switchMode(isSignup ? 'signin' : 'signup')}
         >
-          {isSignup ? 'Sign in' : 'Sign up'}
+          {isSignup ? 'Sign In' : 'Sign Up'}
         </button>
       </div>
 
