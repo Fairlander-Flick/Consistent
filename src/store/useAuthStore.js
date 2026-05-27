@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { supabase } from '../lib/supabase'
+import { pullAll, pushAll, setupAutoSync, teardownAutoSync } from '../lib/cloudSync'
 
 const USERNAME_DOMAIN = 'consistent.local'
 const toEmail = (username) => `${username.toLowerCase().trim()}@${USERNAME_DOMAIN}`
@@ -24,22 +25,30 @@ export const useAuthStore = create((set, get) => ({
   init: async () => {
     const { data } = await supabase.auth.getSession()
     if (data.session) {
-      set({
-        user: { id: data.session.user.id, username: fromEmail(data.session.user.email) },
-        status: 'authed',
-      })
+      const userId   = data.session.user.id
+      const username = fromEmail(data.session.user.email)
+      const hasLocalData = localStorage.getItem('consistent:weight') !== null
+
+      if (!hasLocalData) {
+        await pullAll(userId)
+        window.location.reload()
+        return
+      }
+
+      set({ user: { id: userId, username }, status: 'authed' })
+      setupAutoSync(userId)
     } else {
       set({ status: 'guest' })
     }
 
     supabase.auth.onAuthStateChange((_event, session) => {
       if (session) {
-        set({
-          user: { id: session.user.id, username: fromEmail(session.user.email) },
-          status: 'authed',
-          error: null,
-        })
+        const userId   = session.user.id
+        const username = fromEmail(session.user.email)
+        set({ user: { id: userId, username }, status: 'authed', error: null })
+        setupAutoSync(userId)
       } else if (get().status !== 'loading') {
+        teardownAutoSync()
         set({ user: null, status: 'guest' })
       }
     })
@@ -79,13 +88,24 @@ export const useAuthStore = create((set, get) => ({
       set({ error: friendlyError(error.message) })
       return false
     }
+
+    const { data: sessionData } = await supabase.auth.getSession()
+    if (sessionData.session) {
+      const hadCloudData = await pullAll(sessionData.session.user.id)
+      if (hadCloudData) {
+        window.location.reload()
+        return true
+      }
+      setupAutoSync(sessionData.session.user.id)
+    }
     return true
   },
 
   signOut: async () => {
+    const { user } = get()
+    if (user?.id) await pushAll(user.id)
+    teardownAutoSync()
     await supabase.auth.signOut()
-    // Hard reload so the previous user's local Zustand state cannot leak
-    // into the next session.
     window.location.reload()
   },
 
