@@ -5,6 +5,8 @@ import { parseIcs, summarizeImport } from '../lib/icsImport'
 import { useScheduleStore } from '../store/useScheduleStore'
 import { useTrainingStore } from '../store/useTrainingStore'
 import { CURRENCIES } from '../lib/currency'
+import { useAuthStore } from '../store/useAuthStore'
+import { pushAll } from '../lib/cloudSync'
 
 function Toggle({ checked, onChange }) {
   return (
@@ -38,6 +40,9 @@ export function Settings() {
     reminderTime, setReminderTime,
   } = useSettingsStore()
 
+  const user = useAuthStore(s => s.user)
+  const [syncStatus, setSyncStatus] = useState('idle') // idle | syncing | done | error
+
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [deleteInput, setDeleteInput] = useState('')
   const [pendingRestore, setPendingRestore] = useState(null)
@@ -56,6 +61,14 @@ export function Settings() {
 
   const resetProgramToDefault = useTrainingStore(s => s.resetProgramToDefault)
   const [resetProgramOpen, setResetProgramOpen] = useState(false)
+
+  async function handlePushToCloud() {
+    if (!user?.id) return
+    setSyncStatus('syncing')
+    const ok = await pushAll(user.id)
+    setSyncStatus(ok ? 'done' : 'error')
+    setTimeout(() => setSyncStatus('idle'), 3000)
+  }
 
   async function toggleReminder(on) {
     if (!on) { setReminderEnabled(false); return }
@@ -305,6 +318,31 @@ export function Settings() {
             onChange={handleIcsPicked}
           />
           <button className="btn" onClick={() => icsInputRef.current?.click()}>Import</button>
+        </div>
+      </div>
+
+      <div className="card" style={{ maxWidth: 560, marginTop: 16 }}>
+        <div className="card-h"><h3>Cloud sync</h3></div>
+        <div className="setting-row" style={{ borderBottom: 0 }}>
+          <div>
+            <div className="setting-label">Push to cloud</div>
+            <div className="setting-desc">
+              Manually upload all your local data to Supabase right now. Useful when switching to a new device.
+            </div>
+            {syncStatus === 'done' && (
+              <div className="setting-desc" style={{ color: 'var(--accent)' }}>Synced successfully.</div>
+            )}
+            {syncStatus === 'error' && (
+              <div className="setting-desc" style={{ color: 'var(--negative)' }}>Sync failed — check your connection.</div>
+            )}
+          </div>
+          <button
+            className="btn"
+            disabled={syncStatus === 'syncing'}
+            onClick={handlePushToCloud}
+          >
+            {syncStatus === 'syncing' ? 'Syncing…' : 'Push now'}
+          </button>
         </div>
       </div>
 
