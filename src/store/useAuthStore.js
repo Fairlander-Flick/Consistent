@@ -30,9 +30,11 @@ export const useAuthStore = create((set, get) => ({
       const hasLocalData = localStorage.getItem('consistent:weight') !== null
 
       if (!hasLocalData) {
-        await pullAll(userId)
-        window.location.reload()
-        return
+        const hadData = await pullAll(userId)
+        if (hadData) {
+          window.location.reload()
+          return
+        }
       }
 
       set({ user: { id: userId, username }, status: 'authed' })
