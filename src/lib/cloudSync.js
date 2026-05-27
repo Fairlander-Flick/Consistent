@@ -13,6 +13,9 @@ const KEY_MAP = {
   'consistent:schedule-done':    'schedule_done',
 }
 
+// Set to true during pullAll so writes triggered by the pull don't re-push.
+let _pulling = false
+
 // Returns true if a cloud row existed (data was written to localStorage).
 export async function pullAll(userId) {
   const { data, error } = await supabase
@@ -27,11 +30,13 @@ export async function pullAll(userId) {
   }
   if (!data) return false
 
+  _pulling = true
   for (const [lsKey, col] of Object.entries(KEY_MAP)) {
     if (data[col] != null) {
       localStorage.setItem(lsKey, JSON.stringify(data[col]))
     }
   }
+  _pulling = false
   return true
 }
 
@@ -52,6 +57,18 @@ export async function pushAll(userId) {
 
   if (error) console.error('[cloudSync] pushAll error:', error.message)
   return !error
+}
+
+// Debounced sync triggered on every saveData call. Fires 2s after the last write.
+let _debounceTimer = null
+
+export function scheduleSync() {
+  if (_pulling) return
+  if (_debounceTimer) clearTimeout(_debounceTimer)
+  _debounceTimer = setTimeout(async () => {
+    const { data } = await supabase.auth.getSession()
+    if (data.session) pushAll(data.session.user.id)
+  }, 2000)
 }
 
 let _interval = null
