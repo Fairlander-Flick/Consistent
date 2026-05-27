@@ -102,8 +102,9 @@ export function Settings() {
     reader.readAsText(file)
   }
 
-  function confirmRestore() {
+  async function confirmRestore() {
     restoreBackup(pendingRestore.data)
+    if (user?.id) await pushAll(user.id)
     window.location.reload()
   }
 
