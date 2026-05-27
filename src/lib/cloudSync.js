@@ -68,7 +68,7 @@ export function scheduleSync() {
   _debounceTimer = setTimeout(async () => {
     const { data } = await supabase.auth.getSession()
     if (data.session) pushAll(data.session.user.id)
-  }, 2000)
+  }, 300)
 }
 
 let _interval = null
