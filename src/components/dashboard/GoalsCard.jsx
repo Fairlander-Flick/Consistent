@@ -6,6 +6,8 @@ import { useScheduleDoneStore } from '../../store/useScheduleDoneStore'
 import { todosForDate } from '../../lib/scheduleTodos'
 import { todayISO, getWeekStart } from '../../lib/dateUtils'
 import { IconEdit } from '../ui/Icons'
+import { useLifelongStore } from '../../store/useLifelongStore'
+import { lifelongTodosForDate } from '../../lib/lifelongTodos'
 
 const PERIODS = ['daily', 'weekly', 'monthly', 'yearly']
 
@@ -97,9 +99,15 @@ export function GoalsCard() {
     () => showSchedule ? todosForDate(today, { recurring, oneoffs }) : [],
     [showSchedule, today, recurring, oneoffs]
   )
+  const lifelongGoals = useLifelongStore(s => s.goals)
+  const lifelongTodos = useMemo(
+    () => showSchedule ? lifelongTodosForDate(today, lifelongGoals) : [],
+    [showSchedule, today, lifelongGoals]
+  )
   const scheduleDoneCount = scheduleTodos.filter(st => done[today]?.[st.key]).length
-  const totalCount = goalTasks.length + scheduleTodos.length
-  const totalDone  = goalDone + scheduleDoneCount
+  const lifelongDoneCount = lifelongTodos.filter(lt => done[today]?.[lt.key]).length
+  const totalCount = goalTasks.length + scheduleTodos.length + lifelongTodos.length
+  const totalDone  = goalDone + scheduleDoneCount + lifelongDoneCount
 
   function openEdit() {
     const defaultTitle = period === 'daily' && !goals[period]?.title
@@ -182,6 +190,28 @@ export function GoalsCard() {
               >
                 <div className="chk"></div>
                 <div className="lbl">{st.label}</div>
+              </div>
+            )
+          })}
+          {lifelongTodos.map(lt => {
+            const isDone = !!done[today]?.[lt.key]
+            return (
+              <div
+                key={'lf-' + lt.key}
+                className={'todo' + (isDone ? ' done' : '')}
+                onClick={() => toggleScheduleDone(today, lt.key)}
+                title={`From: ${lt.goalTitle}`}
+              >
+                <div className="chk"></div>
+                <div className="lbl">{lt.label}</div>
+                <span style={{
+                  fontSize: 9, padding: '1px 5px', borderRadius: 3, flexShrink: 0,
+                  background: 'rgba(74,222,128,.08)',
+                  color: 'rgba(74,222,128,.6)',
+                  border: '1px solid rgba(74,222,128,.15)',
+                }}>
+                  {lt.goalTitle}
+                </span>
               </div>
             )
           })}
