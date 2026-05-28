@@ -251,13 +251,18 @@ export function GraphCard() {
     const pts = weightData.map((d, i) => ({ x: xAt(i, weightData.length), y: yAt(d.value, min, max) }))
     const path = pts.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ')
     const area = `${path} L ${pts[pts.length-1].x} ${PAD.t+INNER_H} L ${pts[0].x} ${PAD.t+INNER_H} Z`
+    const overallDelta = weightData[weightData.length - 1].value - weightData[0].value
+    const tone = deltaTone(overallDelta, weightMode)
+    const lineColor = tone === 'pos' ? 'var(--accent)'
+                    : tone === 'neg' ? 'var(--negative)'
+                    : 'var(--text)'
     const ticks = [min, (min+max)/2, max]
     return (
       <g>
         <defs>
           <linearGradient id="gfill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="var(--text)" stopOpacity="0.14" />
-            <stop offset="100%" stopColor="var(--text)" stopOpacity="0" />
+            <stop offset="0%" stopColor={lineColor} stopOpacity="0.14" />
+            <stop offset="100%" stopColor={lineColor} stopOpacity="0" />
           </linearGradient>
         </defs>
         {ticks.map((v, i) => {
@@ -270,11 +275,11 @@ export function GraphCard() {
           )
         })}
         <path d={area} fill="url(#gfill)" />
-        <path d={path} fill="none" stroke="var(--text)" strokeWidth="1.4" />
+        <path d={path} fill="none" stroke={lineColor} strokeWidth="1.4" />
         {pts.map((p, i) => i === pts.length - 1 ? (
           <g key={i}>
-            <circle cx={p.x} cy={p.y} r="5" fill="var(--text)" opacity="0.2" />
-            <circle cx={p.x} cy={p.y} r="2.5" fill="var(--text)" />
+            <circle cx={p.x} cy={p.y} r="5" fill={lineColor} opacity="0.2" />
+            <circle cx={p.x} cy={p.y} r="2.5" fill={lineColor} />
           </g>
         ) : null)}
       </g>
