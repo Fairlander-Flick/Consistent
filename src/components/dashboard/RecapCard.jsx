@@ -1,5 +1,4 @@
 import { useMemo, useState } from 'react'
-import { useTrainingStore } from '../../store/useTrainingStore'
 import { useJournalStore } from '../../store/useJournalStore'
 import { useFinanceStore } from '../../store/useFinanceStore'
 import { useGoalsStore } from '../../store/useGoalsStore'
@@ -23,7 +22,6 @@ function Metric({ label, value, sub, tone }) {
 }
 
 export function RecapCard() {
-  const { log } = useTrainingStore()
   const { entries } = useJournalStore()
   const { transactions } = useFinanceStore()
   const { goals } = useGoalsStore()
@@ -42,8 +40,8 @@ export function RecapCard() {
   const goalPeriod = period === 'week' ? goals.weekly : period === 'month' ? goals.monthly : goals.yearly
 
   const r = useMemo(
-    () => periodRecap({ log, journalEntries: entries, transactions, goalPeriod }, dates),
-    [log, entries, transactions, goalPeriod, dates]
+    () => periodRecap({ journalEntries: entries, transactions, goalPeriod }, dates),
+    [entries, transactions, goalPeriod, dates]
   )
 
   return (
@@ -61,12 +59,7 @@ export function RecapCard() {
           </div>
         </div>
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
-        <Metric
-          label="Trained"
-          value={`${r.trainingCount}×`}
-          sub={r.trainingMinutes ? `${r.trainingMinutes} min` : '—'}
-        />
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
         <Metric
           label="Avg sleep"
           value={r.sleepAvg != null ? `${r.sleepAvg.toFixed(1)}h` : '—'}

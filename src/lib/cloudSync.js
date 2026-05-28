@@ -4,12 +4,9 @@ const KEY_MAP = {
   'consistent:weight':           'weight',
   'consistent:goals':            'goals',
   'consistent:goals-log':        'goals_log',
-  'consistent:training-program': 'training_program',
-  'consistent:training-log':     'training_log',
   'consistent:journal':          'journal',
   'consistent:finance':          'finance',
   'consistent:settings':         'settings',
-  'consistent:schedule':         'schedule',
   'consistent:schedule-done':    'schedule_done',
   'consistent:lifelong':         'lifelong',
 }

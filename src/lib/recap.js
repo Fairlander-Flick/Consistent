@@ -8,12 +8,9 @@ function avg(nums) {
   return nums.length ? nums.reduce((a, b) => a + b, 0) / nums.length : null
 }
 
-export function periodRecap({ log, journalEntries, transactions, goalPeriod }, dates) {
+export function periodRecap({ journalEntries, transactions, goalPeriod }, dates) {
   const set = new Set(dates)
   const has = (d) => set.has(d)
-
-  const sessions = log.filter(s => has(s.date) && (s.exercises?.length ?? 0) > 0)
-  const trainingMinutes = sessions.reduce((m, s) => m + (s.durationMinutes || 0), 0)
 
   const periodJournal = journalEntries.filter(e => has(e.date))
   const sleepAvg = avg(periodJournal.filter(e => e.sleepHours != null).map(e => e.sleepHours))
@@ -28,8 +25,6 @@ export function periodRecap({ log, journalEntries, transactions, goalPeriod }, d
   const goalsDone = todos.filter(t => t.done).length
 
   return {
-    trainingCount: sessions.length,
-    trainingMinutes,
     sleepAvg,
     moodAvg,
     spend,

@@ -1,9 +1,7 @@
 import { useState, useRef, useMemo } from 'react'
 import { useGoalsStore } from '../../store/useGoalsStore'
 import { useDashboard } from '../../lib/DashboardContext'
-import { useScheduleStore } from '../../store/useScheduleStore'
 import { useScheduleDoneStore } from '../../store/useScheduleDoneStore'
-import { todosForDate } from '../../lib/scheduleTodos'
 import { todayISO, getWeekStart } from '../../lib/dateUtils'
 import { IconEdit } from '../ui/Icons'
 import { useLifelongStore } from '../../store/useLifelongStore'
@@ -70,9 +68,7 @@ export function GoalsCard() {
   const [addText, setAddText]     = useState('')
   const addInputRef = useRef(null)
 
-  // Schedule store (consulted only when showing today's daily live view)
-  const recurring          = useScheduleStore(s => s.recurring)
-  const oneoffs            = useScheduleStore(s => s.oneoffs)
+  // Per-day done state for ephemeral daily todos (lifelong-goal steps)
   const done               = useScheduleDoneStore(s => s.done)
   const toggleScheduleDone = useScheduleDoneStore(s => s.toggle)
   const today = todayISO()
@@ -93,21 +89,16 @@ export function GoalsCard() {
   // Editing is only allowed when showing the current live period from today's view
   const canEdit = isCurrentPeriod && !isViewingPast
 
-  // Schedule todos: daily + live + viewing today
+  // Lifelong-goal step todos: daily + live + viewing today
   const showSchedule = period === 'daily' && isCurrentPeriod && !isViewingPast
-  const scheduleTodos = useMemo(
-    () => showSchedule ? todosForDate(today, { recurring, oneoffs }) : [],
-    [showSchedule, today, recurring, oneoffs]
-  )
   const lifelongGoals = useLifelongStore(s => s.goals)
   const lifelongTodos = useMemo(
     () => showSchedule ? lifelongTodosForDate(today, lifelongGoals) : [],
     [showSchedule, today, lifelongGoals]
   )
-  const scheduleDoneCount = scheduleTodos.filter(st => done[today]?.[st.key]).length
   const lifelongDoneCount = lifelongTodos.filter(lt => done[today]?.[lt.key]).length
-  const totalCount = goalTasks.length + scheduleTodos.length + lifelongTodos.length
-  const totalDone  = goalDone + scheduleDoneCount + lifelongDoneCount
+  const totalCount = goalTasks.length + lifelongTodos.length
+  const totalDone  = goalDone + lifelongDoneCount
 
   function openEdit() {
     const defaultTitle = period === 'daily' && !goals[period]?.title
@@ -179,20 +170,6 @@ export function GoalsCard() {
         </div>
 
         <div className="col" style={{ gap: 0 }}>
-          {scheduleTodos.map(st => {
-            const isDone = !!done[today]?.[st.key]
-            return (
-              <div
-                key={'sch-' + st.key}
-                className={'todo' + (isDone ? ' done' : '')}
-                onClick={() => toggleScheduleDone(today, st.key)}
-                title="From your calendar"
-              >
-                <div className="chk"></div>
-                <div className="lbl">{st.label}</div>
-              </div>
-            )
-          })}
           {lifelongTodos.map(lt => {
             const isDone = !!done[today]?.[lt.key]
             return (

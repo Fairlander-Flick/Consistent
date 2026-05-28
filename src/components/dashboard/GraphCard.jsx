@@ -1,7 +1,6 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
 import { useWeightStore } from '../../store/useWeightStore'
 import { useFinanceStore } from '../../store/useFinanceStore'
-import { useTrainingStore } from '../../store/useTrainingStore'
 import { recurringForDay } from '../../lib/financeUtils'
 import { RangeOverlay } from '../ui/Widgets'
 import { useSettingsStore } from '../../store/useSettingsStore'
@@ -34,14 +33,12 @@ function dateKey(d) {
 export function GraphCard() {
   const { entries: weightEntries } = useWeightStore()
   const { transactions, recurring } = useFinanceStore()
-  const { log: trainingLog } = useTrainingStore()
   const { weightGoal, currency } = useSettingsStore()
   const weightMode = weightGoal === 'lose' ? 'weightLose' : weightGoal === 'gain' ? 'weightGain' : 'neutral'
   const curSym = symbolFor(currency)
 
   const [tab, setTab] = useState('weight')
   const [financeVis, setFinanceVis] = useState({ income: true, expense: true, balance: true })
-  const [volumeVis, setVolumeVis] = useState({ volume: true, duration: true })
   const [range, setRange] = useState(null)   // { start: idx, end: idx }
   const [drag, setDrag] = useState(null)     // { mode: 'new'|'start'|'end', anchorIdx }
   const svgRef = useRef(null)
@@ -88,22 +85,10 @@ export function GraphCard() {
     return { days, income, expense, balance }
   }, [transactions, recurring])
 
-  const volumeData = useMemo(() => {
-    const sessions = [...trainingLog].sort((a, b) => a.date.localeCompare(b.date)).slice(-12)
-    const volume = sessions.map(s =>
-      s.exercises.reduce((sum, ex) => sum + (ex.sets || []).reduce((ss, set) => ss + set.reps * set.weight, 0), 0)
-    )
-    const duration = sessions.map(s => s.durationMinutes ?? 0)
-    const isReal = sessions.map(s => (s.exercises?.length ?? 0) > 0)
-    const hasDuration = duration.some(d => d > 0)
-    return { sessions, volume, duration, isReal, hasDuration }
-  }, [trainingLog])
-
   // ── Pointer helpers ───────────────────────────────────────
   function getDataLength() {
     if (tab === 'weight') return weightData.length
-    if (tab === 'finance') return financeData.days.length
-    return volumeData.sessions.length
+    return financeData.days.length
   }
 
   function clientXToIdx(clientX) {
@@ -180,21 +165,8 @@ export function GraphCard() {
       })
       return lines
     }
-    // volume — average excludes empty (0-exercise) sessions (audit #7)
-    const volSlice = volumeData.volume.slice(range.start, range.end + 1)
-    const durSlice = volumeData.duration.slice(range.start, range.end + 1)
-    const realSlice = volumeData.isReal.slice(range.start, range.end + 1)
-    const volSum = volSlice.reduce((a, b) => a + b, 0)
-    const durSum = durSlice.reduce((a, b) => a + b, 0)
-    const nReal = realSlice.filter(Boolean).length
-    const avgVol = nReal ? volSum / nReal : 0
-    const avgDur = nReal ? Math.round(durSum / nReal) : 0
-    return [
-      `Volume: ${volSum.toLocaleString()} kg`,
-      `Duration: ${durSum} min`,
-      `Avg: ${avgVol.toFixed(0)} kg · ${avgDur} min/session`,
-    ]
-  }, [range, tab, weightData, financeData, volumeData, financeVis, weightMode, curSym])
+    return null
+  }, [range, tab, weightData, financeData, financeVis, weightMode, curSym])
 
   // ── Headline ──────────────────────────────────────────────
   const headline = useMemo(() => {
@@ -204,14 +176,9 @@ export function GraphCard() {
       const delta = latest && prev ? latest.value - prev.value : 0
       return { text: `${latest?.value.toFixed(1) ?? '—'} kg`, tone: deltaTone(delta, weightMode) }
     }
-    if (tab === 'finance') {
-      const net = financeData.balance[financeData.balance.length - 1] ?? 0
-      return { text: `${net >= 0 ? '+' : ''}${net.toFixed(0)} ${curSym}`, tone: deltaTone(net, 'finance') }
-    }
-    const lastVol = volumeData.volume[volumeData.volume.length - 1] ?? 0
-    const lastDur = volumeData.duration[volumeData.duration.length - 1] ?? 0
-    return { text: `${lastVol.toLocaleString()} kg · ${lastDur} min`, tone: '' }
-  }, [tab, weightData, financeData, volumeData, weightMode, curSym])
+    const net = financeData.balance[financeData.balance.length - 1] ?? 0
+    return { text: `${net >= 0 ? '+' : ''}${net.toFixed(0)} ${curSym}`, tone: deltaTone(net, 'finance') }
+  }, [tab, weightData, financeData, weightMode, curSym])
 
   // ── SVG path builders ─────────────────────────────────────
   function weightSVG() {
@@ -325,38 +292,6 @@ export function GraphCard() {
     )
   }
 
-  function volumeSVG() {
-    const { volume, duration, sessions } = volumeData
-    if (sessions.length === 0) return null
-    const maxVol = Math.max(...volume, 1)
-    const maxDur = Math.max(...duration, 1)
-    const len = sessions.length
-    const barW = Math.max(4, INNER_W / len * 0.55)
-
-    return (
-      <g>
-        {volume.map((v, i) => {
-          const norm = v / maxVol
-          const bh = norm * INNER_H
-          const bx = xAt(i, len) - barW / 2
-          const by = PAD.t + INNER_H - bh
-          return volumeVis.volume ? (
-            <rect key={i} x={bx} y={by} width={barW} height={bh}
-                  fill="rgba(74,222,128,0.45)" rx="2" />
-          ) : null
-        })}
-        {volumeVis.duration && duration.length > 1 && (() => {
-          const pts = duration.map((v, i) => ({
-            x: xAt(i, len),
-            y: PAD.t + (1 - v / maxDur) * INNER_H,
-          }))
-          const path = pts.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ')
-          return <path d={path} fill="none" stroke="var(--text)" strokeWidth="1.4" />
-        })()}
-      </g>
-    )
-  }
-
   // ── Render ────────────────────────────────────────────────
   const len = getDataLength()
   const rangeStartX = range ? xAt(range.start, len) : 0
@@ -372,7 +307,6 @@ export function GraphCard() {
           <div className="tabs">
             <button className={tab === 'weight' ? 'active' : ''} onClick={() => selectTab('weight')}>Weight</button>
             <button className={tab === 'finance' ? 'active' : ''} onClick={() => selectTab('finance')}>Finance</button>
-            <button className={tab === 'volume' ? 'active' : ''} onClick={() => selectTab('volume')}>Volume</button>
           </div>
           <span style={{ fontSize: 10, color: 'var(--muted)' }}>↔ drag to select</span>
           <span className={`num num-md ${headline.tone ? 'delta ' + headline.tone : ''}`}>
@@ -394,7 +328,6 @@ export function GraphCard() {
       >
         {tab === 'weight' && weightSVG()}
         {tab === 'finance' && financeSVG()}
-        {tab === 'volume' && volumeSVG()}
         {range && (
           <RangeOverlay
             startX={rangeStartX}
@@ -423,30 +356,6 @@ export function GraphCard() {
                 background: financeVis[key] ? 'var(--faint)' : 'transparent',
                 color: financeVis[key] ? color : 'var(--muted)',
                 border: `1px solid ${financeVis[key] ? 'var(--border-strong)' : 'transparent'}`,
-                cursor: 'pointer',
-                transition: 'all 120ms',
-              }}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {tab === 'volume' && (
-        <div className="row" style={{ gap: 8, marginTop: 12 }}>
-          {[
-            { key: 'volume', label: 'Volume', color: 'var(--accent)' },
-            ...(volumeData.hasDuration ? [{ key: 'duration', label: 'Duration', color: 'var(--text)' }] : []),
-          ].map(({ key, label, color }) => (
-            <button
-              key={key}
-              onClick={() => setVolumeVis(p => ({ ...p, [key]: !p[key] }))}
-              className="chip"
-              style={{
-                background: volumeVis[key] ? 'var(--faint)' : 'transparent',
-                color: volumeVis[key] ? color : 'var(--muted)',
-                border: `1px solid ${volumeVis[key] ? 'var(--border-strong)' : 'transparent'}`,
                 cursor: 'pointer',
                 transition: 'all 120ms',
               }}
