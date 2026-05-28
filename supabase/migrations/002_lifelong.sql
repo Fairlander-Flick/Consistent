@@ -1,0 +1,2 @@
+ALTER TABLE public.user_data
+  ADD COLUMN IF NOT EXISTS lifelong JSONB NOT NULL DEFAULT '[]';

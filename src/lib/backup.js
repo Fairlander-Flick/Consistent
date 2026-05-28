@@ -16,6 +16,7 @@ export const STORE_KEYS = [
   'consistent:schedule',
   'consistent:schedule-done',
   'consistent:settings',
+  'consistent:lifelong',
 ]
 
 export const BACKUP_VERSION = 1
