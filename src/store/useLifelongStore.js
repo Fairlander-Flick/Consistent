@@ -60,6 +60,16 @@ export const useLifelongStore = create((set, get) => ({
     set({ goals: next })
   },
 
+  restoreGoal: (id) => {
+    const target = get().goals.find(g => g.id === id)
+    if (!target) return
+    const active = get().goals.filter(g => g.id !== id && !g.done)
+    const completed = get().goals.filter(g => g.id !== id && g.done)
+    const next = [...active, { ...target, done: false }, ...completed]
+    saveData(KEY, next)
+    set({ goals: next })
+  },
+
   deleteStep: (goalId, stepId) => {
     const next = get().goals.map(g =>
       g.id === goalId

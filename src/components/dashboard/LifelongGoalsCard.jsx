@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useLifelongStore } from '../../store/useLifelongStore'
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
@@ -11,24 +11,78 @@ function formatDeadline(iso) {
   return `${MONTHS[d.getMonth()]} ${d.getFullYear()}`
 }
 
-function DayPills({ activeDays, onToggle, editable = true }) {
+function DayPills({ activeDays, onToggle }) {
   return (
     <div style={{ display: 'flex', gap: 3 }}>
       {DAYS.map((d, i) => (
         <button
           key={d}
-          onClick={editable ? () => onToggle(d) : undefined}
-          disabled={!editable}
+          onClick={() => onToggle(d)}
           style={{
             width: 20, height: 20, borderRadius: 4, padding: 0,
-            background: activeDays.includes(d) ? 'rgba(74,222,128,.15)' : 'var(--faint)',
+            background: activeDays.includes(d) ? 'rgba(74,222,128,.15)' : 'var(--border-strong)',
             border: `1px solid ${activeDays.includes(d) ? 'rgba(74,222,128,.4)' : 'var(--border)'}`,
             color: activeDays.includes(d) ? 'var(--accent)' : 'var(--muted)',
-            fontSize: 8, fontFamily: 'var(--font-mono)',
-            cursor: editable ? 'pointer' : 'default',
+            fontSize: 8, fontFamily: 'var(--font-mono)', cursor: 'pointer',
           }}
         >{DAY_LABELS[i]}</button>
       ))}
+    </div>
+  )
+}
+
+const menuItemBase = {
+  display: 'block', width: '100%', textAlign: 'left',
+  padding: '7px 14px', fontSize: 12, background: 'none',
+  border: 'none', cursor: 'pointer', color: 'var(--text)',
+}
+
+function GoalMenu({ isDone, onComplete, onRestore, onDelete }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef(null)
+
+  useEffect(() => {
+    if (!open) return
+    function onOutside(e) {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false)
+    }
+    document.addEventListener('mousedown', onOutside)
+    return () => document.removeEventListener('mousedown', onOutside)
+  }, [open])
+
+  return (
+    <div ref={ref} style={{ position: 'relative', flexShrink: 0 }}>
+      <button
+        className="btn ghost sm"
+        style={{ fontSize: 16, padding: '0 5px', color: 'var(--muted)', letterSpacing: 1 }}
+        onClick={() => setOpen(v => !v)}
+        title="Options"
+      >···</button>
+
+      {open && (
+        <div style={{
+          position: 'absolute', right: 0, top: 'calc(100% + 4px)', zIndex: 30,
+          background: 'var(--card)', border: '1px solid var(--border-strong)',
+          borderRadius: 6, padding: '4px 0', minWidth: 120,
+          boxShadow: '0 6px 16px rgba(0,0,0,.5)',
+        }}>
+          {isDone ? (
+            <button
+              style={menuItemBase}
+              onClick={() => { onRestore(); setOpen(false) }}
+            >Restore</button>
+          ) : (
+            <button
+              style={menuItemBase}
+              onClick={() => { onComplete(); setOpen(false) }}
+            >Complete</button>
+          )}
+          <button
+            style={{ ...menuItemBase, color: 'var(--negative)' }}
+            onClick={() => { onDelete(); setOpen(false) }}
+          >Delete</button>
+        </div>
+      )}
     </div>
   )
 }
@@ -39,19 +93,20 @@ function GoalBlock({
   onStartAddStep, onNewStepTitleChange, onToggleNewStepDay,
   onAddStep, onCancelAddStep,
   onToggleStepDay, onDeleteStep,
-  onMarkDone, onDelete,
+  onComplete, onRestore, onDelete,
 }) {
   const dl = formatDeadline(goal.deadline)
 
   return (
     <div style={{
-      background: 'var(--faint)',
+      background: 'var(--border-strong)',
       border: '1px solid var(--border)',
       borderRadius: 6,
       padding: '10px 12px',
       marginBottom: 8,
-      opacity: goal.done ? 0.5 : 1,
+      opacity: goal.done ? 0.45 : 1,
     }}>
+      {/* Goal header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: (goal.steps.length > 0 || addingStep) && !goal.done ? 8 : 0 }}>
         <div style={{
           flex: 1, fontWeight: 600, fontSize: 12,
@@ -60,28 +115,18 @@ function GoalBlock({
         }}>
           {goal.title}
         </div>
-        {dl
-          ? <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: '#fbbf24', flexShrink: 0 }}>{dl}</span>
-          : <span style={{ fontSize: 9, color: 'var(--muted)', flexShrink: 0 }}>ongoing</span>
-        }
-        {!goal.done && (
-          <>
-            <button
-              className="btn ghost sm"
-              style={{ fontSize: 11, padding: '1px 6px', color: 'var(--accent)', flexShrink: 0 }}
-              onClick={onMarkDone}
-              title="Mark complete"
-            >✓</button>
-            <button
-              className="btn ghost sm"
-              style={{ fontSize: 14, padding: '1px 5px', color: 'var(--negative)', flexShrink: 0 }}
-              onClick={onDelete}
-              title="Delete goal"
-            >×</button>
-          </>
+        {dl && (
+          <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: '#fbbf24', flexShrink: 0 }}>{dl}</span>
         )}
+        <GoalMenu
+          isDone={goal.done}
+          onComplete={onComplete}
+          onRestore={onRestore}
+          onDelete={onDelete}
+        />
       </div>
 
+      {/* Step rows — only for active goals */}
       {!goal.done && goal.steps.map(step => (
         <div key={step.id} style={{
           display: 'flex', alignItems: 'center', gap: 8,
@@ -93,11 +138,12 @@ function GoalBlock({
             className="btn ghost sm"
             style={{ fontSize: 13, padding: '0 4px', color: 'var(--muted)', flexShrink: 0 }}
             onClick={() => onDeleteStep(step.id)}
-            title="Delete step"
+            title="Remove step"
           >×</button>
         </div>
       ))}
 
+      {/* Add step row — only for active goals */}
       {!goal.done && (
         addingStep ? (
           <div style={{ paddingTop: 6, borderTop: '1px solid var(--border)' }}>
@@ -138,7 +184,7 @@ function GoalBlock({
 }
 
 export function LifelongGoalsCard() {
-  const { goals, addGoal, deleteGoal, markGoalDone, addStep, updateStep, deleteStep } = useLifelongStore()
+  const { goals, addGoal, deleteGoal, markGoalDone, restoreGoal, addStep, updateStep, deleteStep } = useLifelongStore()
 
   const [addingGoal, setAddingGoal] = useState(false)
   const [newGoalTitle, setNewGoalTitle] = useState('')
@@ -147,8 +193,6 @@ export function LifelongGoalsCard() {
   const [addingStepFor, setAddingStepFor] = useState(null)
   const [newStepTitle, setNewStepTitle] = useState('')
   const [newStepDays, setNewStepDays] = useState([])
-
-  const [confirmDelete, setConfirmDelete] = useState(null)
 
   function handleAddGoal() {
     const title = newGoalTitle.trim()
@@ -197,7 +241,7 @@ export function LifelongGoalsCard() {
         <div style={{
           display: 'flex', flexDirection: 'column', gap: 6,
           marginBottom: 12, padding: '8px 10px',
-          background: 'var(--faint)', borderRadius: 6, border: '1px solid var(--border)',
+          background: 'var(--border-strong)', borderRadius: 6, border: '1px solid var(--border)',
         }}>
           <input
             className="input"
@@ -250,27 +294,11 @@ export function LifelongGoalsCard() {
           onCancelAddStep={() => setAddingStepFor(null)}
           onToggleStepDay={(step, day) => toggleStepDay(goal.id, step, day)}
           onDeleteStep={(stepId) => deleteStep(goal.id, stepId)}
-          onMarkDone={() => markGoalDone(goal.id)}
-          onDelete={() => setConfirmDelete(goal.id)}
+          onComplete={() => markGoalDone(goal.id)}
+          onRestore={() => restoreGoal(goal.id)}
+          onDelete={() => deleteGoal(goal.id)}
         />
       ))}
-
-      {confirmDelete && (
-        <div className="modal-overlay" onClick={() => setConfirmDelete(null)}>
-          <div className="modal" style={{ width: 300 }} onClick={e => e.stopPropagation()}>
-            <h4>Delete this goal?</h4>
-            <p style={{ fontSize: 12, color: 'var(--muted)' }}>All steps will be removed.</p>
-            <div className="modal-footer">
-              <button className="btn ghost" onClick={() => setConfirmDelete(null)}>Cancel</button>
-              <button
-                className="btn"
-                style={{ background: 'var(--negative)', color: '#fff' }}
-                onClick={() => { deleteGoal(confirmDelete); setConfirmDelete(null) }}
-              >Delete</button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }
