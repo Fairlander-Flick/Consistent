@@ -5,6 +5,7 @@ import { GoalsCard } from '../components/dashboard/GoalsCard'
 import { ConsistencyCard } from '../components/dashboard/ConsistencyCard'
 import { LifelongGoalsCard } from '../components/dashboard/LifelongGoalsCard'
 import { RecapCard } from '../components/dashboard/RecapCard'
+import { WeekPlannerCard } from '../components/dashboard/WeekPlannerCard'
 import { DashboardContext } from '../lib/DashboardContext'
 import { todayISO } from '../lib/dateUtils'
 
@@ -66,6 +67,7 @@ export function Dashboard() {
         <div className="bento-right">
           <GraphCard />
           <GoalsCard />
+          <WeekPlannerCard />
         </div>
         <ConsistencyCard />
         <JournalCard />

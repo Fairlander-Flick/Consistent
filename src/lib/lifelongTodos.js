@@ -15,6 +15,7 @@ export function lifelongTodosForDate(date, goals) {
   for (const goal of goals) {
     if (goal.done) continue
     for (const item of goal.items || []) {
+      if (item.done) continue
       if (new Set(item.days).has(wd)) {
         result.push({
           key: `lifelong|${item.id}`,

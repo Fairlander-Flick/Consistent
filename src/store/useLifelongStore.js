@@ -22,6 +22,7 @@ function newItem({ title, unit = null, total = null, deadline = null }) {
     current: 0,
     logs: [],
     days: [],
+    done: false,
   }
 }
 
@@ -41,6 +42,7 @@ function normalizeGoal(g) {
         current: Number(it.current) || 0,
         logs: Array.isArray(it.logs) ? it.logs : [],
         days: Array.isArray(it.days) ? it.days : [],
+        done: !!it.done,
       })),
     }
   }
@@ -50,6 +52,7 @@ function normalizeGoal(g) {
         title: s.title,
         unit: null, total: null, current: 0, logs: [],
         days: Array.isArray(s.days) ? s.days : [],
+        done: false,
       }))
     : []
   return { id: g.id, title: g.title, deadline: g.deadline ?? null, done: !!g.done, collapsed: false, items }
@@ -111,6 +114,24 @@ export const useLifelongStore = create((set, get) => {
         ...it,
         days: it.days.includes(day) ? it.days.filter(d => d !== day) : [...it.days, day],
       }))),
+
+    // Mark a sub-goal (item) finished or restore it. Completed items drop out of
+    // the active lists (Lifelong card + Planner board) and surface in the
+    // Planner's "Completed" section; their `days` are kept so a restore brings
+    // the schedule back.
+    setItemDone: (goalId, itemId, done) =>
+      commit(mapItem(goalId, itemId, it => ({ ...it, done: !!done }))),
+
+    // Move an item's scheduled occurrence from one weekday to another (used by
+    // the Week Planner drag-and-drop). Drops the source day, adds the target.
+    moveItemDay: (goalId, itemId, fromDay, toDay) =>
+      commit(mapItem(goalId, itemId, it => {
+        if (fromDay === toDay) return it
+        const days = new Set(it.days)
+        days.delete(fromDay)
+        days.add(toDay)
+        return { ...it, days: [...days] }
+      })),
 
     // Records an absolute reading (e.g. "now on page 213"). Keeps one log per
     // day (last write wins) and updates `current`.

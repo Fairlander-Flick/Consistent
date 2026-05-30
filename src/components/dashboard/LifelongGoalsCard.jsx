@@ -1,12 +1,10 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useLifelongStore } from '../../store/useLifelongStore'
-import { IconPlus, IconTrash } from '../ui/Icons'
+import { IconPlus, IconTrash, IconCheck } from '../ui/Icons'
 import {
   isMeasurable, itemPct, progressSummary, goalAvgPct,
 } from '../../lib/lifelongProgress'
 
-const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-const DAY_LABELS = ['M', 'T', 'W', 'T', 'F', 'S', 'S']
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 const DOT_THRESHOLD = 24 // items with a small total render as fill-dots
 
@@ -20,26 +18,11 @@ function fmtRate(n) {
   return Number.isInteger(n) ? String(n) : n.toFixed(1)
 }
 
-// ── Day-of-week scheduling pills ────────────────────────────
-function DayPills({ active, onToggle }) {
-  return (
-    <div className="ll-dp">
-      {DAYS.map((d, i) => (
-        <button
-          key={d}
-          className={'ll-dp-b' + (active.includes(d) ? ' on' : '')}
-          onClick={() => onToggle(d)}
-          title={d}
-        >{DAY_LABELS[i]}</button>
-      ))}
-    </div>
-  )
-}
-
 // ── A single trackable item (book / playlist / habit) ───────
 function ItemRow({ goal, item, store }) {
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(String(item.current ?? 0))
+  const [confirming, setConfirming] = useState(false)
   // Focus the input as soon as it mounts (when the log box opens), without an
   // effect-as-event-handler.
   const focusInput = useCallback(el => { if (el) { el.focus(); el.select() } }, [])
@@ -125,14 +108,33 @@ function ItemRow({ goal, item, store }) {
         </div>
       )}
 
-      <div className="ll-sched">
-        <span className="ll-schl">Show in Daily</span>
-        <DayPills active={item.days || []} onToggle={(d) => store.toggleItemDay(goal.id, item.id, d)} />
-        <button className="btn ghost icon" style={{ marginLeft: 'auto' }} title="Remove item"
+      <div className="ll-acts">
+        <button className="btn ghost sm" title="Mark this sub-goal complete"
+                onClick={() => setConfirming(true)}>
+          <IconCheck size={12} /> Complete
+        </button>
+        <button className="btn ghost icon" style={{ marginLeft: 'auto' }} title="Delete item"
                 onClick={() => store.deleteItem(goal.id, item.id)}>
           <IconTrash size={12} />
         </button>
       </div>
+
+      {confirming && (
+        <div className="modal-overlay" onClick={() => setConfirming(false)}>
+          <div className="modal" style={{ width: 300 }} onClick={e => e.stopPropagation()}>
+            <h4>Complete sub-goal?</h4>
+            <p style={{ fontSize: 13, color: 'var(--text-mid)', margin: '6px 0 16px', lineHeight: 1.5 }}>
+              Mark <strong>{item.title}</strong> as finished? It moves to the Planner's Completed list.
+            </p>
+            <div className="modal-footer">
+              <button className="btn ghost" onClick={() => setConfirming(false)}>Cancel</button>
+              <button className="btn primary" onClick={() => { store.setItemDone(goal.id, item.id, true); setConfirming(false) }}>
+                Confirm
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -224,7 +226,7 @@ function GoalBlock({ goal, store }) {
 
       {!goal.collapsed && !goal.done && (
         <div className="ll-cat-body">
-          {goal.items.map(item => (
+          {goal.items.filter(it => !it.done).map(item => (
             <ItemRow key={item.id} goal={goal} item={item} store={store} />
           ))}
 

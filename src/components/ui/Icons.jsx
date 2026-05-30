@@ -14,6 +14,11 @@ export const IconDashboard = (p) => <Icon {...p}>
   <rect x="3" y="16" width="7" height="5" rx="1.2"/>
 </Icon>
 
+export const IconCalendar = (p) => <Icon {...p}>
+  <rect x="3" y="4.5" width="18" height="16" rx="2"/>
+  <path d="M3 9.5h18M8 2.5v4M16 2.5v4"/>
+</Icon>
+
 export const IconConsistency = (p) => <Icon {...p}>
   <rect x="3" y="3" width="4" height="4" rx="1"/>
   <rect x="10" y="3" width="4" height="4" rx="1"/>

@@ -1,0 +1,199 @@
+/* ── Week Planner ─────────────────────────────────────── */
+
+.wk-nav { display: flex; align-items: center; gap: 8px; }
+
+.wk-range {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-mid);
+  margin: 2px 0 14px;
+}
+
+/* Tray + board side by side; stacks on narrow screens. */
+.wk-layout { display: flex; gap: 14px; align-items: flex-start; }
+
+/* Horizontal scroll wrapper so the 7-column board never crushes. */
+.wk-scroll { flex: 1; min-width: 0; overflow-x: auto; padding-bottom: 4px; }
+.wk-scroll::-webkit-scrollbar { height: 7px; }
+.wk-scroll::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 4px; }
+
+.wk-board {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(118px, 1fr));
+  gap: 8px;
+  min-width: 0;
+}
+
+.wk-col {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--r-card);
+  padding: 8px;
+  min-height: 110px;
+  display: flex;
+  flex-direction: column;
+  transition: border-color .15s, background .15s;
+}
+.wk-col.today { border-color: var(--accent-line); background: var(--accent-soft); }
+.wk-col.past { opacity: .72; }
+.wk-col.dragover { border-color: var(--accent); border-style: dashed; background: var(--accent-soft); }
+
+.wk-col-h {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+.wk-col-day { display: flex; align-items: baseline; gap: 6px; }
+.wk-col-wd { font-size: 11px; font-weight: 600; color: var(--text-mid); text-transform: uppercase; letter-spacing: .04em; }
+.wk-col.today .wk-col-wd { color: var(--accent); }
+.wk-col-dt { font-family: var(--font-mono); font-size: 13px; font-weight: 700; color: var(--text); }
+.wk-count { font-family: var(--font-mono); font-size: 10px; color: var(--muted); }
+
+.wk-col-body { display: flex; flex-direction: column; gap: 5px; flex: 1; }
+.wk-empty { font-size: 11px; color: var(--muted); padding: 6px 2px; text-align: center; }
+
+.wk-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 7px;
+  border-radius: var(--r-sm);
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-left: 2px solid var(--accent-line);
+  cursor: pointer;
+  transition: background .15s, border-color .15s, opacity .15s;
+}
+.wk-item:hover { border-color: var(--border-strong); }
+.wk-item.daily { border-left-color: var(--border-strong); }
+.wk-item.static { cursor: default; }
+.wk-item[draggable='true'] { cursor: grab; }
+.wk-item[draggable='true']:active { cursor: grabbing; }
+
+.wk-chk {
+  flex-shrink: 0;
+  width: 15px; height: 15px;
+  border: 1.5px solid var(--border-strong);
+  border-radius: 4px;
+  display: grid; place-items: center;
+  color: var(--bg);
+  transition: background .15s, border-color .15s;
+}
+.wk-item.done .wk-chk { background: var(--accent); border-color: var(--accent); }
+.wk-item.done .wk-lbl { color: var(--muted); text-decoration: line-through; }
+
+.wk-lbl {
+  flex: 1;
+  font-size: 12px;
+  line-height: 1.3;
+  color: var(--text);
+  min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+.wk-x {
+  flex-shrink: 0;
+  display: grid; place-items: center;
+  width: 16px; height: 16px;
+  border: 0; background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity .15s, color .15s;
+}
+.wk-item:hover .wk-x { opacity: 1; }
+.wk-x:hover { color: var(--negative); }
+
+/* ── Item tray (backlog you drag from) ────────────────── */
+.wk-tray {
+  flex: 0 0 200px;
+  align-self: stretch;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--r-card);
+  padding: 10px;
+  max-height: 70vh;
+  overflow-y: auto;
+  transition: border-color .15s, background .15s;
+}
+.wk-tray.over { border-color: var(--negative); border-style: dashed; background: var(--negative-soft); }
+.wk-tray-h { font-size: 11px; font-weight: 600; color: var(--text-mid); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 10px; }
+.wk-tray-empty { font-size: 12px; color: var(--muted); line-height: 1.5; }
+.wk-tray-group { margin-bottom: 12px; }
+.wk-tray-goal { font-size: 10px; color: var(--muted); font-family: var(--font-mono); margin: 0 2px 5px; text-transform: uppercase; letter-spacing: .03em; }
+
+.wk-chip {
+  display: flex; align-items: center; gap: 8px;
+  padding: 7px 9px;
+  margin-bottom: 5px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  cursor: grab;
+  transition: border-color .15s, background .15s;
+}
+.wk-chip:hover { border-color: var(--border-strong); background: var(--card-hover); }
+.wk-chip:active { cursor: grabbing; }
+.wk-chip-lbl { flex: 1; font-size: 12px; color: var(--text); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wk-chip-days { display: flex; gap: 2px; flex-shrink: 0; }
+.wk-chip-days i {
+  font-style: normal;
+  font-size: 8px; font-weight: 700;
+  width: 13px; height: 13px;
+  display: grid; place-items: center;
+  border-radius: 3px;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+/* ── Legend ───────────────────────────────────────────── */
+.wk-legend {
+  display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+  margin-top: 16px;
+  font-size: 11px; color: var(--text-mid);
+}
+.wk-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.wk-leg-dot { width: 10px; height: 10px; border-radius: 3px; }
+.wk-leg-dot.lifelong { background: var(--accent); }
+.wk-leg-dot.daily { background: var(--border-strong); }
+.wk-leg-hint { color: var(--muted); }
+
+/* ── Compact variant (bento card, read-only) ──────────── */
+.wk-board.compact { grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.wk-board.compact .wk-col { min-height: 64px; padding: 5px; }
+.wk-board.compact .wk-col-h { margin-bottom: 5px; padding-bottom: 4px; }
+.wk-board.compact .wk-col-day { flex-direction: column; gap: 1px; align-items: center; width: 100%; }
+.wk-board.compact .wk-count { display: none; }
+.wk-board.compact .wk-item { padding: 3px 4px; cursor: default; }
+.wk-board.compact .wk-chk { width: 11px; height: 11px; }
+.wk-board.compact .wk-lbl { font-size: 10px; }
+.wk-board.compact .wk-empty { font-size: 10px; padding: 2px; }
+
+/* ── Lower stack: week picker + completed sub-goals ───── */
+/* Full width, stacked — the consistency grid matches the dashboard card so it
+   fits without horizontal scrolling. */
+.wk-lower {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 16px;
+}
+.wk-done-empty { font-size: 13px; color: var(--muted); line-height: 1.6; }
+.wk-done-group { margin-bottom: 12px; }
+.wk-done-goal { font-size: 10px; font-family: var(--font-mono); color: var(--muted); text-transform: uppercase; letter-spacing: .04em; margin: 0 2px 6px; }
+.wk-done-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 9px; margin-bottom: 5px;
+  background: var(--bg); border: 1px solid var(--border); border-radius: var(--r-sm);
+}
+.wk-done-lbl { flex: 1; font-size: 12px; color: var(--text-mid); text-decoration: line-through; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+@media (max-width: 1023px) {
+  .wk-layout { flex-direction: column; }
+  .wk-tray { flex: 0 0 auto; align-self: stretch; max-height: none; width: 100%; }
+  .wk-scroll { width: 100%; }
+}

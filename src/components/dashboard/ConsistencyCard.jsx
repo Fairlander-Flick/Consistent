@@ -2,39 +2,12 @@ import { useState, useMemo } from 'react'
 import { useJournalStore } from '../../store/useJournalStore'
 import { todayISO } from '../../lib/dateUtils'
 import { useDashboard } from '../../lib/DashboardContext'
+import { buildYearGrid } from '../../lib/consistencyGrid'
 
-const MONTH_LABELS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
 const DOW_LABELS = ['Mon', '', 'Wed', '', 'Fri', '', '']
 const CELL = 12
 const GAP = 3
 const PITCH = CELL + GAP
-
-function buildYearGrid(year, byDate) {
-  const jan1 = new Date(year, 0, 1)
-  const leadingEmpty = (jan1.getDay() + 6) % 7
-  const isLeap = (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0
-  const daysInYear = isLeap ? 366 : 365
-
-  const cells = Array.from({ length: leadingEmpty }, () => null)
-  for (let i = 0; i < daysInYear; i++) {
-    const d = new Date(year, 0, 1 + i)
-    const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-    const entry = byDate.get(dateStr)
-    const score = entry?.score ?? null
-    const level = score === null ? 0 : score >= 8 ? 4 : score >= 6 ? 3 : score >= 4 ? 2 : 1
-    cells.push({ dateStr, level })
-  }
-
-  const monthCols = MONTH_LABELS.map((label, m) => {
-    const firstOfMonth = new Date(year, m, 1)
-    const diffDays = Math.round((firstOfMonth - jan1) / 86400000)
-    const col = Math.floor((leadingEmpty + diffDays) / 7)
-    return { label, col }
-  })
-
-  const totalCols = Math.ceil(cells.length / 7)
-  return { cells, monthCols, totalCols }
-}
 
 function buildTooltip(dateStr, byDate) {
   const d = new Date(dateStr + 'T00:00:00')

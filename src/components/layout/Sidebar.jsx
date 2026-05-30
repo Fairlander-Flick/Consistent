@@ -5,11 +5,12 @@ import { useAuthStore } from '../../store/useAuthStore'
 import { consumeBrandRect } from '../../lib/brandTransition'
 import {
   IconDashboard, IconConsistency, IconJournal, IconWallet,
-  IconSun, IconMoon, IconSettings, IconChevRight,
+  IconSun, IconMoon, IconSettings, IconChevRight, IconCalendar,
 } from '../ui/Icons'
 
 const navItems = [
   { to: '/', label: 'Dashboard', Icon: IconDashboard, end: true },
+  { to: '/planner', label: 'Planner', Icon: IconCalendar },
   { to: '/consistency', label: 'Consistency', Icon: IconConsistency },
   { to: '/journal', label: 'Journal', Icon: IconJournal },
   { to: '/finance', label: 'Finance', Icon: IconWallet },

@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AppShell } from './components/layout/AppShell'
 import { Dashboard } from './pages/Dashboard'
+import { Planner } from './pages/Planner'
 import { Consistency } from './pages/Consistency'
 import { Journal } from './pages/Journal'
 import { Finance } from './pages/Finance'
@@ -43,6 +44,7 @@ export default function App() {
         <Route path="/login" element={<Navigate to="/" replace />} />
         <Route element={<AppShell />}>
           <Route index element={<ErrorBoundary><Dashboard /></ErrorBoundary>} />
+          <Route path="/planner" element={<ErrorBoundary><Planner /></ErrorBoundary>} />
           <Route path="/consistency" element={<ErrorBoundary><Consistency /></ErrorBoundary>} />
           <Route path="/journal" element={<ErrorBoundary><Journal /></ErrorBoundary>} />
           <Route path="/finance" element={<ErrorBoundary><Finance /></ErrorBoundary>} />
