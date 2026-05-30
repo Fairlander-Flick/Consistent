@@ -21,7 +21,7 @@ export default function App() {
         minHeight: '100vh', display: 'grid', placeItems: 'center',
         color: 'var(--muted)', fontSize: 13, background: 'var(--bg)',
       }}>
-        Loading...
+        Loading…
       </div>
     )
   }

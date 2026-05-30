@@ -1,10 +1,11 @@
-import { useState } from 'react'
+const WEIGHT_PAD = { l: 28, r: 8, t: 12, b: 22 }
+const MLC_PAD = { l: 44, r: 16, t: 16, b: 28 }
 
 // ── SVG Weight chart ───────────────────────────────────────
 export function WeightChart({ data, height = 170 }) {
   const w = 600
   const h = height
-  const pad = { l: 28, r: 8, t: 12, b: 22 }
+  const pad = WEIGHT_PAD
   if (!data || data.length < 2) return null
   const vals = data.map(d => d.value)
   const min = Math.min(...vals) - 0.4
@@ -67,7 +68,7 @@ export function WeightChart({ data, height = 170 }) {
 export function MultiLineChart({ months, series, height = 200, currencySymbol = '€', labelInterval = 1, showDots = true }) {
   const w = 720
   const h = height
-  const pad = { l: 44, r: 16, t: 16, b: 28 }
+  const pad = MLC_PAD
   const allVals = series.flatMap(s => s.values)
   const min = 0
   const max = Math.max(...allVals, 1) * 1.15
@@ -105,96 +106,6 @@ export function MultiLineChart({ months, series, height = 200, currencySymbol = 
         )
       })}
     </svg>
-  )
-}
-
-// ── Contribution grid row ───────────────────────────────────
-export function ContribRow({ label, count, cells, onCellClick }) {
-  const [hover, setHover] = useState(null)
-  return (
-    <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr auto', alignItems: 'center', gap: 12, padding: '6px 0' }}>
-      <div style={{ fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{label}</div>
-      <div style={{ display: 'flex', gap: 3, flexWrap: 'nowrap', overflow: 'hidden', position: 'relative' }}>
-        {cells.map((c, i) => (
-          <div key={i}
-               className="cg-square"
-               data-fill={c.level}
-               data-today={c.today ? '1' : '0'}
-               onMouseEnter={(e) => setHover({ c, x: e.currentTarget.offsetLeft, y: e.currentTarget.offsetTop })}
-               onMouseLeave={() => setHover(null)}
-               onClick={() => onCellClick?.(c)}
-          />
-        ))}
-        {hover && (
-          <div className="tt" style={{ left: hover.x, top: hover.y - 28 }}>{hover.c.tooltip}</div>
-        )}
-      </div>
-      <div className="mono" style={{ fontSize: 11, color: 'var(--text-mid)' }}>{count}</div>
-    </div>
-  )
-}
-
-// ── Weekly workout row (7 squares Mon-Sun) ──────────────────
-export function WeeklyWorkout({ days, todayIdx }) {
-  return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 6 }}>
-      {days.map((d, i) => (
-        <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, flex: 1 }}>
-          <div style={{
-            fontSize: 10,
-            color: i === todayIdx ? 'var(--text)' : 'var(--muted)',
-            fontFamily: 'var(--font-mono)',
-            textTransform: 'uppercase',
-            letterSpacing: '0.05em',
-            fontWeight: i === todayIdx ? 600 : 400,
-          }}>{d.label}</div>
-          <div style={{
-            width: '100%', aspectRatio: '1 / 1', maxWidth: 36,
-            borderRadius: 5,
-            border: i === todayIdx ? '1.5px solid var(--text)' : '1px solid var(--border)',
-            background: d.done ? (d.isRest ? 'var(--muted)' : 'var(--accent)') : 'transparent',
-            display: 'grid', placeItems: 'center', position: 'relative',
-            transition: 'all 180ms',
-          }}>
-            {d.done && !d.isRest && (
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0a0a0a" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="pop">
-                <path d="M5 12l4 4L19 7"/>
-              </svg>
-            )}
-            {d.done && d.isRest && (
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--card)" strokeWidth="3">
-                <path d="M6 12h12"/>
-              </svg>
-            )}
-          </div>
-        </div>
-      ))}
-    </div>
-  )
-}
-
-// ── Stat tile ──────────────────────────────────────────────
-export function Stat({ label, value, sub, deltaPos, mono = true }) {
-  return (
-    <div className="card">
-      <div style={{ fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>{label}</div>
-      <div className={mono ? 'num num-lg' : ''} style={{ color: deltaPos === true ? 'var(--accent)' : deltaPos === false ? 'var(--negative)' : 'var(--text)' }}>{value}</div>
-      {sub && <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4, fontFamily: 'var(--font-mono)' }}>{sub}</div>}
-    </div>
-  )
-}
-
-// ── Streak pill ────────────────────────────────────────────
-export function StreakPill({ days, consistency }) {
-  return (
-    <div style={{ display: 'flex', gap: 8 }}>
-      <div className="chip" style={{ background: 'var(--accent-soft)', color: 'var(--accent)' }}>
-        <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600 }}>{days}</span> day streak
-      </div>
-      <div className="chip">
-        <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, color: 'var(--text)' }}>{consistency}%</span> this week
-      </div>
-    </div>
   )
 }
 

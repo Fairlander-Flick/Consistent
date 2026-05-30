@@ -53,8 +53,8 @@ export function GraphCard() {
   }, [])
 
   // ── Data per tab ──────────────────────────────────────────
-  const weightData = useMemo(() => [...weightEntries]
-    .sort((a, b) => a.date.localeCompare(b.date))
+  const weightData = useMemo(() => weightEntries
+    .toSorted((a, b) => a.date.localeCompare(b.date))
     .slice(-28)
     .map(e => ({ date: e.date, value: e.kg })), [weightEntries])
 
@@ -357,7 +357,7 @@ export function GraphCard() {
               color: financeVis[key] ? color : 'var(--muted)',
               border: `1px solid ${financeVis[key] ? 'var(--border-strong)' : 'transparent'}`,
               cursor: 'pointer',
-              transition: 'all 120ms',
+              transition: 'background 120ms, color 120ms, border-color 120ms',
             }}
           >
             {label}

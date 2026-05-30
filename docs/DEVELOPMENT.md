@@ -6,15 +6,16 @@ Internal notes for working on Consistent.
 
 | Layer | Choice | Why |
 |---|---|---|
-| UI | React 19 | latest stable, no Suspense gymnastics needed yet |
+| UI | React 19 | latest stable; the React Compiler handles memoization |
 | Build | Vite 8 | fast HMR, ESM-first, minimal config |
-| Routing | React Router 7 | data-router not required, basic `Routes` is enough |
+| Routing | React Router 7 | basic `Routes` is enough; no data router |
 | State | Zustand 5 | one store per domain, all persisted to localStorage |
-| Charts | Recharts 3 | declarative, small enough |
+| Charts | hand-rolled SVG | no chart library — see `components/ui/Widgets.jsx` and `GraphCard` |
 | Styling | CSS custom properties | no framework, all tokens in `src/styles/tokens.css` |
-| Tests | Vitest + Testing Library | jsdom env, forks pool |
+| Auth / sync | Supabase (optional) | email auth + a single `user_data` row per user |
+| Tests | Vitest + Testing Library | jsdom env, logic-correctness only |
 
-No backend, no API client, no auth library. The dependency graph is intentionally shallow.
+The dependency graph is intentionally shallow. Auth and sync are optional: with no Supabase keys the app runs fully local with zero network calls.
 
 ## Scripts
 
@@ -32,73 +33,95 @@ npm run test:ui   # Vitest browser UI
 
 ```
 src/
-├── App.jsx                  router + ErrorBoundary wrapping per route
+├── App.jsx                  router + ErrorBoundary, guest vs. signed-in routes
 ├── main.jsx                 entry, service worker registration
 ├── pages/                   one file per top-level route
-│   ├── Dashboard.jsx
-│   ├── Consistency.jsx      training / weight / wellbeing
-│   ├── Calendar.jsx
+│   ├── Dashboard.jsx        the bento overview
+│   ├── Consistency.jsx      weight log + wellbeing
+│   ├── Journal.jsx          daily entry editor + history
 │   ├── Finance.jsx
-│   └── Settings.jsx
+│   ├── Settings.jsx
+│   └── Login.jsx
 ├── components/
-│   ├── dashboard/           widgets composed into Dashboard
+│   ├── auth/                AuthForm, BrandPanel
+│   ├── dashboard/           cards composed into Dashboard
+│   ├── journal/             JournalTodayEditor (shared by card + page)
 │   ├── layout/              AppShell, Sidebar, BottomNav
-│   └── ui/                  Button, Card, Input, Modal, Icons, …
+│   └── ui/                  ErrorBoundary, Icons, Widgets (SVG charts)
 ├── store/                   Zustand stores, one per domain
-│   ├── useTrainingStore.js
+│   ├── useAuthStore.js
 │   ├── useWeightStore.js
 │   ├── useJournalStore.js
 │   ├── useGoalsStore.js
+│   ├── useLifelongStore.js
 │   ├── useFinanceStore.js
-│   ├── useScheduleStore.js
-│   ├── useScheduleDoneStore.js
+│   ├── useScheduleDoneStore.js   (legacy key; holds daily-todo done state)
 │   └── useSettingsStore.js
 ├── lib/                     pure utilities + thin hooks
-│   ├── backup.js            export / import contract
-│   ├── periodization.js     TM × multiplier rounding logic
-│   ├── progression.js       PR + per-exercise series
-│   ├── dateUtils.js
-│   ├── icsImport.js         RFC 5545 subset parser
-│   ├── recap.js             daily summary builder
-│   ├── reminders.js         notification scheduling
-│   ├── streaks.js
+│   ├── backup.js            export / import contract (STORE_KEYS)
+│   ├── cloudSync.js         Supabase push/pull of the same keys
+│   ├── lifelongProgress.js  pct / pace / ETA for measurable items
+│   ├── lifelongTodos.js     items → Daily-goal todos by weekday
+│   ├── journalMood.js       5-level mood ↔ numeric score mapping
+│   ├── recap.js             period summary builder
 │   ├── wellbeing.js         sleep × mood correlation
-│   ├── weightGoal.js
-│   ├── financeUtils.js
-│   ├── currency.js
-│   └── storage.js           localStorage wrapper
-├── data/
-│   └── seedProgram.json     default weekly program (template values)
+│   ├── weightGoal.js        target progress + ETA
+│   ├── reminders.js         daily notification scheduling
+│   ├── financeUtils.js, currency.js, dateUtils.js, deltaTone.js
+│   └── storage.js           localStorage wrapper (debounced cloud sync)
 └── styles/
-    └── tokens.css           design tokens
+    ├── tokens.css           design tokens + component styles
+    └── login.css
 public/
 ├── manifest.webmanifest     PWA manifest
-├── sw.js                    service worker
-└── favicon.svg
+└── sw.js                    service worker
 ```
 
 ## Storage model
 
-Everything lives in `localStorage` under keys prefixed `consistent:`. Eight keys, listed in `src/lib/backup.js → STORE_KEYS`. Anything outside that list is ignored by Export/Import.
+Everything lives in `localStorage` under keys prefixed `consistent:`. The canonical
+list is `src/lib/backup.js → STORE_KEYS`; anything outside it is ignored by
+Export/Import and by cloud sync.
 
 ```
-consistent:weight              weight log
-consistent:training-program    weekly program shape
-consistent:training-log        past sessions
-consistent:journal             daily entries
-consistent:goals               checklist
-consistent:finance             income + expense ledger, categories
-consistent:schedule            calendar events
-consistent:settings            app preferences
+consistent:weight          weight log
+consistent:journal         daily entries (mood/sleep/nutrition/note)
+consistent:goals           current daily/weekly/monthly/yearly checklists
+consistent:goals-log       past goal periods
+consistent:finance         income + expense ledger, categories, budgets, recurring
+consistent:lifelong        pursuits → measurable items / habits
+consistent:schedule-done   per-day done state for ephemeral daily todos
+consistent:settings        app preferences
 ```
 
-Per-origin caveat: localStorage is scoped to scheme+host+**port**. The dev server is pinned to `5175` in `vite.config.js` so the same browser tab keeps its storage across restarts. Don't change the port without exporting first.
+Per-origin caveat: localStorage is scoped to scheme+host+**port**. The dev server is
+pinned to `5175` in `vite.config.js` so the same browser tab keeps its storage across
+restarts. Don't change the port without exporting first.
 
-## Training store specifics
+## Lifelong goals model
 
-The program seed (`src/data/seedProgram.json`) loads only when the program key is absent **or** when all days are empty — both checks live in `loadProgram()` inside `useTrainingStore.js`. This makes the "Reset training program" action in Settings safe to call: it overwrites the program key with the seed without touching the training log or weight history.
+A goal (pursuit) is `{ id, title, deadline?, done, collapsed, items: [] }`. Each item is:
 
-Periodization: each periodized exercise stores `{ trainingMax, multipliers, step, currentWeek }`. On session log, completed periodized exercises that weren't already completed for that date advance `currentWeek` by one, wrapping back to 1 on cycle restart. See `periodization.js → nextWeek`.
+```
+{ id, title, unit, total, current, logs: [{ date, value }], days: [] }
+```
+
+- `total == null` → a non-measurable habit (no progress bar). Otherwise the item is
+  measurable and `current` is its latest logged reading.
+- `logs` is the reading history; `lib/lifelongProgress.js` derives pct, pace
+  (units/day), ETA, and a "behind deadline" flag from it.
+- `days` are the weekdays the item shows up as a check-off in the Daily goals list
+  (`lib/lifelongTodos.js`).
+
+Older data used `goal.steps`; `useLifelongStore.js → normalizeGoal()` migrates those to
+habit items on load, so no manual migration is needed.
+
+## Cloud sync
+
+`lib/cloudSync.js` mirrors the same `localStorage` keys to a single `user_data` row in
+Supabase. `saveData()` schedules a debounced push; sign-in pulls the row down first.
+Without `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` the Supabase client is inert and
+the app stays fully local.
 
 ## Backup contract
 
@@ -113,7 +136,9 @@ Periodization: each periodized exercise stores `{ trainingMax, multipliers, step
 }
 ```
 
-`parseBackup()` validates the envelope (`app === "consistent"`, `data` is an object). `restoreBackup()` writes only keys present in `data` that match `STORE_KEYS`. Keys absent from the backup are left untouched — restore is **additive, not destructive**.
+`parseBackup()` validates the envelope (`app === "consistent"`, `data` is an object).
+`restoreBackup()` writes only keys present in `data` that match `STORE_KEYS`; keys absent
+from the backup are left untouched — restore is **additive, not destructive**.
 
 ## Tests
 
@@ -121,27 +146,24 @@ Periodization: each periodized exercise stores `{ trainingMax, multipliers, step
 npm test -- --run
 ```
 
-134 of 136 currently pass on Windows. The two failures in `currency.test.js` are locale-dependent (the test asserts `€12.34` but Windows formats it `€12,34`) and unrelated to feature code. Will be patched by passing an explicit `locale` to `Intl.NumberFormat`.
-
-Each domain store has a colocated `*.test.js`. Pure utilities in `lib/` are individually tested. UI components are not unit-tested — Vitest is used as a logic-correctness tool, not a render harness.
+Each domain store and pure utility has a colocated `*.test.js`. UI components are not
+unit-tested — Vitest is used as a logic-correctness tool, not a render harness. Two
+`currency.test.js` cases are locale-dependent (assert `€12.34`, Windows formats `€12,34`)
+and unrelated to feature code.
 
 ## Adding a new feature
 
-1. Domain logic → new file in `src/lib/`, write tests first
-2. Persistent state → new Zustand store in `src/store/`, keyed under `consistent:<name>` and added to `STORE_KEYS` so Export/Import covers it
-3. UI → either a new page in `src/pages/` (add a route in `App.jsx`) or a dashboard widget in `src/components/dashboard/`
-4. If the feature reads/writes localStorage on cold start, add a side-effect import in `App.jsx` so the store initializes on any route
+1. Domain logic → new file in `src/lib/`, write tests first.
+2. Persistent state → new Zustand store in `src/store/`, keyed under `consistent:<name>`
+   and added to `STORE_KEYS` (backup) and `KEY_MAP` (cloud sync) so both cover it.
+3. UI → a new page in `src/pages/` (add a route in `App.jsx`) or a dashboard card in
+   `src/components/dashboard/`.
 
 ## Commit conventions
 
-Conventional Commits prefixes: `feat`, `fix`, `chore`, `refactor`, `docs`, `test`. Co-authored commits use `Co-Authored-By: Claude Opus 4.7 <noreply@anthropic.com>` when applicable.
-
-## Roadmap notes (technical)
-
-- **PWA install** — manifest + sw.js are already wired; Phase 2 is just hosting `dist/` on a CDN
-- **Sync (Phase 3)** — likely Supabase: Postgres + Auth + row-level security. Backup envelope is already schema-versioned so server-side migration is tractable.
-- **Mobile (Phase 4)** — Capacitor is the lowest-friction path; the React tree and Zustand stores would carry over unchanged. localStorage maps to native `Preferences` plugin.
+Conventional Commits prefixes: `feat`, `fix`, `chore`, `refactor`, `docs`, `test`.
 
 ## Personal artifacts
 
-`calendar_*.ics`, `calendar_*.pdf`, `consistent-backup-*.json`, and `inject-program.js` are listed in `.gitignore`. Treat them as never-committed by default.
+`consistent-backup-*.json` and `.env.local` are git-ignored. Treat them as
+never-committed by default.

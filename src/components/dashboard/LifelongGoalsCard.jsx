@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { useLifelongStore } from '../../store/useLifelongStore'
 import { IconPlus, IconTrash } from '../ui/Icons'
 import {
@@ -40,9 +40,9 @@ function DayPills({ active, onToggle }) {
 function ItemRow({ goal, item, store }) {
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(String(item.current ?? 0))
-  const inputRef = useRef(null)
-
-  useEffect(() => { if (editing) { inputRef.current?.focus(); inputRef.current?.select() } }, [editing])
+  // Focus the input as soon as it mounts (when the log box opens), without an
+  // effect-as-event-handler.
+  const focusInput = useCallback(el => { if (el) { el.focus(); el.select() } }, [])
 
   const measurable = isMeasurable(item)
   const useDots = measurable && item.total <= DOT_THRESHOLD
@@ -84,7 +84,8 @@ function ItemRow({ goal, item, store }) {
         <div className="ll-dots">
           {Array.from({ length: item.total }, (_, i) => (
             <button
-              key={i}
+              key={`${item.id}:slot${i + 1}`}
+              type="button"
               className={'ll-dot' + (i < (item.current ?? 0) ? ' on' : '')}
               onClick={() => store.logProgress(goal.id, item.id, i + 1)}
               title={`Set to ${i + 1}`}
@@ -111,7 +112,7 @@ function ItemRow({ goal, item, store }) {
           <label>Where are you now?{item.unit ? ` (${item.unit})` : ''}</label>
           <div className="ll-logrow">
             <input
-              ref={inputRef}
+              ref={focusInput}
               type="number"
               value={draft}
               onChange={e => setDraft(e.target.value)}
@@ -241,14 +242,16 @@ export function LifelongGoalsCard() {
   const [newTitle, setNewTitle] = useState('')
   const [newDeadline, setNewDeadline] = useState('')
 
-  const activeMeasured = goals
-    .filter(g => !g.done)
-    .map(goalAvgPct)
-    .filter(p => p != null)
-  const avg = activeMeasured.length
-    ? Math.round(activeMeasured.reduce((a, b) => a + b, 0) / activeMeasured.length * 100)
-    : null
-  const pursuits = goals.filter(g => !g.done).length
+  let avgSum = 0
+  let avgCount = 0
+  let pursuits = 0
+  for (const g of goals) {
+    if (g.done) continue
+    pursuits++
+    const p = goalAvgPct(g)
+    if (p != null) { avgSum += p; avgCount++ }
+  }
+  const avg = avgCount ? Math.round((avgSum / avgCount) * 100) : null
 
   const handleAddGoal = () => {
     const t = newTitle.trim()

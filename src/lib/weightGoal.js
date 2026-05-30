@@ -3,7 +3,7 @@
 
 export function weightProgress(entries, target) {
   if (target == null || entries.length === 0) return null
-  const sorted = [...entries].sort((a, b) => a.date.localeCompare(b.date))
+  const sorted = entries.toSorted((a, b) => a.date.localeCompare(b.date))
   const start = sorted[0].kg
   const current = sorted[sorted.length - 1].kg
 

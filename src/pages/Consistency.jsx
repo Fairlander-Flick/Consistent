@@ -35,11 +35,11 @@ function WeightSection() {
   const { entries, addEntry, deleteEntry } = useWeightStore()
   const weightTarget = useSettingsStore(s => s.weightTarget)
   const [val, setVal] = useState('')
-  const [date, setDate] = useState(todayISO())
+  const [date, setDate] = useState(() => todayISO())
 
   const goal = useMemo(() => weightProgress(entries, weightTarget), [entries, weightTarget])
 
-  const sorted = useMemo(() => [...entries].sort((a, b) => a.date.localeCompare(b.date)), [entries])
+  const sorted = useMemo(() => entries.toSorted((a, b) => a.date.localeCompare(b.date)), [entries])
   const chartData = sorted.length >= 2
     ? sorted.map(e => ({ date: e.date, value: e.kg }))
     : null

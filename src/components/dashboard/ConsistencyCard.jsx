@@ -9,7 +9,7 @@ const CELL = 12
 const GAP = 3
 const PITCH = CELL + GAP
 
-function buildYearGrid(year, entries) {
+function buildYearGrid(year, byDate) {
   const jan1 = new Date(year, 0, 1)
   const leadingEmpty = (jan1.getDay() + 6) % 7
   const isLeap = (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0
@@ -19,7 +19,7 @@ function buildYearGrid(year, entries) {
   for (let i = 0; i < daysInYear; i++) {
     const d = new Date(year, 0, 1 + i)
     const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-    const entry = entries.find(e => e.date === dateStr)
+    const entry = byDate.get(dateStr)
     const score = entry?.score ?? null
     const level = score === null ? 0 : score >= 8 ? 4 : score >= 6 ? 3 : score >= 4 ? 2 : 1
     cells.push({ dateStr, level })
@@ -36,7 +36,7 @@ function buildYearGrid(year, entries) {
   return { cells, monthCols, totalCols }
 }
 
-function buildTooltip(dateStr, entries) {
+function buildTooltip(dateStr, byDate) {
   const d = new Date(dateStr + 'T00:00:00')
   const line1 = d.toLocaleString('en', { weekday: 'short' }) + ' · ' +
     d.toLocaleString('en', { month: 'short', day: 'numeric', year: 'numeric' })
@@ -52,7 +52,7 @@ function buildTooltip(dateStr, entries) {
     const wd = new Date(monday)
     wd.setDate(monday.getDate() + i)
     const ds = `${wd.getFullYear()}-${String(wd.getMonth() + 1).padStart(2, '0')}-${String(wd.getDate()).padStart(2, '0')}`
-    const entry = entries.find(e => e.date === ds)
+    const entry = byDate.get(ds)
     if (entry?.score != null) scores.push(entry.score / 10)
   }
   const avg = scores.length ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length * 100) : 0
@@ -69,7 +69,11 @@ export function ConsistencyCard() {
   const currentYear = new Date().getFullYear()
 
   const years = useMemo(() => {
-    const dataYears = entries.map(e => parseInt(e.date.slice(0, 4))).filter(y => !isNaN(y))
+    const dataYears = []
+    for (const e of entries) {
+      const y = parseInt(e.date.slice(0, 4))
+      if (!isNaN(y)) dataYears.push(y)
+    }
     const minYear = dataYears.length ? Math.min(...dataYears) : currentYear
     return Array.from({ length: currentYear - minYear + 1 }, (_, i) => minYear + i)
   }, [entries, currentYear])
@@ -77,8 +81,10 @@ export function ConsistencyCard() {
   const [selectedYear, setSelectedYear] = useState(currentYear)
   const [hover, setHover] = useState(null)
 
+  const byDate = useMemo(() => new Map(entries.map(e => [e.date, e])), [entries])
+
   const { cells, monthCols, totalCols } = useMemo(
-    () => buildYearGrid(selectedYear, entries), [selectedYear, entries]
+    () => buildYearGrid(selectedYear, byDate), [selectedYear, byDate]
   )
 
   const activeDays = useMemo(
@@ -132,10 +138,10 @@ export function ConsistencyCard() {
             gap: GAP,
           }}>
             {cells.map((cell, i) => cell === null ? (
-              <div key={i} style={{ width: CELL, height: CELL }} />
+              <div key={`lead-${i}`} style={{ width: CELL, height: CELL }} />
             ) : (
               <div
-                key={i}
+                key={cell.dateStr}
                 className="cg-square"
                 data-fill={cell.level}
                 data-today={cell.dateStr === todayStr ? '1' : '0'}
@@ -158,7 +164,7 @@ export function ConsistencyCard() {
           position: 'fixed', left: hover.rect.left, top: hover.rect.top - 52,
           whiteSpace: 'pre', fontSize: 10, lineHeight: 1.6, pointerEvents: 'none',
         }}>
-          {buildTooltip(hover.dateStr, entries)}
+          {buildTooltip(hover.dateStr, byDate)}
         </div>
       )}
 

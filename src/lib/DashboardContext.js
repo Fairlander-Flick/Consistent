@@ -1,4 +1,4 @@
-import { createContext, useContext } from 'react'
+import { createContext, use } from 'react'
 import { todayISO } from './dateUtils'
 
 export const DashboardContext = createContext({
@@ -6,4 +6,4 @@ export const DashboardContext = createContext({
   setViewDate: () => {},
 })
 
-export const useDashboard = () => useContext(DashboardContext)
+export const useDashboard = () => use(DashboardContext)

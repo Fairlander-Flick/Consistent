@@ -37,8 +37,11 @@ export function sleepScoreInsight(entries) {
   const both = entries.filter(e => e.sleepHours != null && e.score != null)
   const r = pearson(both.map(e => [e.sleepHours, e.score]))
 
-  const rested = both.filter(e => e.sleepHours >= SLEEP_THRESHOLD).map(e => e.score)
-  const short = both.filter(e => e.sleepHours < SLEEP_THRESHOLD).map(e => e.score)
+  const rested = []
+  const short = []
+  for (const e of both) {
+    (e.sleepHours >= SLEEP_THRESHOLD ? rested : short).push(e.score)
+  }
 
   return {
     n: both.length,

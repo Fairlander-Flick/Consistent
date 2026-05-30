@@ -22,7 +22,9 @@ export function symbolFor(code) {
 export function formatMoney(amount, code, { signed = false, round = true } = {}) {
   const sym = symbolFor(code)
   const n = round ? Math.round(amount) : amount
-  const abs = Math.abs(n).toLocaleString()
+  // Pin the locale so grouping is deterministic regardless of the device's
+  // regional settings (e.g. "1,235" not "1.235" on a German machine).
+  const abs = Math.abs(n).toLocaleString('en-US')
   if (signed) {
     const sign = n < 0 ? '−' : '+'
     return `${sign}${sym}${abs}`

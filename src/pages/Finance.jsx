@@ -77,12 +77,12 @@ export function Finance() {
 
   const catBreakdown = useMemo(() => {
     const out = {}
-    monthTx.filter(t => t.type === 'expense').forEach(t => {
-      out[t.category] = (out[t.category] || 0) + t.amount
-    })
-    recurring.filter(r => r.type === 'expense').forEach(r => {
-      out[r.category] = (out[r.category] || 0) + r.amount
-    })
+    for (const t of monthTx) {
+      if (t.type === 'expense') out[t.category] = (out[t.category] || 0) + t.amount
+    }
+    for (const r of recurring) {
+      if (r.type === 'expense') out[r.category] = (out[r.category] || 0) + r.amount
+    }
     return Object.entries(out)
       .map(([name, amount]) => {
         const budget = budgets[name] ?? null
@@ -499,7 +499,7 @@ function RecurringSection({ year, month, categories, recurring, onAdd, onUpdate,
     setEditing(null)
   }
 
-  const sorted = [...recurring].sort((a, b) => a.dayOfMonth - b.dayOfMonth)
+  const sorted = recurring.toSorted((a, b) => a.dayOfMonth - b.dayOfMonth)
 
   return (
     <div className="col gap-4">
@@ -876,7 +876,7 @@ function CategoriesModal({ categories, budgets, onClose, onAdd, onDelete, onRena
       position: 'fixed', inset: 0,
       background: 'rgba(0,0,0,0.5)',
       display: 'grid', placeItems: 'center',
-      zIndex: 1000, backdropFilter: 'blur(2px)',
+      zIndex: 200, backdropFilter: 'blur(2px)',
     }} onClick={onClose}>
       <div className="card" style={{ width: 480, maxHeight: '80vh', overflow: 'auto' }} onClick={e => e.stopPropagation()}>
         <div className="card-h">
