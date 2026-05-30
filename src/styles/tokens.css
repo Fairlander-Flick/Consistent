@@ -809,6 +809,63 @@ a { color: inherit; text-decoration: none; }
   background: #0a0a0a;
 }
 
+/* ── Goals page (nested tree, drill-in) ───────────────────── */
+.gl-crumb { display: flex; align-items: center; flex-wrap: wrap; gap: 2px; margin-bottom: 18px; font-size: 13px; }
+.gl-crumb-seg { display: inline-flex; align-items: center; gap: 2px; }
+.gl-crumb-sep { color: var(--muted); padding: 0 4px; }
+.gl-crumb-link { color: var(--text-mid); padding: 3px 6px; border-radius: 5px; }
+.gl-crumb-link:hover { color: var(--text); background: var(--faint); }
+.gl-crumb-link.here { color: var(--text); font-weight: 600; }
+
+.gl-list { display: flex; flex-direction: column; gap: 8px; }
+.gl-empty { color: var(--muted); font-size: 14px; padding: 16px 4px; }
+
+.gl-row {
+  display: flex; align-items: center; gap: 12px;
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--r-card); padding: 12px 14px; transition: border-color .15s;
+}
+.gl-row:hover { border-color: var(--border-strong); }
+.gl-row.done { opacity: .55; }
+.gl-row-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; text-align: left; cursor: pointer; }
+.gl-row-title { font-size: 15px; font-weight: 500; color: var(--text); }
+.gl-row-sub { font-size: 12px; color: var(--muted); font-family: var(--font-mono); }
+.gl-row-pct { font-size: var(--fs-num-sm); color: var(--accent); flex-shrink: 0; }
+.gl-row-ring {
+  --p: 0; width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0; display: grid; place-items: center;
+  background: conic-gradient(var(--accent) calc(var(--p) * 1%), var(--faint) 0);
+}
+.gl-row-ring i { width: 26px; height: 26px; border-radius: 50%; background: var(--card); display: grid; place-items: center; font-style: normal; font-size: 9px; font-weight: 700; color: var(--accent); }
+
+.todo-chk {
+  width: 22px; height: 22px; flex-shrink: 0; border: 1.5px solid var(--border-strong);
+  border-radius: 6px; display: grid; place-items: center; color: #0a0a0a; transition: all .12s;
+}
+.todo-chk.on { background: var(--accent); border-color: var(--accent); }
+[data-theme='light'] .todo-chk.on { color: #fff; }
+
+.gl-detail { margin-bottom: 18px; }
+.gl-detail-h { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.gl-detail-h h3 { margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -.01em; }
+
+.gl-days { display: flex; align-items: center; gap: 6px; margin-top: 16px; padding-top: 14px; border-top: 1px dashed var(--border); flex-wrap: wrap; }
+.gl-days-l { font-size: 12px; color: var(--muted); margin-right: 4px; }
+.gl-day { width: 28px; height: 28px; border-radius: 7px; border: 1px solid var(--border-strong); background: var(--bg); color: var(--text-mid); font-size: 12px; font-weight: 600; }
+.gl-day:hover { border-color: var(--accent-line); }
+.gl-day.on { background: var(--accent); border-color: var(--accent); color: #0a0a0a; }
+[data-theme='light'] .gl-day.on { color: #fff; }
+
+.gl-add { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; margin-top: 12px; padding: 13px; border: 1px dashed var(--border-strong); border-radius: var(--r-card); color: var(--text-mid); font-size: 14px; font-weight: 500; }
+.gl-add:hover { border-color: var(--accent-line); color: var(--accent); }
+.gl-addform { margin-top: 12px; }
+.gl-kinds { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; }
+.gl-kind { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); text-align: left; transition: border-color .12s, background .12s; }
+.gl-kind:hover { border-color: var(--border-strong); }
+.gl-kind.on { border-color: var(--accent); background: var(--accent-soft); }
+.gl-kind-i { font-size: 16px; }
+.gl-kind-l { font-size: 13px; font-weight: 600; color: var(--text); }
+.gl-kind-h { font-size: 11px; color: var(--muted); }
+
 /* ===== Login surface (scoped — used only on /login) ===== */
 :root {
   --login-paper:        #f1ede4;

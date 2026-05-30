@@ -1,7 +1,56 @@
-// Derived progress metrics for measurable lifelong items.
+// Derived progress metrics for the Lifelong Goals tree.
 //
-// An item: { total, current, logs: [{date, value}], unit, days }.
-// `total == null` means a non-measurable habit item (no progress bar).
+// A node is either a CATEGORY (has children → progress rolls up from them) or a
+// LEAF measured by its `kind`:
+//   book / playlist / custom : current / total           → fraction
+//   checklist                : done items / total items  → fraction
+//   task                     : done boolean              → 0 or 1
+//   habit                    : weekly cadence            → no completion %
+//
+// `nodePct` returns 0..1, or null when a node has no measurable progress
+// (an empty category, a habit, a leaf with no target). Null nodes are excluded
+// from a parent's rollup so habits don't drag an average to zero.
+
+const MEASURED_FRACTION = new Set(['book', 'playlist', 'custom'])
+
+export function isCategory(node) {
+  return Array.isArray(node?.children) && node.children.length > 0
+}
+
+export function isMeasurable(node) {
+  if (!node || isCategory(node)) return false
+  if (MEASURED_FRACTION.has(node.kind)) return node.total != null && node.total > 0
+  if (node.kind === 'checklist') return (node.checklist || []).length > 0
+  return node.kind === 'task'
+}
+
+// Fraction complete for a single node (0..1) or null when not measurable.
+export function nodePct(node) {
+  if (!node) return null
+  if (isCategory(node)) {
+    const kids = node.children.map(nodePct).filter(p => p != null)
+    if (kids.length === 0) return null
+    return kids.reduce((a, b) => a + b, 0) / kids.length
+  }
+  if (MEASURED_FRACTION.has(node.kind)) {
+    if (!(node.total > 0)) return null
+    return Math.max(0, Math.min(1, (node.current || 0) / node.total))
+  }
+  if (node.kind === 'checklist') {
+    const items = node.checklist || []
+    if (items.length === 0) return null
+    return items.filter(i => i.done).length / items.length
+  }
+  if (node.kind === 'task') return node.done ? 1 : 0
+  return null // habit or untyped
+}
+
+// Whole node finished? Used to grey out / move to "completed".
+export function nodeDone(node) {
+  if (node.kind === 'task') return !!node.done
+  const p = nodePct(node)
+  return p != null && p >= 1
+}
 
 function daysBetween(isoA, isoB) {
   const a = new Date(isoA + 'T00:00:00')
@@ -16,68 +65,56 @@ function isoFrom(date) {
   return `${y}-${m}-${d}`
 }
 
-export function isMeasurable(item) {
-  return item && item.total != null && item.total > 0
-}
-
-export function itemPct(item) {
-  if (!isMeasurable(item)) return null
-  return Math.max(0, Math.min(1, (item.current || 0) / item.total))
-}
-
-// Average units/day from the logged readings. Needs at least two readings on
-// different days. Returns null when it can't be estimated.
-export function itemPace(item) {
-  const logs = (item.logs || [])
+// Average units/day from logged readings (book/custom/playlist). Needs ≥2 logs
+// on different days. Returns null when it can't be estimated.
+export function nodePace(node) {
+  const logs = (node.logs || [])
     .filter(l => l && l.value != null)
     .slice()
     .sort((a, b) => a.date.localeCompare(b.date))
   if (logs.length < 2) return null
-  const first = logs[0]
-  const last = logs[logs.length - 1]
-  const span = daysBetween(first.date, last.date)
+  const span = daysBetween(logs[0].date, logs[logs.length - 1].date)
   if (span <= 0) return null
-  const delta = last.value - first.value
+  const delta = logs[logs.length - 1].value - logs[0].value
   if (delta <= 0) return null
   return delta / span
 }
 
-// Projected completion date at the current pace.
-export function itemEta(item, pace = itemPace(item)) {
-  if (!isMeasurable(item) || pace == null || pace <= 0) return null
-  const remaining = item.total - (item.current || 0)
+// Projected completion date at the current pace (YYYY-MM-DD) or null.
+export function nodeEta(node, pace = nodePace(node)) {
+  if (!MEASURED_FRACTION.has(node.kind) || !(node.total > 0) || pace == null || pace <= 0) return null
+  const remaining = node.total - (node.current || 0)
   if (remaining <= 0) return null
-  const days = Math.ceil(remaining / pace)
   const d = new Date()
-  d.setDate(d.getDate() + days)
+  d.setDate(d.getDate() + Math.ceil(remaining / pace))
   return isoFrom(d)
 }
 
-// Units/day required to finish by `deadline` (YYYY-MM-DD). null if no deadline
-// or already due/complete.
-export function neededRate(item, deadline, today = isoFrom(new Date())) {
-  if (!isMeasurable(item) || !deadline) return null
-  const remaining = item.total - (item.current || 0)
+// Units/day required to finish by `deadline`. null if no deadline/target, or
+// Infinity if the deadline has passed with work remaining.
+export function neededRate(node, today = isoFrom(new Date())) {
+  if (!MEASURED_FRACTION.has(node.kind) || !(node.total > 0) || !node.deadline) return null
+  const remaining = node.total - (node.current || 0)
   if (remaining <= 0) return null
-  const daysLeft = daysBetween(today, deadline)
+  const daysLeft = daysBetween(today, node.deadline)
   if (daysLeft <= 0) return Infinity
   return remaining / daysLeft
 }
 
-// One-call summary used by the card. `behind` is true when the deadline needs a
-// faster rate than the current pace.
-export function progressSummary(item, deadline, today = isoFrom(new Date())) {
-  const pct = itemPct(item)
-  const pace = itemPace(item)
-  const eta = itemEta(item, pace)
-  const needed = neededRate(item, deadline, today)
+// One-call summary for a measured leaf used by the goals UI.
+export function progressSummary(node, today = isoFrom(new Date())) {
+  const pct = nodePct(node)
+  const pace = nodePace(node)
+  const eta = nodeEta(node, pace)
+  const needed = neededRate(node, today)
   const behind = needed != null && (pace == null || needed > pace)
-  return { pct, pace, eta, needed, behind, done: isMeasurable(item) && item.current >= item.total }
+  return { pct, pace, eta, needed, behind }
 }
 
-// Average completion across a pursuit's measurable items (0..1), or null.
-export function goalAvgPct(goal) {
-  const measurable = (goal.items || []).filter(isMeasurable)
-  if (measurable.length === 0) return null
-  return measurable.reduce((s, it) => s + itemPct(it), 0) / measurable.length
+// Average completion across a tree's measurable descendants (0..1) or null.
+// Same as nodePct on a synthetic root, but skips done/empty pursuits cleanly.
+export function treeAvgPct(nodes) {
+  const pcts = (nodes || []).map(nodePct).filter(p => p != null)
+  if (pcts.length === 0) return null
+  return pcts.reduce((a, b) => a + b, 0) / pcts.length
 }

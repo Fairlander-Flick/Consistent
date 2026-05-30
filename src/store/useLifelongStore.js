@@ -2,156 +2,154 @@ import { create } from 'zustand'
 import { loadData, saveData } from '../lib/storage'
 import { todayISO } from '../lib/dateUtils'
 
-const KEY = 'consistent:lifelong'
+// v2 — recursive tree. Clean start: the old `consistent:lifelong` (2-level
+// pursuit/item) shape is intentionally NOT migrated.
+const KEY = 'consistent:lifelong:v2'
 
 function genId() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 7)
 }
 
-// An item is one trackable thing under a pursuit (a book, a video playlist, a
-// recurring habit). It optionally has a measurable `total` (pages, videos) and
-// `current` position with a `logs` history, and optionally `days` it shows up
-// in the Daily goals list.
-function newItem({ title, unit = null, total = null, deadline = null }) {
+// A fresh node. `kind` null = a plain category until a leaf kind is chosen.
+// Categories are simply nodes that end up with children.
+export function newNode({ title, kind = null, unit = null, total = null, perWeek = null, deadline = null }) {
   return {
     id: genId(),
-    title,
+    title: (title || '').trim(),
+    kind,
+    children: [],
+    // measured leaves (book / playlist / custom)
     unit: unit || null,
     total: total != null && total !== '' ? Number(total) : null,
-    deadline: deadline || null,
     current: 0,
     logs: [],
-    days: [],
+    // checklist leaf
+    checklist: [],
+    // task leaf
     done: false,
+    // habit leaf
+    perWeek: perWeek != null && perWeek !== '' ? Number(perWeek) : null,
+    // scheduling (any leaf can surface on planner/daily days)
+    days: [],
+    deadline: deadline || null,
+    collapsed: false,
   }
-}
-
-// Migrate older shapes: goals used to carry `steps:[{id,title,days}]`. Convert
-// those to habit items (no measurable total) so day-scheduling keeps working.
-function normalizeGoal(g) {
-  if (Array.isArray(g.items)) {
-    return {
-      collapsed: false,
-      ...g,
-      items: g.items.map(it => ({
-        id: it.id || genId(),
-        title: it.title,
-        unit: it.unit ?? null,
-        total: it.total != null && it.total !== '' ? Number(it.total) : null,
-        deadline: it.deadline ?? null,
-        current: Number(it.current) || 0,
-        logs: Array.isArray(it.logs) ? it.logs : [],
-        days: Array.isArray(it.days) ? it.days : [],
-        done: !!it.done,
-      })),
-    }
-  }
-  const items = Array.isArray(g.steps)
-    ? g.steps.map(s => ({
-        id: s.id || genId(),
-        title: s.title,
-        unit: null, total: null, current: 0, logs: [],
-        days: Array.isArray(s.days) ? s.days : [],
-        done: false,
-      }))
-    : []
-  return { id: g.id, title: g.title, deadline: g.deadline ?? null, done: !!g.done, collapsed: false, items }
 }
 
 function load() {
   const raw = loadData(KEY, [])
-  return Array.isArray(raw) ? raw.map(normalizeGoal) : []
+  return Array.isArray(raw) ? raw : []
+}
+
+// ── pure tree helpers ───────────────────────────────────────
+// Return a new tree with node `id` replaced by fn(node).
+function mapNode(nodes, id, fn) {
+  return nodes.map(n => {
+    if (n.id === id) return fn(n)
+    if (n.children?.length) return { ...n, children: mapNode(n.children, id, fn) }
+    return n
+  })
+}
+
+// Return a new tree with node `id` removed.
+function removeNode(nodes, id) {
+  return nodes
+    .filter(n => n.id !== id)
+    .map(n => (n.children?.length ? { ...n, children: removeNode(n.children, id) } : n))
+}
+
+// Insert `child` under parent `id` (or at root when parentId is null).
+function insertChild(nodes, parentId, child) {
+  if (parentId == null) return [...nodes, child]
+  return nodes.map(n => {
+    if (n.id === parentId) return { ...n, children: [...(n.children || []), child] }
+    if (n.children?.length) return { ...n, children: insertChild(n.children, parentId, child) }
+    return n
+  })
+}
+
+export function findNode(nodes, id) {
+  for (const n of nodes) {
+    if (n.id === id) return n
+    if (n.children?.length) {
+      const found = findNode(n.children, id)
+      if (found) return found
+    }
+  }
+  return null
+}
+
+// Breadcrumb path (root → … → id), or [] if not found.
+export function nodePath(nodes, id, trail = []) {
+  for (const n of nodes) {
+    const next = [...trail, n]
+    if (n.id === id) return next
+    if (n.children?.length) {
+      const found = nodePath(n.children, id, next)
+      if (found.length) return found
+    }
+  }
+  return []
 }
 
 export const useLifelongStore = create((set, get) => {
-  const commit = (goals) => { saveData(KEY, goals); set({ goals }) }
-  const mapGoal = (id, fn) => get().goals.map(g => g.id === id ? fn(g) : g)
-  const mapItem = (goalId, itemId, fn) =>
-    mapGoal(goalId, g => ({ ...g, items: g.items.map(it => it.id === itemId ? fn(it) : it) }))
+  const commit = (nodes) => { saveData(KEY, nodes); set({ nodes }) }
+  const patch = (id, fn) => commit(mapNode(get().nodes, id, fn))
 
   return {
-    goals: load(),
+    nodes: load(),
 
-    addGoal: (title, deadline) => {
-      commit([...get().goals, {
-        id: genId(), title, deadline: deadline || null, done: false, collapsed: false, items: [],
-      }])
+    addNode: (parentId, partial) => {
+      const node = newNode(partial || {})
+      if (!node.title) return null
+      commit(insertChild(get().nodes, parentId, node))
+      return node.id
     },
 
-    updateGoal: (id, patch) => commit(mapGoal(id, g => ({ ...g, ...patch }))),
+    updateNode: (id, p) => patch(id, n => ({ ...n, ...p })),
 
-    deleteGoal: (id) => commit(get().goals.filter(g => g.id !== id)),
+    deleteNode: (id) => commit(removeNode(get().nodes, id)),
 
-    toggleCollapsed: (id) => commit(mapGoal(id, g => ({ ...g, collapsed: !g.collapsed }))),
+    toggleCollapsed: (id) => patch(id, n => ({ ...n, collapsed: !n.collapsed })),
 
-    markGoalDone: (id) => {
-      const target = get().goals.find(g => g.id === id)
-      if (!target) return
-      const active = get().goals.filter(g => g.id !== id && !g.done)
-      const completed = get().goals.filter(g => g.id !== id && g.done)
-      commit([...active, { ...target, done: true }, ...completed])
-    },
+    // book / playlist / custom — record an absolute reading (one log per day).
+    logProgress: (id, value, date = todayISO()) => patch(id, n => {
+      const v = n.total != null ? Math.max(0, Math.min(n.total, Number(value) || 0)) : Math.max(0, Number(value) || 0)
+      const logs = [...(n.logs || []).filter(l => l.date !== date), { date, value: v }]
+        .sort((a, b) => a.date.localeCompare(b.date))
+      return { ...n, current: v, logs }
+    }),
 
-    restoreGoal: (id) => {
-      const target = get().goals.find(g => g.id === id)
-      if (!target) return
-      const active = get().goals.filter(g => g.id !== id && !g.done)
-      const completed = get().goals.filter(g => g.id !== id && g.done)
-      commit([...active, { ...target, done: false }, ...completed])
-    },
+    bumpProgress: (id, by = 1) => patch(id, n => {
+      const next = (n.current || 0) + by
+      const v = n.total != null ? Math.max(0, Math.min(n.total, next)) : Math.max(0, next)
+      const date = todayISO()
+      const logs = [...(n.logs || []).filter(l => l.date !== date), { date, value: v }]
+        .sort((a, b) => a.date.localeCompare(b.date))
+      return { ...n, current: v, logs }
+    }),
 
-    addItem: (goalId, { title, unit, total, deadline }) =>
-      commit(mapGoal(goalId, g => ({ ...g, items: [...g.items, newItem({ title, unit, total, deadline })] }))),
+    toggleTask: (id) => patch(id, n => ({ ...n, done: !n.done })),
 
-    updateItem: (goalId, itemId, patch) =>
-      commit(mapItem(goalId, itemId, it => ({ ...it, ...patch }))),
+    addChecklistItem: (id, text) => patch(id, n => ({
+      ...n, checklist: [...(n.checklist || []), { id: genId(), text: text.trim(), done: false }],
+    })),
+    toggleChecklistItem: (id, itemId) => patch(id, n => ({
+      ...n, checklist: (n.checklist || []).map(i => i.id === itemId ? { ...i, done: !i.done } : i),
+    })),
+    deleteChecklistItem: (id, itemId) => patch(id, n => ({
+      ...n, checklist: (n.checklist || []).filter(i => i.id !== itemId),
+    })),
 
-    deleteItem: (goalId, itemId) =>
-      commit(mapGoal(goalId, g => ({ ...g, items: g.items.filter(it => it.id !== itemId) }))),
-
-    toggleItemDay: (goalId, itemId, day) =>
-      commit(mapItem(goalId, itemId, it => ({
-        ...it,
-        days: it.days.includes(day) ? it.days.filter(d => d !== day) : [...it.days, day],
-      }))),
-
-    // Mark a sub-goal (item) finished or restore it. Completed items drop out of
-    // the active lists (Lifelong card + Planner board) and surface in the
-    // Planner's "Completed" section; their `days` are kept so a restore brings
-    // the schedule back.
-    setItemDone: (goalId, itemId, done) =>
-      commit(mapItem(goalId, itemId, it => ({ ...it, done: !!done }))),
-
-    // Move an item's scheduled occurrence from one weekday to another (used by
-    // the Week Planner drag-and-drop). Drops the source day, adds the target.
-    moveItemDay: (goalId, itemId, fromDay, toDay) =>
-      commit(mapItem(goalId, itemId, it => {
-        if (fromDay === toDay) return it
-        const days = new Set(it.days)
-        days.delete(fromDay)
-        days.add(toDay)
-        return { ...it, days: [...days] }
-      })),
-
-    // Records an absolute reading (e.g. "now on page 213"). Keeps one log per
-    // day (last write wins) and updates `current`.
-    logProgress: (goalId, itemId, value, date = todayISO()) =>
-      commit(mapItem(goalId, itemId, it => {
-        const v = it.total != null ? Math.max(0, Math.min(it.total, Number(value) || 0)) : Math.max(0, Number(value) || 0)
-        const logs = [...it.logs.filter(l => l.date !== date), { date, value: v }]
-          .sort((a, b) => a.date.localeCompare(b.date))
-        return { ...it, current: v, logs }
-      })),
-
-    // Convenience for countable items (+1 watched, etc.)
-    bumpProgress: (goalId, itemId, by = 1) =>
-      commit(mapItem(goalId, itemId, it => {
-        const next = (it.current || 0) + by
-        const v = it.total != null ? Math.max(0, Math.min(it.total, next)) : Math.max(0, next)
-        const date = todayISO()
-        const logs = [...it.logs.filter(l => l.date !== date), { date, value: v }]
-          .sort((a, b) => a.date.localeCompare(b.date))
-        return { ...it, current: v, logs }
-      })),
+    // scheduling on the planner/daily board (by weekday key Mon..Sun)
+    toggleNodeDay: (id, day) => patch(id, n => ({
+      ...n, days: (n.days || []).includes(day) ? n.days.filter(d => d !== day) : [...(n.days || []), day],
+    })),
+    moveNodeDay: (id, fromDay, toDay) => patch(id, n => {
+      if (fromDay === toDay) return n
+      const days = new Set(n.days || [])
+      days.delete(fromDay); days.add(toDay)
+      return { ...n, days: [...days] }
+    }),
   }
 })

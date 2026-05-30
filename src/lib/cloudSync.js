@@ -7,7 +7,7 @@ const KEY_MAP = {
   'consistent:journal':          'journal',
   'consistent:settings':         'settings',
   'consistent:schedule-done':    'schedule_done',
-  'consistent:lifelong':         'lifelong',
+  'consistent:lifelong:v2':      'lifelong',
 }
 
 // Set to true during pullAll so writes triggered by the pull don't re-push.

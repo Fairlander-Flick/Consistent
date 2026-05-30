@@ -1,129 +1,111 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { act, renderHook } from '@testing-library/react'
-import { useLifelongStore } from './useLifelongStore'
+import { useLifelongStore, findNode } from './useLifelongStore'
 
-describe('useLifelongStore', () => {
-  beforeEach(() => {
-    localStorage.clear()
-    useLifelongStore.setState({ goals: [] })
-  })
+beforeEach(() => {
+  localStorage.clear()
+  useLifelongStore.setState({ nodes: [] })
+})
 
+describe('useLifelongStore — tree', () => {
   it('starts empty', () => {
     const { result } = renderHook(() => useLifelongStore())
-    expect(result.current.goals).toEqual([])
+    expect(result.current.nodes).toEqual([])
   })
 
-  it('addGoal appends with id, done:false, items:[]', () => {
+  it('addNode at root creates a pursuit with empty children', () => {
     const { result } = renderHook(() => useLifelongStore())
-    act(() => result.current.addGoal('Math', '2026-08-01'))
-    const g = result.current.goals[0]
-    expect(g.title).toBe('Math')
-    expect(g.deadline).toBe('2026-08-01')
-    expect(g.done).toBe(false)
-    expect(g.items).toEqual([])
-    expect(typeof g.id).toBe('string')
+    act(() => result.current.addNode(null, { title: 'Academy' }))
+    const n = result.current.nodes[0]
+    expect(n.title).toBe('Academy')
+    expect(n.children).toEqual([])
+    expect(typeof n.id).toBe('string')
   })
 
-  it('addGoal with no deadline stores null', () => {
+  it('addNode nests a child under a parent', () => {
     const { result } = renderHook(() => useLifelongStore())
-    act(() => result.current.addGoal('Ongoing', ''))
-    expect(result.current.goals[0].deadline).toBeNull()
+    let rootId
+    act(() => { rootId = result.current.addNode(null, { title: 'Academy' }) })
+    act(() => result.current.addNode(rootId, { title: 'AI Bachelor' }))
+    const root = result.current.nodes[0]
+    expect(root.children).toHaveLength(1)
+    expect(root.children[0].title).toBe('AI Bachelor')
   })
 
-  it('deleteGoal removes by id', () => {
+  it('addNode ignores a blank title', () => {
     const { result } = renderHook(() => useLifelongStore())
-    act(() => result.current.addGoal('Math', null))
-    const id = result.current.goals[0].id
-    act(() => result.current.deleteGoal(id))
-    expect(result.current.goals).toHaveLength(0)
+    act(() => result.current.addNode(null, { title: '   ' }))
+    expect(result.current.nodes).toHaveLength(0)
   })
 
-  it('markGoalDone sets done:true and moves goal to end', () => {
+  it('deleteNode removes a deeply nested node', () => {
     const { result } = renderHook(() => useLifelongStore())
-    act(() => result.current.addGoal('First', null))
-    act(() => result.current.addGoal('Second', null))
-    const firstId = result.current.goals[0].id
-    act(() => result.current.markGoalDone(firstId))
-    const goals = result.current.goals
-    expect(goals[goals.length - 1].id).toBe(firstId)
-    expect(goals[goals.length - 1].done).toBe(true)
+    let rootId, childId
+    act(() => { rootId = result.current.addNode(null, { title: 'Academy' }) })
+    act(() => { childId = result.current.addNode(rootId, { title: 'AI Bachelor' }) })
+    act(() => result.current.deleteNode(childId))
+    expect(result.current.nodes[0].children).toHaveLength(0)
   })
 
-  it('addItem appends a measurable item with current:0, logs:[], days:[]', () => {
+  it('logProgress sets current and a log, clamped to total', () => {
     const { result } = renderHook(() => useLifelongStore())
-    act(() => result.current.addGoal('Math', null))
-    const goalId = result.current.goals[0].id
-    act(() => result.current.addItem(goalId, { title: 'Rogawski', unit: 'pages', total: '1300' }))
-    const item = result.current.goals[0].items[0]
-    expect(item.title).toBe('Rogawski')
-    expect(item.unit).toBe('pages')
-    expect(item.total).toBe(1300)
-    expect(item.current).toBe(0)
-    expect(item.logs).toEqual([])
-    expect(item.days).toEqual([])
-  })
-
-  it('addItem with empty total stores a habit (total:null)', () => {
-    const { result } = renderHook(() => useLifelongStore())
-    act(() => result.current.addGoal('Fitness', null))
-    const goalId = result.current.goals[0].id
-    act(() => result.current.addItem(goalId, { title: 'Gym', total: '' }))
-    expect(result.current.goals[0].items[0].total).toBeNull()
-  })
-
-  it('toggleItemDay adds then removes a weekday', () => {
-    const { result } = renderHook(() => useLifelongStore())
-    act(() => result.current.addGoal('Math', null))
-    const goalId = result.current.goals[0].id
-    act(() => result.current.addItem(goalId, { title: 'Rogawski', total: 1300 }))
-    const itemId = result.current.goals[0].items[0].id
-    act(() => result.current.toggleItemDay(goalId, itemId, 'Mon'))
-    expect(result.current.goals[0].items[0].days).toEqual(['Mon'])
-    act(() => result.current.toggleItemDay(goalId, itemId, 'Mon'))
-    expect(result.current.goals[0].items[0].days).toEqual([])
-  })
-
-  it('logProgress sets current and records a log, clamped to total', () => {
-    const { result } = renderHook(() => useLifelongStore())
-    act(() => result.current.addGoal('Math', null))
-    const goalId = result.current.goals[0].id
-    act(() => result.current.addItem(goalId, { title: 'Rogawski', total: 1300 }))
-    const itemId = result.current.goals[0].items[0].id
-    act(() => result.current.logProgress(goalId, itemId, 213, '2026-05-20'))
-    expect(result.current.goals[0].items[0].current).toBe(213)
-    expect(result.current.goals[0].items[0].logs).toEqual([{ date: '2026-05-20', value: 213 }])
-    act(() => result.current.logProgress(goalId, itemId, 99999, '2026-05-21'))
-    expect(result.current.goals[0].items[0].current).toBe(1300)
+    let id
+    act(() => { id = result.current.addNode(null, { title: 'Rogawski', kind: 'book', total: 1300 }) })
+    act(() => result.current.logProgress(id, 213, '2026-05-20'))
+    let n = findNode(result.current.nodes, id)
+    expect(n.current).toBe(213)
+    expect(n.logs).toEqual([{ date: '2026-05-20', value: 213 }])
+    act(() => result.current.logProgress(id, 99999, '2026-05-21'))
+    n = findNode(result.current.nodes, id)
+    expect(n.current).toBe(1300)
   })
 
   it('logProgress keeps one log per day (last write wins)', () => {
     const { result } = renderHook(() => useLifelongStore())
-    act(() => result.current.addGoal('Math', null))
-    const goalId = result.current.goals[0].id
-    act(() => result.current.addItem(goalId, { title: 'Rogawski', total: 1300 }))
-    const itemId = result.current.goals[0].items[0].id
-    act(() => result.current.logProgress(goalId, itemId, 100, '2026-05-20'))
-    act(() => result.current.logProgress(goalId, itemId, 150, '2026-05-20'))
-    expect(result.current.goals[0].items[0].logs).toEqual([{ date: '2026-05-20', value: 150 }])
+    let id
+    act(() => { id = result.current.addNode(null, { title: 'Rogawski', kind: 'book', total: 1300 }) })
+    act(() => result.current.logProgress(id, 100, '2026-05-20'))
+    act(() => result.current.logProgress(id, 150, '2026-05-20'))
+    expect(findNode(result.current.nodes, id).logs).toEqual([{ date: '2026-05-20', value: 150 }])
   })
 
   it('bumpProgress increments current by 1', () => {
     const { result } = renderHook(() => useLifelongStore())
-    act(() => result.current.addGoal('LA', null))
-    const goalId = result.current.goals[0].id
-    act(() => result.current.addItem(goalId, { title: 'Essence of LA', total: 12 }))
-    const itemId = result.current.goals[0].items[0].id
-    act(() => result.current.bumpProgress(goalId, itemId, 1))
-    expect(result.current.goals[0].items[0].current).toBe(1)
+    let id
+    act(() => { id = result.current.addNode(null, { title: 'Essence of LA', kind: 'playlist', total: 12 }) })
+    act(() => result.current.bumpProgress(id, 1))
+    expect(findNode(result.current.nodes, id).current).toBe(1)
   })
 
-  it('deleteItem removes the item', () => {
+  it('toggleTask flips done', () => {
     const { result } = renderHook(() => useLifelongStore())
-    act(() => result.current.addGoal('Math', null))
-    const goalId = result.current.goals[0].id
-    act(() => result.current.addItem(goalId, { title: 'Rogawski', total: 1300 }))
-    const itemId = result.current.goals[0].items[0].id
-    act(() => result.current.deleteItem(goalId, itemId))
-    expect(result.current.goals[0].items).toHaveLength(0)
+    let id
+    act(() => { id = result.current.addNode(null, { title: 'Submit dashboard', kind: 'task' }) })
+    act(() => result.current.toggleTask(id))
+    expect(findNode(result.current.nodes, id).done).toBe(true)
+    act(() => result.current.toggleTask(id))
+    expect(findNode(result.current.nodes, id).done).toBe(false)
+  })
+
+  it('checklist items add, toggle, and delete', () => {
+    const { result } = renderHook(() => useLifelongStore())
+    let id
+    act(() => { id = result.current.addNode(null, { title: 'Lectures', kind: 'checklist' }) })
+    act(() => result.current.addChecklistItem(id, 'Week 1'))
+    const itemId = findNode(result.current.nodes, id).checklist[0].id
+    act(() => result.current.toggleChecklistItem(id, itemId))
+    expect(findNode(result.current.nodes, id).checklist[0].done).toBe(true)
+    act(() => result.current.deleteChecklistItem(id, itemId))
+    expect(findNode(result.current.nodes, id).checklist).toHaveLength(0)
+  })
+
+  it('toggleNodeDay adds then removes a weekday', () => {
+    const { result } = renderHook(() => useLifelongStore())
+    let id
+    act(() => { id = result.current.addNode(null, { title: 'Self Study', kind: 'habit', perWeek: 4 }) })
+    act(() => result.current.toggleNodeDay(id, 'Mon'))
+    expect(findNode(result.current.nodes, id).days).toEqual(['Mon'])
+    act(() => result.current.toggleNodeDay(id, 'Mon'))
+    expect(findNode(result.current.nodes, id).days).toEqual([])
   })
 })

@@ -91,10 +91,10 @@ export function GoalsCard() {
 
   // Lifelong-goal step todos: daily + live + viewing today
   const showSchedule = period === 'daily' && isCurrentPeriod && !isViewingPast
-  const lifelongGoals = useLifelongStore(s => s.goals)
+  const lifelongNodes = useLifelongStore(s => s.nodes)
   const lifelongTodos = useMemo(
-    () => showSchedule ? lifelongTodosForDate(today, lifelongGoals) : [],
-    [showSchedule, today, lifelongGoals]
+    () => showSchedule ? lifelongTodosForDate(today, lifelongNodes) : [],
+    [showSchedule, today, lifelongNodes]
   )
   const lifelongDoneCount = lifelongTodos.filter(lt => done[today]?.[lt.key]).length
   const totalCount = goalTasks.length + lifelongTodos.length

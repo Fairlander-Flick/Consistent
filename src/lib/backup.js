@@ -12,7 +12,7 @@ export const STORE_KEYS = [
   'consistent:goals-log',
   'consistent:schedule-done',
   'consistent:settings',
-  'consistent:lifelong',
+  'consistent:lifelong:v2',
 ]
 
 export const BACKUP_VERSION = 1

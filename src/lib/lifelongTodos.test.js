@@ -1,45 +1,35 @@
 import { describe, it, expect } from 'vitest'
 import { lifelongTodosForDate } from './lifelongTodos'
 
-const GOALS = [
+// New tree shape: pursuits (categories) holding leaf nodes. A leaf surfaces on a
+// date when it is scheduled on that weekday and isn't finished.
+const NODES = [
   {
-    id: 'g1',
-    title: 'Math',
-    deadline: '2026-08-01',
-    done: false,
-    items: [
-      { id: 'i1', title: 'Rogawski — Calculus', total: 1300, days: ['Mon', 'Wed', 'Fri'] },
-      { id: 'i2', title: 'Problem Set', total: null, days: ['Sat'] },
+    id: 'g1', title: 'Math', children: [
+      { id: 'i1', title: 'Rogawski — Calculus', kind: 'book', total: 1300, current: 0, days: ['Mon', 'Wed', 'Fri'], children: [] },
+      { id: 'i2', title: 'Problem Set', kind: 'habit', days: ['Sat'], children: [] },
     ],
   },
   {
-    id: 'g2',
-    title: 'NeuroGolf',
-    deadline: null,
-    done: false,
-    items: [
-      { id: 'i3', title: 'ARC task', total: null, days: ['Mon', 'Thu'] },
+    id: 'g2', title: 'NeuroGolf', children: [
+      { id: 'i3', title: 'ARC task', kind: 'task', done: false, days: ['Mon', 'Thu'], children: [] },
     ],
   },
   {
-    id: 'g3',
-    title: 'Done Goal',
-    deadline: null,
-    done: true,
-    items: [
-      { id: 'i4', title: 'Should never appear', total: null, days: ['Mon'] },
+    id: 'g3', title: 'Done Pursuit', children: [
+      { id: 'i4', title: 'Should never appear', kind: 'task', done: true, days: ['Mon'], children: [] },
     ],
   },
 ]
 
 describe('lifelongTodosForDate', () => {
   it('returns empty for null inputs', () => {
-    expect(lifelongTodosForDate(null, GOALS)).toEqual([])
+    expect(lifelongTodosForDate(null, NODES)).toEqual([])
     expect(lifelongTodosForDate('2026-05-25', null)).toEqual([])
   })
 
-  it('returns matching items for Monday 2026-05-25', () => {
-    const todos = lifelongTodosForDate('2026-05-25', GOALS)
+  it('returns matching leaves for Monday 2026-05-25', () => {
+    const todos = lifelongTodosForDate('2026-05-25', NODES)
     expect(todos).toHaveLength(2)
     expect(todos[0]).toEqual({
       key: 'lifelong|i1',
@@ -51,24 +41,23 @@ describe('lifelongTodosForDate', () => {
     expect(todos[1].key).toBe('lifelong|i3')
   })
 
-  it('skips done goals', () => {
-    const todos = lifelongTodosForDate('2026-05-25', GOALS)
-    expect(todos.every(t => t.goalId !== 'g3')).toBe(true)
+  it('skips finished leaves', () => {
+    const todos = lifelongTodosForDate('2026-05-25', NODES)
+    expect(todos.every(t => t.itemId !== 'i4')).toBe(true)
   })
 
   it('returns empty for days with nothing scheduled (Tuesday 2026-05-26)', () => {
-    const todos = lifelongTodosForDate('2026-05-26', GOALS)
-    expect(todos).toHaveLength(0)
+    expect(lifelongTodosForDate('2026-05-26', NODES)).toHaveLength(0)
   })
 
-  it('returns the Saturday item for 2026-05-30', () => {
-    const todos = lifelongTodosForDate('2026-05-30', GOALS)
+  it('returns the Saturday leaf for 2026-05-30', () => {
+    const todos = lifelongTodosForDate('2026-05-30', NODES)
     expect(todos).toHaveLength(1)
     expect(todos[0].key).toBe('lifelong|i2')
   })
 
   it('each todo has key, label, goalTitle, goalId, itemId', () => {
-    const todos = lifelongTodosForDate('2026-05-25', GOALS)
+    const todos = lifelongTodosForDate('2026-05-25', NODES)
     for (const t of todos) {
       expect(t).toHaveProperty('key')
       expect(t).toHaveProperty('label')

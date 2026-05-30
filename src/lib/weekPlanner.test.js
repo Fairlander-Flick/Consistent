@@ -5,14 +5,19 @@ import { buildWeek, weekdayKeyFor } from './weekPlanner'
 const MON = '2026-05-25'
 const WED = '2026-05-27'
 
+// Tree shape: pursuits holding leaf nodes. A done leaf is excluded.
 const lifelongGoals = [
   {
-    id: 'g1', title: 'Math', done: false, items: [
-      { id: 'i1', title: 'Read book', days: ['Mon', 'Wed'] },
-      { id: 'i2', title: 'Attend class', days: ['Tue', 'Thu'] },
+    id: 'g1', title: 'Math', children: [
+      { id: 'i1', title: 'Read book', kind: 'book', total: 300, current: 0, days: ['Mon', 'Wed'], children: [] },
+      { id: 'i2', title: 'Attend class', kind: 'habit', days: ['Tue', 'Thu'], children: [] },
     ],
   },
-  { id: 'g2', title: 'Archived', done: true, items: [{ id: 'i3', title: 'x', days: ['Mon'] }] },
+  {
+    id: 'g2', title: 'Archived', children: [
+      { id: 'i3', title: 'x', kind: 'task', done: true, days: ['Mon'], children: [] },
+    ],
+  },
 ]
 
 const dailyGoals = {

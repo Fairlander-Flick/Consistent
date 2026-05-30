@@ -76,15 +76,24 @@ export function Planner() {
   )
 }
 
-// Finished sub-goals, grouped by their pursuit. Restore brings one back to the
-// active board (its schedule is preserved); delete removes it for good.
+// Finished task leaves, grouped by their top-level pursuit. Restore unchecks
+// the task (its schedule is preserved); delete removes it for good.
 function CompletedSection() {
-  const goals = useLifelongStore(s => s.goals)
-  const setItemDone = useLifelongStore(s => s.setItemDone)
-  const deleteItem = useLifelongStore(s => s.deleteItem)
+  const nodes = useLifelongStore(s => s.nodes)
+  const toggleTask = useLifelongStore(s => s.toggleTask)
+  const deleteNode = useLifelongStore(s => s.deleteNode)
 
-  const groups = goals
-    .map(g => ({ goal: g, items: (g.items || []).filter(it => it.done) }))
+  const groups = nodes
+    .map(root => {
+      const items = []
+      const walk = (n) => {
+        if (!(n.children && n.children.length)) {
+          if (n.kind === 'task' && n.done) items.push(n)
+        } else n.children.forEach(walk)
+      }
+      walk(root)
+      return { goal: root, items }
+    })
     .filter(g => g.items.length > 0)
   const total = groups.reduce((n, g) => n + g.items.length, 0)
 
@@ -97,7 +106,7 @@ function CompletedSection() {
 
       {total === 0 ? (
         <div className="wk-done-empty">
-          Nothing finished yet. Hit <strong>Complete</strong> on a sub-goal in Lifelong Goals and it lands here.
+          Nothing finished yet. Check off a task on the Goals page and it lands here.
         </div>
       ) : (
         groups.map(({ goal, items }) => (
@@ -106,8 +115,8 @@ function CompletedSection() {
             {items.map(it => (
               <div key={it.id} className="wk-done-item">
                 <span className="wk-done-lbl">{it.title}</span>
-                <button className="btn ghost sm" onClick={() => setItemDone(goal.id, it.id, false)}>Restore</button>
-                <button className="btn ghost icon" title="Delete permanently" onClick={() => deleteItem(goal.id, it.id)}>
+                <button className="btn ghost sm" onClick={() => toggleTask(it.id)}>Restore</button>
+                <button className="btn ghost icon" title="Delete permanently" onClick={() => deleteNode(it.id)}>
                   <IconTrash size={12} />
                 </button>
               </div>

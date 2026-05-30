@@ -4,20 +4,38 @@ import { useGoalsStore } from '../../store/useGoalsStore'
 import { useScheduleDoneStore } from '../../store/useScheduleDoneStore'
 import { buildWeek } from '../../lib/weekPlanner'
 import { todayISO } from '../../lib/dateUtils'
+import { nodeDone } from '../../lib/lifelongProgress'
 import { IconCheck } from '../ui/Icons'
 
 const DAY_LETTER = { Mon: 'M', Tue: 'T', Wed: 'W', Thu: 'T', Fri: 'F', Sat: 'S', Sun: 'S' }
 
-// 7-column weekly board. Reads everything from existing stores — no new model.
-// The full (non-compact) view pairs the board with an item tray you drag from:
-// drop a lifelong item onto a day to schedule it there. `compact` renders a
-// read-only summary for the bento card.
+// Flatten the tree into { pursuit, leaves:[{id,title,days}] } groups for the
+// drag tray. Only unfinished leaves (no children) are schedulable.
+function leafGroups(nodes) {
+  const out = []
+  for (const root of nodes) {
+    const leaves = []
+    const walk = (node) => {
+      const isLeaf = !(node.children && node.children.length)
+      if (isLeaf) {
+        if (!nodeDone(node)) leaves.push({ id: node.id, title: node.title, days: node.days || [] })
+        return
+      }
+      node.children.forEach(walk)
+    }
+    walk(root)
+    if (leaves.length) out.push({ id: root.id, title: root.title, leaves })
+  }
+  return out
+}
+
+// 7-column weekly board. `compact` renders a read-only summary for the bento.
 export function WeekBoard({ refDate, compact = false }) {
   const ref = refDate || todayISO()
 
-  const lifelongGoals = useLifelongStore(s => s.goals)
-  const toggleItemDay = useLifelongStore(s => s.toggleItemDay)
-  const moveItemDay   = useLifelongStore(s => s.moveItemDay)
+  const lifelongNodes = useLifelongStore(s => s.nodes)
+  const toggleNodeDay = useLifelongStore(s => s.toggleNodeDay)
+  const moveNodeDay   = useLifelongStore(s => s.moveNodeDay)
 
   const dailyGoals = useGoalsStore(s => s.goals)
   const goalsLog   = useGoalsStore(s => s.goalsLog)
@@ -27,18 +45,22 @@ export function WeekBoard({ refDate, compact = false }) {
   const toggleDone = useScheduleDoneStore(s => s.toggle)
 
   const week = useMemo(
-    () => buildWeek({ refDate: ref, lifelongGoals, dailyGoals, goalsLog, doneMap: done }),
-    [ref, lifelongGoals, dailyGoals, goalsLog, done],
+    () => buildWeek({ refDate: ref, lifelongGoals: lifelongNodes, dailyGoals, goalsLog, doneMap: done }),
+    [ref, lifelongNodes, dailyGoals, goalsLog, done],
   )
 
-  // Fast lookup of an item's current days, for guarding add-vs-remove on drop.
+  // Fast lookup of a node's current scheduled days, to guard add-vs-remove.
   const daysOf = useMemo(() => {
     const m = new Map()
-    for (const g of lifelongGoals) for (const it of g.items || []) m.set(it.id, new Set(it.days || []))
+    const walk = (n) => {
+      if (!(n.children && n.children.length)) m.set(n.id, new Set(n.days || []))
+      else n.children.forEach(walk)
+    }
+    lifelongNodes.forEach(walk)
     return m
-  }, [lifelongGoals])
+  }, [lifelongNodes])
 
-  const [dragOver, setDragOver] = useState(null) // weekday hovered during a drag
+  const [dragOver, setDragOver] = useState(null)
   const [trayOver, setTrayOver] = useState(false)
 
   function onItemToggle(day, item) {
@@ -60,11 +82,11 @@ export function WeekBoard({ refDate, compact = false }) {
     e.preventDefault()
     setDragOver(null)
     const data = readPayload(e)
-    if (!data?.itemId) return
+    if (!data?.nodeId) return
     if (data.fromDay) {
-      if (data.fromDay !== targetDay.weekday) moveItemDay(data.goalId, data.itemId, data.fromDay, targetDay.weekday)
-    } else if (!daysOf.get(data.itemId)?.has(targetDay.weekday)) {
-      toggleItemDay(data.goalId, data.itemId, targetDay.weekday)
+      if (data.fromDay !== targetDay.weekday) moveNodeDay(data.nodeId, data.fromDay, targetDay.weekday)
+    } else if (!daysOf.get(data.nodeId)?.has(targetDay.weekday)) {
+      toggleNodeDay(data.nodeId, targetDay.weekday)
     }
   }
 
@@ -73,7 +95,7 @@ export function WeekBoard({ refDate, compact = false }) {
     e.preventDefault()
     setTrayOver(false)
     const data = readPayload(e)
-    if (data?.itemId && data.fromDay) toggleItemDay(data.goalId, data.itemId, data.fromDay)
+    if (data?.nodeId && data.fromDay) toggleNodeDay(data.nodeId, data.fromDay)
   }
 
   const board = (
@@ -110,7 +132,7 @@ export function WeekBoard({ refDate, compact = false }) {
                   className={'wk-item ' + item.source + (item.done ? ' done' : '') + (interactive ? '' : ' static')}
                   draggable={!compact && item.draggable}
                   onDragStart={!compact && item.draggable
-                    ? (e) => startDrag(e, { goalId: item.goalId, itemId: item.itemId, fromDay: day.weekday })
+                    ? (e) => startDrag(e, { nodeId: item.itemId, fromDay: day.weekday })
                     : undefined}
                   onClick={interactive ? () => onItemToggle(day, item) : undefined}
                 >
@@ -130,7 +152,7 @@ export function WeekBoard({ refDate, compact = false }) {
   return (
     <div className="wk-layout">
       <ItemTray
-        goals={lifelongGoals}
+        groups={leafGroups(lifelongNodes)}
         over={trayOver}
         onDragStart={startDrag}
         onDragOver={(e) => { e.preventDefault(); if (!trayOver) setTrayOver(true) }}
@@ -142,13 +164,9 @@ export function WeekBoard({ refDate, compact = false }) {
   )
 }
 
-// Backlog of all active lifelong items, grouped by goal. Drag a chip onto a day
-// to schedule it; drag a scheduled chip from a day back here to unschedule it.
-function ItemTray({ goals, over, onDragStart, onDragOver, onDragLeave, onDrop }) {
-  const active = goals
-    .filter(g => !g.done)
-    .map(g => ({ ...g, items: (g.items || []).filter(it => !it.done) }))
-    .filter(g => g.items.length > 0)
+// Backlog of all schedulable lifelong leaves, grouped by pursuit. Drag a chip
+// onto a day to schedule it; drag a scheduled chip back here to unschedule.
+function ItemTray({ groups, over, onDragStart, onDragOver, onDragLeave, onDrop }) {
   return (
     <div
       className={'wk-tray' + (over ? ' over' : '')}
@@ -157,20 +175,20 @@ function ItemTray({ goals, over, onDragStart, onDragOver, onDragLeave, onDrop })
       onDrop={onDrop}
     >
       <div className="wk-tray-h">Items</div>
-      {active.length === 0 && (
+      {groups.length === 0 && (
         <div className="wk-tray-empty">
-          No lifelong items yet. Add some under a goal in Lifelong Goals.
+          No lifelong items yet. Add some on the Goals page.
         </div>
       )}
-      {active.map(g => (
+      {groups.map(g => (
         <div key={g.id} className="wk-tray-group">
           <div className="wk-tray-goal">{g.title}</div>
-          {g.items.map(it => (
+          {g.leaves.map(it => (
             <div
               key={it.id}
               className="wk-chip"
               draggable
-              onDragStart={(e) => onDragStart(e, { goalId: g.id, itemId: it.id })}
+              onDragStart={(e) => onDragStart(e, { nodeId: it.id })}
               title="Drag onto a day to schedule"
             >
               <span className="wk-chip-lbl">{it.title}</span>
