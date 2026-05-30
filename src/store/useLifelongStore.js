@@ -12,12 +12,13 @@ function genId() {
 // recurring habit). It optionally has a measurable `total` (pages, videos) and
 // `current` position with a `logs` history, and optionally `days` it shows up
 // in the Daily goals list.
-function newItem({ title, unit = null, total = null }) {
+function newItem({ title, unit = null, total = null, deadline = null }) {
   return {
     id: genId(),
     title,
     unit: unit || null,
     total: total != null && total !== '' ? Number(total) : null,
+    deadline: deadline || null,
     current: 0,
     logs: [],
     days: [],
@@ -36,6 +37,7 @@ function normalizeGoal(g) {
         title: it.title,
         unit: it.unit ?? null,
         total: it.total != null && it.total !== '' ? Number(it.total) : null,
+        deadline: it.deadline ?? null,
         current: Number(it.current) || 0,
         logs: Array.isArray(it.logs) ? it.logs : [],
         days: Array.isArray(it.days) ? it.days : [],
@@ -95,8 +97,8 @@ export const useLifelongStore = create((set, get) => {
       commit([...active, { ...target, done: false }, ...completed])
     },
 
-    addItem: (goalId, { title, unit, total }) =>
-      commit(mapGoal(goalId, g => ({ ...g, items: [...g.items, newItem({ title, unit, total })] }))),
+    addItem: (goalId, { title, unit, total, deadline }) =>
+      commit(mapGoal(goalId, g => ({ ...g, items: [...g.items, newItem({ title, unit, total, deadline })] }))),
 
     updateItem: (goalId, itemId, patch) =>
       commit(mapItem(goalId, itemId, it => ({ ...it, ...patch }))),
