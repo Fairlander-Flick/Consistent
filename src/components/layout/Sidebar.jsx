@@ -4,13 +4,14 @@ import { useSettingsStore } from '../../store/useSettingsStore'
 import { useAuthStore } from '../../store/useAuthStore'
 import { consumeBrandRect } from '../../lib/brandTransition'
 import {
-  IconDashboard, IconConsistency, IconWallet,
-  IconPlus, IconScale, IconSun, IconMoon, IconSettings, IconChevRight,
+  IconDashboard, IconConsistency, IconJournal, IconWallet,
+  IconSun, IconMoon, IconSettings, IconChevRight,
 } from '../ui/Icons'
 
 const navItems = [
   { to: '/', label: 'Dashboard', Icon: IconDashboard, end: true },
   { to: '/consistency', label: 'Consistency', Icon: IconConsistency },
+  { to: '/journal', label: 'Journal', Icon: IconJournal },
   { to: '/finance', label: 'Finance', Icon: IconWallet },
 ]
 
@@ -73,18 +74,6 @@ export function Sidebar() {
           <span>{label}</span>
         </NavLink>
       ))}
-
-      <div className="sb-section">Quick</div>
-      <NavLink to="/consistency" className="sb-item">
-        <IconPlus size={14} />
-        <span>Log today</span>
-        <span style={{ marginLeft: 'auto' }} className="kbd">⌘L</span>
-      </NavLink>
-      <NavLink to="/consistency" className="sb-item">
-        <IconScale size={14} />
-        <span>Weigh-in</span>
-        <span style={{ marginLeft: 'auto' }} className="kbd">⌘B</span>
-      </NavLink>
 
       <div className="sb-foot">
         <div className="sb-item" onClick={toggleTheme} role="button">

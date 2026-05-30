@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AppShell } from './components/layout/AppShell'
 import { Dashboard } from './pages/Dashboard'
 import { Consistency } from './pages/Consistency'
+import { Journal } from './pages/Journal'
 import { Finance } from './pages/Finance'
 import { Settings } from './pages/Settings'
 import { Login } from './pages/Login'
@@ -43,6 +44,7 @@ export default function App() {
         <Route element={<AppShell />}>
           <Route index element={<ErrorBoundary><Dashboard /></ErrorBoundary>} />
           <Route path="/consistency" element={<ErrorBoundary><Consistency /></ErrorBoundary>} />
+          <Route path="/journal" element={<ErrorBoundary><Journal /></ErrorBoundary>} />
           <Route path="/finance" element={<ErrorBoundary><Finance /></ErrorBoundary>} />
           <Route path="/settings" element={<ErrorBoundary><Settings /></ErrorBoundary>} />
         </Route>

@@ -5,20 +5,23 @@ function weekdayKey(dateStr) {
   return WEEKDAYS[(d.getDay() + 6) % 7]
 }
 
+// Lifelong items scheduled to show in the Daily goals list for a given date.
+// Any item (a book, a video playlist, a habit) that lists this weekday in its
+// `days` surfaces as a check-off todo.
 export function lifelongTodosForDate(date, goals) {
   if (!date || !goals) return []
   const wd = weekdayKey(date)
   const result = []
   for (const goal of goals) {
     if (goal.done) continue
-    for (const step of goal.steps) {
-      if (step.days.includes(wd)) {
+    for (const item of goal.items || []) {
+      if ((item.days || []).includes(wd)) {
         result.push({
-          key: `lifelong|${step.id}`,
-          label: step.title,
+          key: `lifelong|${item.id}`,
+          label: item.title,
           goalTitle: goal.title,
           goalId: goal.id,
-          stepId: step.id,
+          itemId: item.id,
         })
       }
     }

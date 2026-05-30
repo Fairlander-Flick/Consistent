@@ -58,16 +58,17 @@ export function Dashboard() {
         </div>
       )}
 
-      <div className="dash-strip">
-        <LifelongGoalsCard />
-        <RecapCard />
-      </div>
-
       <div className="bento">
-        <GraphCard />
-        <JournalCard />
-        <GoalsCard />
+        <div className="bento-left">
+          <RecapCard />
+          <LifelongGoalsCard />
+        </div>
+        <div className="bento-right">
+          <GraphCard />
+          <GoalsCard />
+        </div>
         <ConsistencyCard />
+        <JournalCard />
       </div>
     </DashboardContext.Provider>
   )

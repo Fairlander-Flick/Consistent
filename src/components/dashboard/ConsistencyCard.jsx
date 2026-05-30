@@ -5,7 +5,7 @@ import { useDashboard } from '../../lib/DashboardContext'
 
 const MONTH_LABELS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
 const DOW_LABELS = ['Mon', '', 'Wed', '', 'Fri', '', '']
-const CELL = 11
+const CELL = 12
 const GAP = 3
 const PITCH = CELL + GAP
 
@@ -51,8 +51,8 @@ function buildTooltip(dateStr, entries) {
   for (let i = 0; i < 7; i++) {
     const wd = new Date(monday)
     wd.setDate(monday.getDate() + i)
-    const iso = `${wd.getFullYear()}-${String(wd.getMonth() + 1).padStart(2, '0')}-${String(wd.getDate()).padStart(2, '0')}`
-    const entry = entries.find(e => e.date === iso)
+    const ds = `${wd.getFullYear()}-${String(wd.getMonth() + 1).padStart(2, '0')}-${String(wd.getDate()).padStart(2, '0')}`
+    const entry = entries.find(e => e.date === ds)
     if (entry?.score != null) scores.push(entry.score / 10)
   }
   const avg = scores.length ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length * 100) : 0
@@ -67,11 +67,13 @@ export function ConsistencyCard() {
   const { viewDate, setViewDate } = useDashboard()
   const todayStr = todayISO()
   const currentYear = new Date().getFullYear()
+
   const years = useMemo(() => {
     const dataYears = entries.map(e => parseInt(e.date.slice(0, 4))).filter(y => !isNaN(y))
     const minYear = dataYears.length ? Math.min(...dataYears) : currentYear
     return Array.from({ length: currentYear - minYear + 1 }, (_, i) => minYear + i)
   }, [entries, currentYear])
+
   const [selectedYear, setSelectedYear] = useState(currentYear)
   const [hover, setHover] = useState(null)
 
@@ -79,28 +81,29 @@ export function ConsistencyCard() {
     () => buildYearGrid(selectedYear, entries), [selectedYear, entries]
   )
 
+  const activeDays = useMemo(
+    () => cells.filter(c => c && c.level > 0).length, [cells]
+  )
+
   function handleCellClick(dateStr) {
-    if (dateStr === viewDate || dateStr === todayStr) {
-      setViewDate(todayStr)
-    } else {
-      setViewDate(dateStr)
-    }
+    setViewDate(dateStr === viewDate || dateStr === todayStr ? todayStr : dateStr)
   }
 
   return (
     <div className="card area-contrib">
       <div className="card-h">
         <h3>Consistency</h3>
-        <div className="tabs">
-          {years.map(y => (
-            <button key={y} className={selectedYear === y ? 'active' : ''} onClick={() => setSelectedYear(y)}>
-              {y}
-            </button>
-          ))}
+        <div className="row" style={{ gap: 10, alignItems: 'center' }}>
+          <span className="meta">{activeDays} active days in {selectedYear}</span>
+          <div className="tabs">
+            {years.map(y => (
+              <button key={y} className={selectedYear === y ? 'active' : ''} onClick={() => setSelectedYear(y)}>{y}</button>
+            ))}
+          </div>
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: 8, overflowX: 'auto' }}>
+      <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 2 }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: GAP, marginTop: 18, flexShrink: 0 }}>
           {DOW_LABELS.map((lbl, i) => (
             <div key={i} style={{ height: CELL, fontSize: 9, color: 'var(--muted)', fontFamily: 'var(--font-mono)', lineHeight: `${CELL}px`, width: 24, textAlign: 'right' }}>
@@ -137,13 +140,11 @@ export function ConsistencyCard() {
                 data-fill={cell.level}
                 data-today={cell.dateStr === todayStr ? '1' : '0'}
                 style={{
-                  width: CELL,
-                  height: CELL,
-                  cursor: 'pointer',
+                  width: CELL, height: CELL, cursor: 'pointer',
                   outline: cell.dateStr === viewDate && viewDate !== todayStr ? '1.5px solid var(--accent)' : 'none',
                   outlineOffset: '1px',
                 }}
-                onMouseEnter={(e) => setHover({ dateStr: cell.dateStr, rect: e.currentTarget.getBoundingClientRect() })}
+                onMouseEnter={e => setHover({ dateStr: cell.dateStr, rect: e.currentTarget.getBoundingClientRect() })}
                 onMouseLeave={() => setHover(null)}
                 onClick={() => handleCellClick(cell.dateStr)}
               />
@@ -153,18 +154,10 @@ export function ConsistencyCard() {
       </div>
 
       {hover && (
-        <div
-          className="tt"
-          style={{
-            position: 'fixed',
-            left: hover.rect.left,
-            top: hover.rect.top - 52,
-            whiteSpace: 'pre',
-            fontSize: 10,
-            lineHeight: 1.6,
-            pointerEvents: 'none',
-          }}
-        >
+        <div className="tt" style={{
+          position: 'fixed', left: hover.rect.left, top: hover.rect.top - 52,
+          whiteSpace: 'pre', fontSize: 10, lineHeight: 1.6, pointerEvents: 'none',
+        }}>
           {buildTooltip(hover.dateStr, entries)}
         </div>
       )}

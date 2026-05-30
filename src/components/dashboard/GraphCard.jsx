@@ -340,31 +340,30 @@ export function GraphCard() {
         )}
       </svg>
 
-      {/* Per-tab toggle pills */}
-      {tab === 'finance' && (
-        <div className="row" style={{ gap: 8, marginTop: 12 }}>
-          {[
-            { key: 'income', label: 'Income', color: 'var(--accent)' },
-            { key: 'expense', label: 'Expense', color: 'var(--negative)' },
-            { key: 'balance', label: 'Balance', color: 'var(--text)' },
-          ].map(({ key, label, color }) => (
-            <button
-              key={key}
-              onClick={() => setFinanceVis(p => ({ ...p, [key]: !p[key] }))}
-              className="chip"
-              style={{
-                background: financeVis[key] ? 'var(--faint)' : 'transparent',
-                color: financeVis[key] ? color : 'var(--muted)',
-                border: `1px solid ${financeVis[key] ? 'var(--border-strong)' : 'transparent'}`,
-                cursor: 'pointer',
-                transition: 'all 120ms',
-              }}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-      )}
+      {/* Per-tab toggle pills — height is always reserved so switching tabs
+          doesn't resize the card (which would twitch the whole bento). */}
+      <div className="row" style={{ gap: 8, marginTop: 12, minHeight: 28 }}>
+        {tab === 'finance' && [
+          { key: 'income', label: 'Income', color: 'var(--accent)' },
+          { key: 'expense', label: 'Expense', color: 'var(--negative)' },
+          { key: 'balance', label: 'Balance', color: 'var(--text)' },
+        ].map(({ key, label, color }) => (
+          <button
+            key={key}
+            onClick={() => setFinanceVis(p => ({ ...p, [key]: !p[key] }))}
+            className="chip"
+            style={{
+              background: financeVis[key] ? 'var(--faint)' : 'transparent',
+              color: financeVis[key] ? color : 'var(--muted)',
+              border: `1px solid ${financeVis[key] ? 'var(--border-strong)' : 'transparent'}`,
+              cursor: 'pointer',
+              transition: 'all 120ms',
+            }}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
     </div>
   )
 }

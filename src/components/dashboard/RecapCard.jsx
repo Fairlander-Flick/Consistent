@@ -45,7 +45,7 @@ export function RecapCard() {
   )
 
   return (
-    <div className="card">
+    <div className="card area-recap">
       <div className="card-h">
         <h3>Recap</h3>
         <div className="row" style={{ gap: 8, alignItems: 'center' }}>

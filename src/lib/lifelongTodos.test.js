@@ -4,12 +4,12 @@ import { lifelongTodosForDate } from './lifelongTodos'
 const GOALS = [
   {
     id: 'g1',
-    title: 'Rogawski Calculus',
+    title: 'Math',
     deadline: '2026-08-01',
     done: false,
-    steps: [
-      { id: 's1', title: '20 Sayfa Oku', days: ['Mon', 'Wed', 'Fri'] },
-      { id: 's2', title: 'Problem Set', days: ['Sat'] },
+    items: [
+      { id: 'i1', title: 'Rogawski — Calculus', total: 1300, days: ['Mon', 'Wed', 'Fri'] },
+      { id: 'i2', title: 'Problem Set', total: null, days: ['Sat'] },
     ],
   },
   {
@@ -17,8 +17,8 @@ const GOALS = [
     title: 'NeuroGolf',
     deadline: null,
     done: false,
-    steps: [
-      { id: 's3', title: 'ARC task', days: ['Mon', 'Thu'] },
+    items: [
+      { id: 'i3', title: 'ARC task', total: null, days: ['Mon', 'Thu'] },
     ],
   },
   {
@@ -26,8 +26,8 @@ const GOALS = [
     title: 'Done Goal',
     deadline: null,
     done: true,
-    steps: [
-      { id: 's4', title: 'Should never appear', days: ['Mon'] },
+    items: [
+      { id: 'i4', title: 'Should never appear', total: null, days: ['Mon'] },
     ],
   },
 ]
@@ -38,17 +38,17 @@ describe('lifelongTodosForDate', () => {
     expect(lifelongTodosForDate('2026-05-25', null)).toEqual([])
   })
 
-  it('returns matching steps for Monday 2026-05-25', () => {
+  it('returns matching items for Monday 2026-05-25', () => {
     const todos = lifelongTodosForDate('2026-05-25', GOALS)
     expect(todos).toHaveLength(2)
     expect(todos[0]).toEqual({
-      key: 'lifelong|s1',
-      label: '20 Sayfa Oku',
-      goalTitle: 'Rogawski Calculus',
+      key: 'lifelong|i1',
+      label: 'Rogawski — Calculus',
+      goalTitle: 'Math',
       goalId: 'g1',
-      stepId: 's1',
+      itemId: 'i1',
     })
-    expect(todos[1].key).toBe('lifelong|s3')
+    expect(todos[1].key).toBe('lifelong|i3')
   })
 
   it('skips done goals', () => {
@@ -56,25 +56,25 @@ describe('lifelongTodosForDate', () => {
     expect(todos.every(t => t.goalId !== 'g3')).toBe(true)
   })
 
-  it('returns empty for days with no steps scheduled (Tuesday 2026-05-26)', () => {
+  it('returns empty for days with nothing scheduled (Tuesday 2026-05-26)', () => {
     const todos = lifelongTodosForDate('2026-05-26', GOALS)
     expect(todos).toHaveLength(0)
   })
 
-  it('returns Saturday step for 2026-05-30', () => {
+  it('returns the Saturday item for 2026-05-30', () => {
     const todos = lifelongTodosForDate('2026-05-30', GOALS)
     expect(todos).toHaveLength(1)
-    expect(todos[0].key).toBe('lifelong|s2')
+    expect(todos[0].key).toBe('lifelong|i2')
   })
 
-  it('each item has key, label, goalTitle, goalId, stepId', () => {
+  it('each todo has key, label, goalTitle, goalId, itemId', () => {
     const todos = lifelongTodosForDate('2026-05-25', GOALS)
     for (const t of todos) {
       expect(t).toHaveProperty('key')
       expect(t).toHaveProperty('label')
       expect(t).toHaveProperty('goalTitle')
       expect(t).toHaveProperty('goalId')
-      expect(t).toHaveProperty('stepId')
+      expect(t).toHaveProperty('itemId')
     }
   })
 })

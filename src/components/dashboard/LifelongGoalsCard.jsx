@@ -1,304 +1,293 @@
 import { useState, useRef, useEffect } from 'react'
 import { useLifelongStore } from '../../store/useLifelongStore'
+import { IconPlus, IconTrash } from '../ui/Icons'
+import {
+  isMeasurable, itemPct, progressSummary, goalAvgPct,
+} from '../../lib/lifelongProgress'
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 const DAY_LABELS = ['M', 'T', 'W', 'T', 'F', 'S', 'S']
-const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+const DOT_THRESHOLD = 24 // items with a small total render as fill-dots
 
-function formatDeadline(iso) {
+function monthYear(iso) {
   if (!iso) return null
   const d = new Date(iso + 'T00:00:00')
   return `${MONTHS[d.getMonth()]} ${d.getFullYear()}`
 }
 
-function DayPills({ activeDays, onToggle }) {
+function fmtRate(n) {
+  return Number.isInteger(n) ? String(n) : n.toFixed(1)
+}
+
+// ── Day-of-week scheduling pills ────────────────────────────
+function DayPills({ active, onToggle }) {
   return (
-    <div style={{ display: 'flex', gap: 3 }}>
+    <div className="ll-dp">
       {DAYS.map((d, i) => (
         <button
           key={d}
+          className={'ll-dp-b' + (active.includes(d) ? ' on' : '')}
           onClick={() => onToggle(d)}
-          style={{
-            width: 20, height: 20, borderRadius: 4, padding: 0,
-            background: activeDays.includes(d) ? 'rgba(74,222,128,.15)' : 'var(--border-strong)',
-            border: `1px solid ${activeDays.includes(d) ? 'rgba(74,222,128,.4)' : 'var(--border)'}`,
-            color: activeDays.includes(d) ? 'var(--accent)' : 'var(--muted)',
-            fontSize: 8, fontFamily: 'var(--font-mono)', cursor: 'pointer',
-          }}
+          title={d}
         >{DAY_LABELS[i]}</button>
       ))}
     </div>
   )
 }
 
-const menuItemBase = {
-  display: 'block', width: '100%', textAlign: 'left',
-  padding: '7px 14px', fontSize: 12, background: 'none',
-  border: 'none', cursor: 'pointer', color: 'var(--text)',
+// ── A single trackable item (book / playlist / habit) ───────
+function ItemRow({ goal, item, store }) {
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState(String(item.current ?? 0))
+  const inputRef = useRef(null)
+
+  useEffect(() => { if (editing) { inputRef.current?.focus(); inputRef.current?.select() } }, [editing])
+
+  const measurable = isMeasurable(item)
+  const useDots = measurable && item.total <= DOT_THRESHOLD
+  const pct = itemPct(item)
+  const { pace, eta, needed, behind } = progressSummary(item, goal.deadline)
+
+  const save = () => {
+    store.logProgress(goal.id, item.id, draft)
+    setEditing(false)
+  }
+
+  let chip = null
+  if (measurable) {
+    if (behind && needed != null && Number.isFinite(needed)) {
+      chip = <span className="ll-chip warn">{fmtRate(needed)} {item.unit || 'u'}/day to hit deadline</span>
+    } else if (pace != null && eta) {
+      chip = <span className="ll-chip">+{fmtRate(pace)} {item.unit || 'u'}/day · ETA {monthYear(eta)}</span>
+    } else if (pace != null) {
+      chip = <span className="ll-chip">+{fmtRate(pace)} {item.unit || 'u'}/day</span>
+    } else {
+      chip = <span className="ll-chip">log twice to project pace</span>
+    }
+  }
+
+  return (
+    <div className="ll-item">
+      <div className="ll-item-top">
+        <div className="ll-item-name">{item.title}</div>
+        {measurable ? (
+          <div className="ll-frac">
+            <b>{item.current ?? 0}</b> / {item.total}{item.unit && useDots ? ` ${item.unit}` : ''} · {Math.round(pct * 100)}%
+          </div>
+        ) : (
+          <div className="ll-frac dim">habit</div>
+        )}
+      </div>
+
+      {measurable && (useDots ? (
+        <div className="ll-dots">
+          {Array.from({ length: item.total }, (_, i) => (
+            <button
+              key={i}
+              className={'ll-dot' + (i < (item.current ?? 0) ? ' on' : '')}
+              onClick={() => store.logProgress(goal.id, item.id, i + 1)}
+              title={`Set to ${i + 1}`}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="ll-bar"><i style={{ width: `${Math.round(pct * 100)}%` }} /></div>
+      ))}
+
+      {measurable && (
+        <div className="ll-item-foot">
+          {chip}
+          {useDots ? (
+            <button className="ll-log" onClick={() => store.bumpProgress(goal.id, item.id, 1)}>+1</button>
+          ) : (
+            <button className="ll-log" onClick={() => { setDraft(String(item.current ?? 0)); setEditing(true) }}>Log</button>
+          )}
+        </div>
+      )}
+
+      {editing && !useDots && (
+        <div className="ll-logbox">
+          <label>Where are you now?{item.unit ? ` (${item.unit})` : ''}</label>
+          <div className="ll-logrow">
+            <input
+              ref={inputRef}
+              type="number"
+              value={draft}
+              onChange={e => setDraft(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') save(); if (e.key === 'Escape') setEditing(false) }}
+            />
+            <span className="ll-of">/ {item.total}</span>
+            <button className="btn primary sm" onClick={save}>Save</button>
+            <button className="btn ghost sm" onClick={() => setEditing(false)}>Cancel</button>
+          </div>
+        </div>
+      )}
+
+      <div className="ll-sched">
+        <span className="ll-schl">Show in Daily</span>
+        <DayPills active={item.days || []} onToggle={(d) => store.toggleItemDay(goal.id, item.id, d)} />
+        <button className="btn ghost icon" style={{ marginLeft: 'auto' }} title="Remove item"
+                onClick={() => store.deleteItem(goal.id, item.id)}>
+          <IconTrash size={12} />
+        </button>
+      </div>
+    </div>
+  )
 }
 
+// ── Goal menu (complete / restore / delete) ─────────────────
 function GoalMenu({ isDone, onComplete, onRestore, onDelete }) {
   const [open, setOpen] = useState(false)
   const ref = useRef(null)
-
   useEffect(() => {
     if (!open) return
-    function onOutside(e) {
-      if (ref.current && !ref.current.contains(e.target)) setOpen(false)
-    }
+    const onOutside = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
     document.addEventListener('mousedown', onOutside)
     return () => document.removeEventListener('mousedown', onOutside)
   }, [open])
 
   return (
-    <div ref={ref} style={{ position: 'relative', flexShrink: 0 }}>
-      <button
-        className="btn ghost sm"
-        style={{ fontSize: 16, padding: '0 5px', color: 'var(--muted)', letterSpacing: 1 }}
-        onClick={() => setOpen(v => !v)}
-        title="Options"
-      >···</button>
-
+    <div ref={ref} style={{ position: 'relative', flexShrink: 0 }} onClick={e => e.stopPropagation()}>
+      <button className="btn ghost sm" style={{ fontSize: 16, padding: '0 5px', color: 'var(--muted)', letterSpacing: 1 }}
+              onClick={() => setOpen(v => !v)} title="Options">···</button>
       {open && (
-        <div style={{
-          position: 'absolute', right: 0, top: 'calc(100% + 4px)', zIndex: 30,
-          background: 'var(--card)', border: '1px solid var(--border-strong)',
-          borderRadius: 6, padding: '4px 0', minWidth: 120,
-          boxShadow: '0 6px 16px rgba(0,0,0,.5)',
-        }}>
-          {isDone ? (
-            <button
-              style={menuItemBase}
-              onClick={() => { onRestore(); setOpen(false) }}
-            >Restore</button>
-          ) : (
-            <button
-              style={menuItemBase}
-              onClick={() => { onComplete(); setOpen(false) }}
-            >Complete</button>
-          )}
-          <button
-            style={{ ...menuItemBase, color: 'var(--negative)' }}
-            onClick={() => { onDelete(); setOpen(false) }}
-          >Delete</button>
+        <div className="ll-menu">
+          {isDone
+            ? <button onClick={() => { onRestore(); setOpen(false) }}>Restore</button>
+            : <button onClick={() => { onComplete(); setOpen(false) }}>Complete</button>}
+          <button style={{ color: 'var(--negative)' }} onClick={() => { onDelete(); setOpen(false) }}>Delete</button>
         </div>
       )}
     </div>
   )
 }
 
-function GoalBlock({
-  goal,
-  addingStep, newStepTitle, newStepDays,
-  onStartAddStep, onNewStepTitleChange, onToggleNewStepDay,
-  onAddStep, onCancelAddStep,
-  onToggleStepDay, onDeleteStep,
-  onComplete, onRestore, onDelete,
-}) {
-  const dl = formatDeadline(goal.deadline)
+// ── A pursuit (category) ────────────────────────────────────
+function GoalBlock({ goal, store }) {
+  const [adding, setAdding] = useState(false)
+  const [name, setName] = useState('')
+  const [unit, setUnit] = useState('pages')
+  const [total, setTotal] = useState('')
+
+  const avg = goalAvgPct(goal)
+  const ringPct = avg != null ? Math.round(avg * 100) : 0
+
+  const handleAdd = () => {
+    const t = name.trim()
+    if (!t) return
+    store.addItem(goal.id, { title: t, unit: unit.trim() || null, total })
+    setName(''); setTotal(''); setAdding(false)
+  }
 
   return (
-    <div style={{
-      background: 'var(--border-strong)',
-      border: '1px solid var(--border)',
-      borderRadius: 6,
-      padding: '10px 12px',
-      marginBottom: 8,
-      opacity: goal.done ? 0.45 : 1,
-    }}>
-      {/* Goal header */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: (goal.steps.length > 0 || addingStep) && !goal.done ? 8 : 0 }}>
-        <div style={{
-          flex: 1, fontWeight: 600, fontSize: 12,
-          textDecoration: goal.done ? 'line-through' : 'none',
-          color: 'var(--text)',
-        }}>
-          {goal.title}
-        </div>
-        {dl && (
-          <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: '#fbbf24', flexShrink: 0 }}>{dl}</span>
+    <div className={'ll-cat' + (goal.collapsed ? '' : ' open') + (goal.done ? ' done' : '')}>
+      <div className="ll-cat-h" onClick={() => store.toggleCollapsed(goal.id)}>
+        <span className="ll-chev" />
+        <span className="ll-cat-title">{goal.title}</span>
+        <span className="ll-cat-cnt">
+          {goal.items.length} {goal.items.length === 1 ? 'item' : 'items'}
+          {goal.deadline ? ` · ${monthYear(goal.deadline)}` : ''}
+        </span>
+        {avg != null && (
+          <span className="ll-ring" style={{ '--p': ringPct }}><i>{ringPct}%</i></span>
         )}
         <GoalMenu
           isDone={goal.done}
-          onComplete={onComplete}
-          onRestore={onRestore}
-          onDelete={onDelete}
+          onComplete={() => store.markGoalDone(goal.id)}
+          onRestore={() => store.restoreGoal(goal.id)}
+          onDelete={() => store.deleteGoal(goal.id)}
         />
       </div>
 
-      {/* Step rows — only for active goals */}
-      {!goal.done && goal.steps.map(step => (
-        <div key={step.id} style={{
-          display: 'flex', alignItems: 'center', gap: 8,
-          paddingTop: 6, borderTop: '1px solid var(--border)',
-        }}>
-          <div style={{ flex: 1, fontSize: 11, color: 'var(--text-mid)' }}>{step.title}</div>
-          <DayPills activeDays={step.days} onToggle={(d) => onToggleStepDay(step, d)} />
-          <button
-            className="btn ghost sm"
-            style={{ fontSize: 13, padding: '0 4px', color: 'var(--muted)', flexShrink: 0 }}
-            onClick={() => onDeleteStep(step.id)}
-            title="Remove step"
-          >×</button>
-        </div>
-      ))}
+      {!goal.collapsed && !goal.done && (
+        <div className="ll-cat-body">
+          {goal.items.map(item => (
+            <ItemRow key={item.id} goal={goal} item={item} store={store} />
+          ))}
 
-      {/* Add step row — only for active goals */}
-      {!goal.done && (
-        addingStep ? (
-          <div style={{ paddingTop: 6, borderTop: '1px solid var(--border)' }}>
-            <div style={{ display: 'flex', gap: 6, marginBottom: 6, alignItems: 'center' }}>
-              <input
-                className="input"
-                placeholder="Step title..."
-                value={newStepTitle}
-                onChange={e => onNewStepTitleChange(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && onAddStep()}
-                autoFocus
-                style={{ flex: 1 }}
-              />
-              <DayPills activeDays={newStepDays} onToggle={onToggleNewStepDay} />
+          {adding ? (
+            <div className="ll-additem-form">
+              <input className="input" placeholder="Title (e.g. Rogawski — Calculus)" value={name} autoFocus
+                     onChange={e => setName(e.target.value)}
+                     onKeyDown={e => e.key === 'Enter' && handleAdd()} />
+              <div className="row" style={{ gap: 6 }}>
+                <input className="input" placeholder="unit" value={unit} style={{ width: 80 }}
+                       onChange={e => setUnit(e.target.value)} />
+                <input className="input" type="number" placeholder="total" value={total} style={{ width: 90 }}
+                       onChange={e => setTotal(e.target.value)} />
+                <button className="btn primary sm" onClick={handleAdd}>Add</button>
+                <button className="btn ghost sm" onClick={() => setAdding(false)}>Cancel</button>
+              </div>
+              <div className="ll-hint">Leave total empty for a habit (day-scheduled, no progress).</div>
             </div>
-            <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
-              <button className="btn ghost sm" onClick={onCancelAddStep}>Cancel</button>
-              <button className="btn primary sm" onClick={onAddStep}>Add</button>
+          ) : (
+            <div className="ll-additem" onClick={() => setAdding(true)}>
+              <span>+</span> add book / video / habit
             </div>
-          </div>
-        ) : (
-          <div
-            style={{
-              display: 'flex', alignItems: 'center', gap: 6,
-              paddingTop: goal.steps.length > 0 ? 6 : 0,
-              borderTop: goal.steps.length > 0 ? '1px solid var(--border)' : 'none',
-              color: 'var(--muted)', fontSize: 11, cursor: 'pointer',
-            }}
-            onClick={onStartAddStep}
-          >
-            <span style={{ color: 'var(--accent)', fontSize: 14, lineHeight: 1 }}>+</span>
-            {' '}add step
-          </div>
-        )
+          )}
+        </div>
       )}
     </div>
   )
 }
 
+// ── Card ────────────────────────────────────────────────────
 export function LifelongGoalsCard() {
-  const { goals, addGoal, deleteGoal, markGoalDone, restoreGoal, addStep, updateStep, deleteStep } = useLifelongStore()
+  const store = useLifelongStore()
+  const { goals } = store
 
   const [addingGoal, setAddingGoal] = useState(false)
-  const [newGoalTitle, setNewGoalTitle] = useState('')
-  const [newGoalDeadline, setNewGoalDeadline] = useState('')
+  const [newTitle, setNewTitle] = useState('')
+  const [newDeadline, setNewDeadline] = useState('')
 
-  const [addingStepFor, setAddingStepFor] = useState(null)
-  const [newStepTitle, setNewStepTitle] = useState('')
-  const [newStepDays, setNewStepDays] = useState([])
+  const activeMeasured = goals
+    .filter(g => !g.done)
+    .map(goalAvgPct)
+    .filter(p => p != null)
+  const avg = activeMeasured.length
+    ? Math.round(activeMeasured.reduce((a, b) => a + b, 0) / activeMeasured.length * 100)
+    : null
+  const pursuits = goals.filter(g => !g.done).length
 
-  function handleAddGoal() {
-    const title = newGoalTitle.trim()
-    if (!title) return
-    addGoal(title, newGoalDeadline || null)
-    setNewGoalTitle('')
-    setNewGoalDeadline('')
-    setAddingGoal(false)
-  }
-
-  function handleAddStep(goalId) {
-    const title = newStepTitle.trim()
-    if (!title) return
-    addStep(goalId, title, newStepDays)
-    setNewStepTitle('')
-    setNewStepDays([])
-    setAddingStepFor(null)
-  }
-
-  function toggleNewStepDay(day) {
-    setNewStepDays(prev =>
-      prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day]
-    )
-  }
-
-  function toggleStepDay(goalId, step, day) {
-    const next = step.days.includes(day)
-      ? step.days.filter(d => d !== day)
-      : [...step.days, day]
-    updateStep(goalId, step.id, { days: next })
+  const handleAddGoal = () => {
+    const t = newTitle.trim()
+    if (!t) return
+    store.addGoal(t, newDeadline || null)
+    setNewTitle(''); setNewDeadline(''); setAddingGoal(false)
   }
 
   return (
-    <div className="card">
+    <div className="card area-life">
       <div className="card-h">
         <h3>Lifelong Goals</h3>
-        <button
-          className="btn icon"
-          style={{ color: 'var(--accent)', fontSize: 20, lineHeight: 1, padding: '0 4px' }}
-          onClick={() => setAddingGoal(v => !v)}
-          title="Add goal"
-        >+</button>
+        <span className="meta">
+          {pursuits} {pursuits === 1 ? 'pursuit' : 'pursuits'}{avg != null ? ` · ${avg}% avg` : ''}
+        </span>
       </div>
 
-      {addingGoal && (
-        <div style={{
-          display: 'flex', flexDirection: 'column', gap: 6,
-          marginBottom: 12, padding: '8px 10px',
-          background: 'var(--border-strong)', borderRadius: 6, border: '1px solid var(--border)',
-        }}>
-          <input
-            className="input"
-            placeholder="Goal title..."
-            value={newGoalTitle}
-            onChange={e => setNewGoalTitle(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && handleAddGoal()}
-            autoFocus
-            style={{ width: '100%', boxSizing: 'border-box' }}
-          />
-          <input
-            className="input"
-            type="date"
-            placeholder="Deadline (optional)"
-            value={newGoalDeadline}
-            onChange={e => setNewGoalDeadline(e.target.value)}
-            style={{ width: '100%', boxSizing: 'border-box' }}
-          />
-          <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
-            <button className="btn ghost sm" onClick={() => setAddingGoal(false)}>Cancel</button>
+      <div className="ll-scroll">
+        {goals.map(goal => (
+          <GoalBlock key={goal.id} goal={goal} store={store} />
+        ))}
+      </div>
+
+      {addingGoal ? (
+        <div className="ll-addgoal">
+          <input className="input" placeholder="Pursuit (e.g. Math, Reading, Fitness)" value={newTitle} autoFocus
+                 onChange={e => setNewTitle(e.target.value)}
+                 onKeyDown={e => e.key === 'Enter' && handleAddGoal()} />
+          <div className="row" style={{ gap: 6 }}>
+            <input className="input" type="date" value={newDeadline} onChange={e => setNewDeadline(e.target.value)} />
             <button className="btn primary sm" onClick={handleAddGoal}>Add</button>
+            <button className="btn ghost sm" onClick={() => setAddingGoal(false)}>Cancel</button>
           </div>
         </div>
-      )}
-
-      {goals.length === 0 && !addingGoal && (
-        <div style={{ fontSize: 12, color: 'var(--muted)', padding: '12px 4px' }}>
-          No goals yet.{' '}
-          <button className="btn ghost sm" style={{ padding: '2px 6px' }} onClick={() => setAddingGoal(true)}>
-            Add one
-          </button>
+      ) : (
+        <div className="ll-addcat" onClick={() => setAddingGoal(true)}>
+          <IconPlus size={13} /> new pursuit
         </div>
       )}
-
-      {goals.map(goal => (
-        <GoalBlock
-          key={goal.id}
-          goal={goal}
-          addingStep={addingStepFor === goal.id}
-          newStepTitle={newStepTitle}
-          newStepDays={newStepDays}
-          onStartAddStep={() => {
-            setAddingStepFor(goal.id)
-            setNewStepTitle('')
-            setNewStepDays([])
-          }}
-          onNewStepTitleChange={setNewStepTitle}
-          onToggleNewStepDay={toggleNewStepDay}
-          onAddStep={() => handleAddStep(goal.id)}
-          onCancelAddStep={() => setAddingStepFor(null)}
-          onToggleStepDay={(step, day) => toggleStepDay(goal.id, step, day)}
-          onDeleteStep={(stepId) => deleteStep(goal.id, stepId)}
-          onComplete={() => markGoalDone(goal.id)}
-          onRestore={() => restoreGoal(goal.id)}
-          onDelete={() => deleteGoal(goal.id)}
-        />
-      ))}
     </div>
   )
 }
