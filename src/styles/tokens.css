@@ -590,7 +590,6 @@ a { color: inherit; text-decoration: none; }
 .ll-item:first-child { border-top: 0; }
 .ll-item-top { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
 .ll-item-name { font-size: 12px; font-weight: 500; }
-.ll-due { font-family: var(--font-mono); font-size: 10px; font-weight: 400; color: #fbbf24; }
 .ll-frac { font-family: var(--font-mono); font-size: 11px; color: var(--text-mid); flex-shrink: 0; white-space: nowrap; }
 .ll-frac b { color: var(--text); font-weight: 700; font-size: 13px; }
 .ll-frac.dim { color: var(--muted); }

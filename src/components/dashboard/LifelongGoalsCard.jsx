@@ -47,9 +47,7 @@ function ItemRow({ goal, item, store }) {
   const measurable = isMeasurable(item)
   const useDots = measurable && item.total <= DOT_THRESHOLD
   const pct = itemPct(item)
-  // An item uses its own deadline when set, otherwise it inherits the pursuit's.
-  const deadline = item.deadline || goal.deadline
-  const { pace, eta, needed, behind } = progressSummary(item, deadline)
+  const { pace, eta, needed, behind } = progressSummary(item)
 
   const save = () => {
     store.logProgress(goal.id, item.id, draft)
@@ -72,10 +70,7 @@ function ItemRow({ goal, item, store }) {
   return (
     <div className="ll-item">
       <div className="ll-item-top">
-        <div className="ll-item-name">
-          {item.title}
-          {item.deadline && <span className="ll-due"> · due {monthYear(item.deadline)}</span>}
-        </div>
+        <div className="ll-item-name">{item.title}</div>
         {measurable ? (
           <div className="ll-frac">
             <b>{item.current ?? 0}</b> / {item.total}{item.unit && useDots ? ` ${item.unit}` : ''} · {Math.round(pct * 100)}%
@@ -196,7 +191,6 @@ function GoalBlock({ goal, store }) {
   const [name, setName] = useState('')
   const [unit, setUnit] = useState('pages')
   const [total, setTotal] = useState('')
-  const [deadline, setDeadline] = useState('')
 
   const avg = goalAvgPct(goal)
   const ringPct = avg != null ? Math.round(avg * 100) : 0
@@ -204,8 +198,8 @@ function GoalBlock({ goal, store }) {
   const handleAdd = () => {
     const t = name.trim()
     if (!t) return
-    store.addItem(goal.id, { title: t, unit: unit.trim() || null, total, deadline: deadline || null })
-    setName(''); setTotal(''); setDeadline(''); setAdding(false)
+    store.addItem(goal.id, { title: t, unit: unit.trim() || null, total })
+    setName(''); setTotal(''); setAdding(false)
   }
 
   return (
@@ -239,17 +233,15 @@ function GoalBlock({ goal, store }) {
               <input className="input" placeholder="Title (e.g. Rogawski — Calculus)" value={name} autoFocus
                      onChange={e => setName(e.target.value)}
                      onKeyDown={e => e.key === 'Enter' && handleAdd()} />
-              <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
-                <input className="input" placeholder="unit" value={unit} style={{ width: 76 }}
+              <div className="row" style={{ gap: 6 }}>
+                <input className="input" placeholder="unit" value={unit} style={{ width: 80 }}
                        onChange={e => setUnit(e.target.value)} />
-                <input className="input" type="number" placeholder="total" value={total} style={{ width: 84 }}
+                <input className="input" type="number" placeholder="total" value={total} style={{ width: 90 }}
                        onChange={e => setTotal(e.target.value)} />
-                <input className="input" type="date" value={deadline} title="Deadline (optional)" style={{ width: 132 }}
-                       onChange={e => setDeadline(e.target.value)} />
                 <button className="btn primary sm" onClick={handleAdd}>Add</button>
                 <button className="btn ghost sm" onClick={() => setAdding(false)}>Cancel</button>
               </div>
-              <div className="ll-hint">Total optional (empty = habit). Deadline optional — drives pace &amp; ETA.</div>
+              <div className="ll-hint">Leave total empty for a habit (day-scheduled, no progress).</div>
             </div>
           ) : (
             <div className="ll-additem" onClick={() => setAdding(true)}>
@@ -269,7 +261,6 @@ export function LifelongGoalsCard() {
 
   const [addingGoal, setAddingGoal] = useState(false)
   const [newTitle, setNewTitle] = useState('')
-  const [newDeadline, setNewDeadline] = useState('')
 
   let avgSum = 0
   let avgCount = 0
@@ -285,8 +276,8 @@ export function LifelongGoalsCard() {
   const handleAddGoal = () => {
     const t = newTitle.trim()
     if (!t) return
-    store.addGoal(t, newDeadline || null)
-    setNewTitle(''); setNewDeadline(''); setAddingGoal(false)
+    store.addGoal(t, null)
+    setNewTitle(''); setAddingGoal(false)
   }
 
   return (
@@ -309,8 +300,7 @@ export function LifelongGoalsCard() {
           <input className="input" placeholder="Pursuit (e.g. Math, Reading, Fitness)" value={newTitle} autoFocus
                  onChange={e => setNewTitle(e.target.value)}
                  onKeyDown={e => e.key === 'Enter' && handleAddGoal()} />
-          <div className="row" style={{ gap: 6 }}>
-            <input className="input" type="date" value={newDeadline} onChange={e => setNewDeadline(e.target.value)} />
+          <div className="row" style={{ gap: 6, justifyContent: 'flex-end' }}>
             <button className="btn primary sm" onClick={handleAddGoal}>Add</button>
             <button className="btn ghost sm" onClick={() => setAddingGoal(false)}>Cancel</button>
           </div>
