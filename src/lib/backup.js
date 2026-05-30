@@ -10,7 +10,6 @@ export const STORE_KEYS = [
   'consistent:journal',
   'consistent:goals',
   'consistent:goals-log',
-  'consistent:finance',
   'consistent:schedule-done',
   'consistent:settings',
   'consistent:lifelong',

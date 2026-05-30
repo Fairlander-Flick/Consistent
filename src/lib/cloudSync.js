@@ -5,7 +5,6 @@ const KEY_MAP = {
   'consistent:goals':            'goals',
   'consistent:goals-log':        'goals_log',
   'consistent:journal':          'journal',
-  'consistent:finance':          'finance',
   'consistent:settings':         'settings',
   'consistent:schedule-done':    'schedule_done',
   'consistent:lifelong':         'lifelong',

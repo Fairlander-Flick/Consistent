@@ -1,10 +1,7 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
 import { useWeightStore } from '../../store/useWeightStore'
-import { useFinanceStore } from '../../store/useFinanceStore'
-import { recurringForDay } from '../../lib/financeUtils'
 import { RangeOverlay } from '../ui/Widgets'
 import { useSettingsStore } from '../../store/useSettingsStore'
-import { symbolFor } from '../../lib/currency'
 import { deltaTone } from '../../lib/deltaTone'
 
 const SVG_W = 600
@@ -20,30 +17,14 @@ function yAt(val, min, max) {
   return PAD.t + (1 - (val - min) / (max - min || 1)) * INNER_H
 }
 
-function isoMinus(days) {
-  const d = new Date()
-  d.setDate(d.getDate() - days)
-  return d.toISOString().split('T')[0]
-}
-
-function dateKey(d) {
-  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
-}
-
 export function GraphCard() {
   const { entries: weightEntries } = useWeightStore()
-  const { transactions, recurring } = useFinanceStore()
-  const { weightGoal, currency } = useSettingsStore()
+  const { weightGoal } = useSettingsStore()
   const weightMode = weightGoal === 'lose' ? 'weightLose' : weightGoal === 'gain' ? 'weightGain' : 'neutral'
-  const curSym = symbolFor(currency)
 
-  const [tab, setTab] = useState('weight')
-  const [financeVis, setFinanceVis] = useState({ income: true, expense: true, balance: true })
   const [range, setRange] = useState(null)   // { start: idx, end: idx }
   const [drag, setDrag] = useState(null)     // { mode: 'new'|'start'|'end', anchorIdx }
   const svgRef = useRef(null)
-
-  function selectTab(t) { setTab(t); setRange(null) }
 
   // Escape key clears range
   useEffect(() => {
@@ -52,50 +33,18 @@ export function GraphCard() {
     return () => window.removeEventListener('keydown', onKey)
   }, [])
 
-  // ── Data per tab ──────────────────────────────────────────
+  // ── Data ──────────────────────────────────────────────────
   const weightData = useMemo(() => weightEntries
     .toSorted((a, b) => a.date.localeCompare(b.date))
     .slice(-28)
     .map(e => ({ date: e.date, value: e.kg })), [weightEntries])
 
-  const financeData = useMemo(() => {
-    const cutoff = isoMinus(27)
-    const days = Array.from({ length: 28 }, (_, i) => {
-      const d = new Date(); d.setDate(d.getDate() - (27 - i)); return dateKey(d)
-    })
-    const recent = transactions.filter(t => t.date >= cutoff)
-    const income = days.map(date => {
-      const txInc = recent.filter(t => t.date === date && t.type === 'income').reduce((s, t) => s + t.amount, 0)
-      const d = new Date(date + 'T00:00:00')
-      const numDays = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate()
-      const recurDay = recurringForDay(recurring, d.getDate(), numDays)
-      const recurInc = recurDay.filter(r => r.type === 'income').reduce((s, r) => s + r.amount, 0)
-      return txInc + recurInc
-    })
-    const expense = days.map(date => {
-      const txExp = recent.filter(t => t.date === date && t.type === 'expense').reduce((s, t) => s + t.amount, 0)
-      const d = new Date(date + 'T00:00:00')
-      const numDays = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate()
-      const recurDay = recurringForDay(recurring, d.getDate(), numDays)
-      const recurExp = recurDay.filter(r => r.type === 'expense').reduce((s, r) => s + r.amount, 0)
-      return txExp + recurExp
-    })
-    let running = 0
-    const balance = days.map((_, i) => { running += income[i] - expense[i]; return running })
-    return { days, income, expense, balance }
-  }, [transactions, recurring])
-
   // ── Pointer helpers ───────────────────────────────────────
-  function getDataLength() {
-    if (tab === 'weight') return weightData.length
-    return financeData.days.length
-  }
-
   function clientXToIdx(clientX) {
     const rect = svgRef.current.getBoundingClientRect()
     const svgX = ((clientX - rect.left) / rect.width) * SVG_W
     const clamped = Math.max(PAD.l, Math.min(SVG_W - PAD.r, svgX))
-    const len = getDataLength()
+    const len = weightData.length
     return Math.max(0, Math.min(len - 1, Math.round((clamped - PAD.l) / INNER_W * (len - 1))))
   }
 
@@ -103,7 +52,7 @@ export function GraphCard() {
     if (!range) return 'new'
     const rect = svgRef.current.getBoundingClientRect()
     const svgX = ((clientX - rect.left) / rect.width) * SVG_W
-    const len = getDataLength()
+    const len = weightData.length
     const startSvgX = xAt(range.start, len)
     const endSvgX = xAt(range.end, len)
     const HIT = 10
@@ -137,50 +86,29 @@ export function GraphCard() {
   // ── Range label lines ─────────────────────────────────────
   const labelLines = useMemo(() => {
     if (!range) return null
-    if (tab === 'weight') {
-      const start = weightData[range.start]
-      const end = weightData[range.end]
-      if (!start || !end) return null
-      const delta = end.value - start.value
-      const pct = start.value ? ((delta / start.value) * 100).toFixed(1) : '0.0'
-      return [
-        `${start.value.toFixed(1)} → ${end.value.toFixed(1)} kg`,
-        {
-          text: `Δ ${delta >= 0 ? '+' : ''}${delta.toFixed(1)} kg (${delta >= 0 ? '+' : ''}${pct}%)`,
-          tone: deltaTone(delta, weightMode),
-        },
-      ]
-    }
-    if (tab === 'finance') {
-      const { income, expense, balance } = financeData
-      const incomeSum = income.slice(range.start, range.end + 1).reduce((a, b) => a + b, 0)
-      const expenseSum = expense.slice(range.start, range.end + 1).reduce((a, b) => a + b, 0)
-      const balDelta = balance[range.end] - (range.start > 0 ? balance[range.start - 1] : 0)
-      const lines = []
-      if (financeVis.income) lines.push(`Income: +${incomeSum.toFixed(0)} ${curSym}`)
-      if (financeVis.expense) lines.push(`Expense: -${expenseSum.toFixed(0)} ${curSym}`)
-      if (financeVis.balance) lines.push({
-        text: `Balance: ${balDelta >= 0 ? '+' : ''}${balDelta.toFixed(0)} ${curSym}`,
-        tone: deltaTone(balDelta, 'finance'),
-      })
-      return lines
-    }
-    return null
-  }, [range, tab, weightData, financeData, financeVis, weightMode, curSym])
+    const start = weightData[range.start]
+    const end = weightData[range.end]
+    if (!start || !end) return null
+    const delta = end.value - start.value
+    const pct = start.value ? ((delta / start.value) * 100).toFixed(1) : '0.0'
+    return [
+      `${start.value.toFixed(1)} → ${end.value.toFixed(1)} kg`,
+      {
+        text: `Δ ${delta >= 0 ? '+' : ''}${delta.toFixed(1)} kg (${delta >= 0 ? '+' : ''}${pct}%)`,
+        tone: deltaTone(delta, weightMode),
+      },
+    ]
+  }, [range, weightData, weightMode])
 
   // ── Headline ──────────────────────────────────────────────
   const headline = useMemo(() => {
-    if (tab === 'weight') {
-      const latest = weightData[weightData.length - 1]
-      const prev = weightData[weightData.length - 2]
-      const delta = latest && prev ? latest.value - prev.value : 0
-      return { text: `${latest?.value.toFixed(1) ?? '—'} kg`, tone: deltaTone(delta, weightMode) }
-    }
-    const net = financeData.balance[financeData.balance.length - 1] ?? 0
-    return { text: `${net >= 0 ? '+' : ''}${net.toFixed(0)} ${curSym}`, tone: deltaTone(net, 'finance') }
-  }, [tab, weightData, financeData, weightMode, curSym])
+    const latest = weightData[weightData.length - 1]
+    const prev = weightData[weightData.length - 2]
+    const delta = latest && prev ? latest.value - prev.value : 0
+    return { text: `${latest?.value.toFixed(1) ?? '—'} kg`, tone: deltaTone(delta, weightMode) }
+  }, [weightData, weightMode])
 
-  // ── SVG path builders ─────────────────────────────────────
+  // ── SVG path builder ──────────────────────────────────────
   function weightSVG() {
     if (weightData.length === 0) {
       return (
@@ -253,47 +181,8 @@ export function GraphCard() {
     )
   }
 
-  function financeSVG() {
-    const allVals = [
-      ...(financeVis.income ? financeData.income : []),
-      ...(financeVis.expense ? financeData.expense : []),
-      ...(financeVis.balance ? financeData.balance : []),
-      1,
-    ]
-    const min = Math.min(...allVals, 0)
-    const max = Math.max(...allVals) * 1.1 || 1
-    const len = financeData.days.length
-    const series = [
-      { key: 'income', color: 'var(--accent)', data: financeData.income },
-      { key: 'expense', color: 'var(--negative)', data: financeData.expense },
-      { key: 'balance', color: 'var(--text)', dash: '4 4', data: financeData.balance },
-    ].filter(s => financeVis[s.key])
-
-    return (
-      <g>
-        {[0, 0.5, 1].map((t, i) => {
-          const v = min + (max - min) * t
-          const y = yAt(v, min, max)
-          return (
-            <g key={i}>
-              <line x1={PAD.l} y1={y} x2={SVG_W-PAD.r} y2={y} stroke="var(--border)" strokeDasharray="2 4" />
-              <text x={4} y={y+3} fontSize="9" fontFamily="var(--font-mono)" fill="var(--muted)">{Math.round(v)}</text>
-            </g>
-          )
-        })}
-        {series.map(s => {
-          const path = s.data.map((v, i) => `${i === 0 ? 'M' : 'L'} ${xAt(i, len).toFixed(1)} ${yAt(v, min, max).toFixed(1)}`).join(' ')
-          return (
-            <path key={s.key} d={path} fill="none" stroke={s.color}
-                  strokeWidth="1.4" strokeDasharray={s.dash} />
-          )
-        })}
-      </g>
-    )
-  }
-
   // ── Render ────────────────────────────────────────────────
-  const len = getDataLength()
+  const len = weightData.length
   const rangeStartX = range ? xAt(range.start, len) : 0
   const rangeEndX = range ? xAt(range.end, len) : 0
 
@@ -301,13 +190,9 @@ export function GraphCard() {
     <div className="card area-weight">
       <div className="card-h">
         <div className="row" style={{ gap: 8, alignItems: 'center' }}>
-          <h3>Graph</h3>
+          <h3>Weight</h3>
         </div>
         <div className="row" style={{ gap: 12 }}>
-          <div className="tabs">
-            <button className={tab === 'weight' ? 'active' : ''} onClick={() => selectTab('weight')}>Weight</button>
-            <button className={tab === 'finance' ? 'active' : ''} onClick={() => selectTab('finance')}>Finance</button>
-          </div>
           <span style={{ fontSize: 10, color: 'var(--muted)' }}>↔ drag to select</span>
           <span className={`num num-md ${headline.tone ? 'delta ' + headline.tone : ''}`}>
             {headline.text}
@@ -326,8 +211,7 @@ export function GraphCard() {
         onPointerUp={onPointerUp}
         onPointerLeave={onPointerUp}
       >
-        {tab === 'weight' && weightSVG()}
-        {tab === 'finance' && financeSVG()}
+        {weightSVG()}
         {range && (
           <RangeOverlay
             startX={rangeStartX}
@@ -339,31 +223,6 @@ export function GraphCard() {
           />
         )}
       </svg>
-
-      {/* Per-tab toggle pills — height is always reserved so switching tabs
-          doesn't resize the card (which would twitch the whole bento). */}
-      <div className="row" style={{ gap: 8, marginTop: 12, minHeight: 28 }}>
-        {tab === 'finance' && [
-          { key: 'income', label: 'Income', color: 'var(--accent)' },
-          { key: 'expense', label: 'Expense', color: 'var(--negative)' },
-          { key: 'balance', label: 'Balance', color: 'var(--text)' },
-        ].map(({ key, label, color }) => (
-          <button
-            key={key}
-            onClick={() => setFinanceVis(p => ({ ...p, [key]: !p[key] }))}
-            className="chip"
-            style={{
-              background: financeVis[key] ? 'var(--faint)' : 'transparent',
-              color: financeVis[key] ? color : 'var(--muted)',
-              border: `1px solid ${financeVis[key] ? 'var(--border-strong)' : 'transparent'}`,
-              cursor: 'pointer',
-              transition: 'background 120ms, color 120ms, border-color 120ms',
-            }}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
     </div>
   )
 }

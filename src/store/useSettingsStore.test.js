@@ -8,7 +8,6 @@ describe('useSettingsStore', () => {
     useSettingsStore.setState({
       theme: 'dark',
       confirmGoalDelete: true,
-      confirmTxDelete: true,
       weightGoal: null,
     })
   })
@@ -38,7 +37,6 @@ describe('useSettingsStore — confirm flags', () => {
     useSettingsStore.setState({
       theme: 'dark',
       confirmGoalDelete: true,
-      confirmTxDelete: true,
       weightGoal: null,
     })
   })
@@ -68,7 +66,6 @@ describe('useSettingsStore — weightGoal', () => {
     useSettingsStore.setState({
       theme: 'dark',
       confirmGoalDelete: true,
-      confirmTxDelete: true,
       weightGoal: null,
     })
   })

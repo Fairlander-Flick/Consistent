@@ -8,17 +8,13 @@ function avg(nums) {
   return nums.length ? nums.reduce((a, b) => a + b, 0) / nums.length : null
 }
 
-export function periodRecap({ journalEntries, transactions, goalPeriod }, dates) {
+export function periodRecap({ journalEntries, goalPeriod }, dates) {
   const set = new Set(dates)
   const has = (d) => set.has(d)
 
   const periodJournal = journalEntries.filter(e => has(e.date))
   const sleepAvg = avg(periodJournal.filter(e => e.sleepHours != null).map(e => e.sleepHours))
   const moodAvg = avg(periodJournal.filter(e => e.score != null).map(e => e.score))
-
-  const periodTx = transactions.filter(t => has(t.date))
-  const spend = periodTx.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0)
-  const income = periodTx.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0)
 
   const todos = goalPeriod?.todos ?? []
   const goalsTotal = todos.length
@@ -27,9 +23,6 @@ export function periodRecap({ journalEntries, transactions, goalPeriod }, dates)
   return {
     sleepAvg,
     moodAvg,
-    spend,
-    income,
-    net: income - spend,
     goalsTotal,
     goalsDone,
     journalCount: periodJournal.length,

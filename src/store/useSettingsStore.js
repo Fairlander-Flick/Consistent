@@ -6,17 +6,15 @@ const KEY = 'consistent:settings'
 const DEFAULT = {
   theme: 'dark',
   confirmGoalDelete: true,
-  confirmTxDelete: true,
   weightGoal: null,
   weightTarget: null,
   reminderEnabled: false,
   reminderTime: '20:00',
-  currency: 'EUR',
 }
 
 const PERSIST_KEYS = [
-  'theme', 'confirmGoalDelete', 'confirmTxDelete',
-  'weightGoal', 'weightTarget', 'reminderEnabled', 'reminderTime', 'currency',
+  'theme', 'confirmGoalDelete',
+  'weightGoal', 'weightTarget', 'reminderEnabled', 'reminderTime',
 ]
 
 function persist(get, patch) {
@@ -31,17 +29,10 @@ export const useSettingsStore = create((set, get) => {
   return {
     theme: stored.theme ?? DEFAULT.theme,
     confirmGoalDelete: stored.confirmGoalDelete ?? DEFAULT.confirmGoalDelete,
-    confirmTxDelete: stored.confirmTxDelete ?? DEFAULT.confirmTxDelete,
     weightGoal: stored.weightGoal ?? DEFAULT.weightGoal,
     weightTarget: stored.weightTarget ?? DEFAULT.weightTarget,
     reminderEnabled: stored.reminderEnabled ?? DEFAULT.reminderEnabled,
     reminderTime: stored.reminderTime ?? DEFAULT.reminderTime,
-    currency: stored.currency ?? DEFAULT.currency,
-
-    setCurrency: (val) => {
-      persist(get, { currency: val })
-      set({ currency: val })
-    },
 
     setWeightGoal: (val) => {
       persist(get, { weightGoal: val })
@@ -77,23 +68,16 @@ export const useSettingsStore = create((set, get) => {
       set({ confirmGoalDelete: val })
     },
 
-    setConfirmTxDelete: (val) => {
-      persist(get, { confirmTxDelete: val })
-      set({ confirmTxDelete: val })
-    },
-
     init: () => {
       const s = loadData(KEY, DEFAULT)
       document.documentElement.setAttribute('data-theme', s.theme ?? DEFAULT.theme)
       set({
         theme: s.theme ?? DEFAULT.theme,
         confirmGoalDelete: s.confirmGoalDelete ?? DEFAULT.confirmGoalDelete,
-        confirmTxDelete: s.confirmTxDelete ?? DEFAULT.confirmTxDelete,
         weightGoal: s.weightGoal ?? DEFAULT.weightGoal,
         weightTarget: s.weightTarget ?? DEFAULT.weightTarget,
         reminderEnabled: s.reminderEnabled ?? DEFAULT.reminderEnabled,
         reminderTime: s.reminderTime ?? DEFAULT.reminderTime,
-        currency: s.currency ?? DEFAULT.currency,
       })
     },
   }

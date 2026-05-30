@@ -1,7 +1,6 @@
 import { useRef, useState } from 'react'
 import { useSettingsStore } from '../store/useSettingsStore'
 import { STORE_KEYS, exportBackup, parseBackup, restoreBackup } from '../lib/backup'
-import { CURRENCIES } from '../lib/currency'
 import { useAuthStore } from '../store/useAuthStore'
 import { pushAll } from '../lib/cloudSync'
 
@@ -29,10 +28,8 @@ function doDeleteAllData() {
 export function Settings() {
   const {
     confirmGoalDelete, setConfirmGoalDelete,
-    confirmTxDelete, setConfirmTxDelete,
     weightGoal, setWeightGoal,
     weightTarget, setWeightTarget,
-    currency, setCurrency,
     reminderEnabled, setReminderEnabled,
     reminderTime, setReminderTime,
   } = useSettingsStore()
@@ -147,39 +144,12 @@ export function Settings() {
 
       <div className="card" style={{ maxWidth: 560, marginTop: 16 }}>
         <div className="card-h"><h3>Confirmations</h3></div>
-        <div className="setting-row">
+        <div className="setting-row" style={{ borderBottom: 0 }}>
           <div>
             <div className="setting-label">Confirm before deleting a goal</div>
             <div className="setting-desc">Shows a dialog before removing a goal item.</div>
           </div>
           <Toggle checked={confirmGoalDelete} onChange={setConfirmGoalDelete} />
-        </div>
-        <div className="setting-row" style={{ borderBottom: 0 }}>
-          <div>
-            <div className="setting-label">Confirm before deleting a transaction</div>
-            <div className="setting-desc">Shows a dialog before removing a finance transaction.</div>
-          </div>
-          <Toggle checked={confirmTxDelete} onChange={setConfirmTxDelete} />
-        </div>
-      </div>
-
-      <div className="card" style={{ maxWidth: 560, marginTop: 16 }}>
-        <div className="card-h"><h3>Currency</h3></div>
-        <div className="setting-row" style={{ borderBottom: 0 }}>
-          <div>
-            <div className="setting-label">Display currency</div>
-            <div className="setting-desc">Symbol used across Finance and the dashboard. Amounts are not converted.</div>
-          </div>
-          <select
-            className="select"
-            value={currency}
-            onChange={e => setCurrency(e.target.value)}
-            style={{ width: 'auto' }}
-          >
-            {CURRENCIES.map(c => (
-              <option key={c.code} value={c.code}>{c.code} ({c.symbol})</option>
-            ))}
-          </select>
         </div>
       </div>
 
@@ -294,7 +264,7 @@ export function Settings() {
         <div className="modal-overlay" onClick={() => setDeleteOpen(false)}>
           <div className="modal" onClick={e => e.stopPropagation()}>
             <h4>Delete all data?</h4>
-            <p>This will permanently remove all weight, journal, goals, and finance data. This cannot be undone.</p>
+            <p>This will permanently remove all weight, journal, and goals data. This cannot be undone.</p>
             <p style={{ marginBottom: 8 }}>
               Please type <span className="highlight">Fairlander</span> to confirm.
             </p>

@@ -7,11 +7,6 @@ const data = {
     { date: '2026-05-12', sleepHours: 6, score: 5 },
     { date: '2026-05-12', score: null, sleepHours: null },
   ],
-  transactions: [
-    { date: '2026-05-11', type: 'expense', amount: 40 },
-    { date: '2026-05-12', type: 'income', amount: 100 },
-    { date: '2026-04-01', type: 'expense', amount: 999 }, // out of week
-  ],
   goalPeriod: { todos: [{ done: true }, { done: false }, { done: true }] },
 }
 
@@ -22,15 +17,12 @@ describe('periodRecap', () => {
     const r = periodRecap(data, week)
     expect(r.sleepAvg).toBeCloseTo(7, 6)
     expect(r.moodAvg).toBeCloseTo(7, 6)
-    expect(r.spend).toBe(40)
-    expect(r.income).toBe(100)
-    expect(r.net).toBe(60)
     expect(r.goalsDone).toBe(2)
     expect(r.goalsTotal).toBe(3)
   })
 
   it('returns null averages when nothing logged', () => {
-    const r = periodRecap({ journalEntries: [], transactions: [], goalPeriod: null }, week)
+    const r = periodRecap({ journalEntries: [], goalPeriod: null }, week)
     expect(r.sleepAvg).toBeNull()
     expect(r.moodAvg).toBeNull()
     expect(r.goalsTotal).toBe(0)

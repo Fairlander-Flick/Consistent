@@ -1,10 +1,8 @@
 import { useMemo, useState } from 'react'
 import { useJournalStore } from '../../store/useJournalStore'
-import { useFinanceStore } from '../../store/useFinanceStore'
 import { useGoalsStore } from '../../store/useGoalsStore'
 import { periodRecap, monthDates, yearDates } from '../../lib/recap'
 import { isoWeekDates, todayISO } from '../../lib/dateUtils'
-import { useMoney } from '../../lib/useMoney'
 import { useDashboard } from '../../lib/DashboardContext'
 
 function Metric({ label, value, sub, tone }) {
@@ -23,9 +21,7 @@ function Metric({ label, value, sub, tone }) {
 
 export function RecapCard() {
   const { entries } = useJournalStore()
-  const { transactions } = useFinanceStore()
   const { goals } = useGoalsStore()
-  const { fmt } = useMoney()
   const [period, setPeriod] = useState('week')
   const { viewDate } = useDashboard()
   const isViewingPast = viewDate !== todayISO()
@@ -40,8 +36,8 @@ export function RecapCard() {
   const goalPeriod = period === 'week' ? goals.weekly : period === 'month' ? goals.monthly : goals.yearly
 
   const r = useMemo(
-    () => periodRecap({ journalEntries: entries, transactions, goalPeriod }, dates),
-    [entries, transactions, goalPeriod, dates]
+    () => periodRecap({ journalEntries: entries, goalPeriod }, dates),
+    [entries, goalPeriod, dates]
   )
 
   return (
@@ -59,17 +55,11 @@ export function RecapCard() {
           </div>
         </div>
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }}>
         <Metric
           label="Avg sleep"
           value={r.sleepAvg != null ? `${r.sleepAvg.toFixed(1)}h` : '—'}
           sub={r.moodAvg != null ? `mood ${r.moodAvg.toFixed(1)}` : 'no mood'}
-        />
-        <Metric
-          label="Net"
-          value={fmt(r.net)}
-          sub={`${fmt(r.spend)} spent`}
-          tone={r.net < 0 ? 'neg' : r.net > 0 ? 'pos' : undefined}
         />
         <Metric
           label="Goals"

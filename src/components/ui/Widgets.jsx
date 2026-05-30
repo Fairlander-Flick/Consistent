@@ -1,5 +1,4 @@
 const WEIGHT_PAD = { l: 28, r: 8, t: 12, b: 22 }
-const MLC_PAD = { l: 44, r: 16, t: 16, b: 28 }
 
 // ── SVG Weight chart ───────────────────────────────────────
 export function WeightChart({ data, height = 170 }) {
@@ -58,51 +57,6 @@ export function WeightChart({ data, height = 170 }) {
         return (
           <text key={k} x={p.x} y={h - 6} fontSize="9" fontFamily="var(--font-mono)" fill="var(--muted)"
                 textAnchor={k === 0 ? 'start' : k === xTicks.length - 1 ? 'end' : 'middle'}>{label}</text>
-        )
-      })}
-    </svg>
-  )
-}
-
-// ── Multi-line finance chart ───────────────────────────────
-export function MultiLineChart({ months, series, height = 200, currencySymbol = '€', labelInterval = 1, showDots = true }) {
-  const w = 720
-  const h = height
-  const pad = MLC_PAD
-  const allVals = series.flatMap(s => s.values)
-  const min = 0
-  const max = Math.max(...allVals, 1) * 1.15
-  const innerW = w - pad.l - pad.r
-  const innerH = h - pad.t - pad.b
-  const xAt = (i) => pad.l + (months.length === 1 ? innerW / 2 : (i / (months.length - 1)) * innerW)
-  const yAt = (v) => pad.t + (1 - (v - min) / (max - min)) * innerH
-  const ticks = [0, 0.5, 1].map(t => min + (max - min) * t)
-
-  return (
-    <svg viewBox={`0 0 ${w} ${h}`} width="100%" style={{ display: 'block' }}>
-      {ticks.map((v, i) => {
-        const y = yAt(v)
-        return (
-          <g key={i}>
-            <line x1={pad.l} y1={y} x2={w - pad.r} y2={y} stroke="var(--border)" strokeDasharray="2 4" />
-            <text x={6} y={y + 3} fontSize="10" fontFamily="var(--font-mono)" fill="var(--muted)">{currencySymbol}{Math.round(v).toLocaleString()}</text>
-          </g>
-        )
-      })}
-      {months.map((m, i) => (
-        (i % labelInterval === 0 || i === months.length - 1) && (
-          <text key={i} x={xAt(i)} y={h - 8} fontSize="10" fontFamily="var(--font-mono)" fill="var(--muted)" textAnchor="middle">{m}</text>
-        )
-      ))}
-      {series.map((s, idx) => {
-        const path = s.values.map((v, i) => `${i === 0 ? 'M' : 'L'} ${xAt(i).toFixed(1)} ${yAt(v).toFixed(1)}`).join(' ')
-        return (
-          <g key={idx}>
-            <path d={path} fill="none" stroke={s.color} strokeWidth="1.6" />
-            {showDots && s.values.map((v, i) => (
-              <circle key={i} cx={xAt(i)} cy={yAt(v)} r="3" fill={s.color} />
-            ))}
-          </g>
         )
       })}
     </svg>
