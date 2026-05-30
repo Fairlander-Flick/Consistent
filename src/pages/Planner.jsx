@@ -1,9 +1,25 @@
 import { useState } from 'react'
 import { WeekBoard } from '../components/planner/WeekBoard'
+import { MonthBoard } from '../components/planner/MonthBoard'
 import { PlannerConsistency } from '../components/planner/PlannerConsistency'
 import { useLifelongStore } from '../store/useLifelongStore'
 import { todayISO, isoWeekDates } from '../lib/dateUtils'
 import { IconChevLeft, IconChevRight, IconTrash } from '../components/ui/Icons'
+
+const MONTH_FULL = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+const FILTERS = [
+  { k: 'all', label: 'All' },
+  { k: 'oneoff', label: '○ One-off' },
+  { k: 'recurring', label: '🔁 Recurring' },
+]
+
+function shiftMonthISO(iso, months) {
+  const d = new Date(iso + 'T00:00:00')
+  d.setMonth(d.getMonth() + months)
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  return `${y}-${m}-01`
+}
 
 const MONTH_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
@@ -30,7 +46,17 @@ function rangeLabel(refDate) {
 export function Planner() {
   const todayStr = todayISO()
   const [refDate, setRefDate] = useState(todayStr)
+  const [mode, setMode] = useState('week')   // 'week' | 'month'
+  const [filter, setFilter] = useState('all')
+
   const isThisWeek = isoWeekDates(new Date(refDate + 'T00:00:00')).includes(todayStr)
+  const isThisMonth = refDate.slice(0, 7) === todayStr.slice(0, 7)
+  const isCurrent = mode === 'week' ? isThisWeek : isThisMonth
+
+  const step = (dir) => setRefDate(r => mode === 'week' ? shiftISO(r, dir * 7) : shiftMonthISO(r, dir))
+  const rangeText = mode === 'week'
+    ? rangeLabel(refDate)
+    : `${MONTH_FULL[new Date(refDate + 'T00:00:00').getMonth()]} ${refDate.slice(0, 4)}`
 
   return (
     <>
@@ -38,34 +64,49 @@ export function Planner() {
         <div>
           <h1>Planner</h1>
           <div className="sub" style={{ marginTop: 4 }}>
-            Your week at a glance — every day, what's scheduled.
+            {mode === 'week' ? 'Your week at a glance — every day, what’s scheduled.' : 'The whole month — dots flag days with plans.'}
           </div>
         </div>
         <div className="wk-nav">
-          <button className="btn icon" onClick={() => setRefDate(r => shiftISO(r, -7))} title="Previous week">
+          <div className="tabs">
+            <button className={mode === 'week' ? 'active' : ''} onClick={() => setMode('week')}>Week</button>
+            <button className={mode === 'month' ? 'active' : ''} onClick={() => setMode('month')}>Month</button>
+          </div>
+          <button className="btn icon" onClick={() => step(-1)} title={mode === 'week' ? 'Previous week' : 'Previous month'}>
             <IconChevLeft size={14} />
           </button>
           <button
-            className={'btn sm' + (isThisWeek ? '' : ' primary')}
+            className={'btn sm' + (isCurrent ? '' : ' primary')}
             onClick={() => setRefDate(todayStr)}
-            disabled={isThisWeek}
+            disabled={isCurrent}
           >
-            This week
+            Today
           </button>
-          <button className="btn icon" onClick={() => setRefDate(r => shiftISO(r, 7))} title="Next week">
+          <button className="btn icon" onClick={() => step(1)} title={mode === 'week' ? 'Next week' : 'Next month'}>
             <IconChevRight size={14} />
           </button>
         </div>
       </div>
 
-      <div className="wk-range">{rangeLabel(refDate)}</div>
+      <div className="row between" style={{ marginBottom: 14, flexWrap: 'wrap', gap: 10 }}>
+        <div className="wk-range" style={{ margin: 0 }}>{rangeText}</div>
+        <div className="tabs">
+          {FILTERS.map(f => (
+            <button key={f.k} className={filter === f.k ? 'active' : ''} onClick={() => setFilter(f.k)}>{f.label}</button>
+          ))}
+        </div>
+      </div>
 
-      <WeekBoard refDate={refDate} />
+      {mode === 'week'
+        ? <WeekBoard refDate={refDate} filter={filter} />
+        : <MonthBoard refDate={refDate} filter={filter} />}
 
       <div className="wk-legend">
-        <span><i className="wk-leg-dot lifelong" /> Lifelong item</span>
-        <span><i className="wk-leg-dot daily" /> Daily todo</span>
-        <span className="wk-leg-hint">Drag an item from the tray onto a day to schedule it · drag back to the tray to remove.</span>
+        <span><i className="wk-leg-dot lifelong" /> 🔁 Recurring (lifelong / habit)</span>
+        <span><i className="wk-leg-dot daily" /> ○ One-off todo</span>
+        {mode === 'week' && (
+          <span className="wk-leg-hint">Drag an item from the tray onto a day to schedule it · drag back to remove · “+ add” for a one-off.</span>
+        )}
       </div>
 
       <div className="wk-lower">

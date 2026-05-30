@@ -20,19 +20,15 @@ const lifelongGoals = [
   },
 ]
 
-const dailyGoals = {
-  dailyDate: WED,
-  daily: { title: '', todos: [{ id: 't1', text: 'Buy milk', done: false }] },
-}
-
-const goalsLog = {
-  daily: { [MON]: { todos: [{ id: 't0', text: 'Old task', done: true }] } },
+const dayPlan = {
+  [MON]: { todos: [{ id: 't0', text: 'Old task', done: true }] },
+  [WED]: { todos: [{ id: 't1', text: 'Buy milk', done: false }] },
 }
 
 const doneMap = { [WED]: { 'lifelong|i1': true } }
 
 function week() {
-  return buildWeek({ refDate: WED, lifelongGoals, dailyGoals, goalsLog, doneMap, today: WED })
+  return buildWeek({ refDate: WED, lifelongGoals, dayPlan, doneMap, today: WED })
 }
 
 describe('weekdayKeyFor', () => {
@@ -61,18 +57,18 @@ describe('buildWeek', () => {
     expect(mon).not.toContain('Attend class')
   })
 
-  it('skips items from goals marked done', () => {
+  it('skips finished lifelong leaves', () => {
     const w = week()
     const allLabels = w.flatMap(d => d.items.map(it => it.label))
     expect(allLabels).not.toContain('x')
   })
 
-  it('shows live daily todos only on today and archived ones on past days', () => {
+  it('shows one-off todos on the dates they were planned for', () => {
     const w = week()
-    expect(w[2].items.some(it => it.source === 'daily' && it.label === 'Buy milk' && it.live)).toBe(true)
-    expect(w[0].items.some(it => it.source === 'daily' && it.label === 'Old task' && it.done)).toBe(true)
-    // future days get no daily todos
-    expect(w[4].items.filter(it => it.source === 'daily')).toHaveLength(0)
+    expect(w[2].items.some(it => it.source === 'oneoff' && it.label === 'Buy milk')).toBe(true)
+    expect(w[0].items.some(it => it.source === 'oneoff' && it.label === 'Old task' && it.done)).toBe(true)
+    // a day with no planned one-offs has none
+    expect(w[4].items.filter(it => it.source === 'oneoff')).toHaveLength(0)
   })
 
   it('reflects per-date done state for lifelong items', () => {

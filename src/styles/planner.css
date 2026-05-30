@@ -69,7 +69,7 @@
   transition: background .15s, border-color .15s, opacity .15s;
 }
 .wk-item:hover { border-color: var(--border-strong); }
-.wk-item.daily { border-left-color: var(--border-strong); }
+.wk-item.daily, .wk-item.oneoff { border-left-color: var(--border-strong); }
 .wk-item.static { cursor: default; }
 .wk-item[draggable='true'] { cursor: grab; }
 .wk-item[draggable='true']:active { cursor: grabbing; }
@@ -84,7 +84,24 @@
   transition: background .15s, border-color .15s;
 }
 .wk-item.done .wk-chk { background: var(--accent); border-color: var(--accent); }
+[data-theme='light'] .wk-item.done .wk-chk { color: #fff; }
 .wk-item.done .wk-lbl { color: var(--muted); text-decoration: line-through; }
+
+/* Per-day "+ add" affordance for a one-off todo */
+.wk-add {
+  display: flex; align-items: center; gap: 5px;
+  margin-top: 2px; padding: 4px 6px;
+  font-size: 11px; color: var(--muted);
+  border: 1px dashed transparent; border-radius: var(--r-sm);
+  background: transparent; width: 100%;
+}
+.wk-add:hover { color: var(--accent); border-color: var(--accent-line); }
+.wk-add-input {
+  margin-top: 2px; width: 100%;
+  background: var(--card); border: 1px solid var(--accent-line);
+  border-radius: var(--r-sm); color: var(--text);
+  font-family: inherit; font-size: 12px; padding: 5px 7px; outline: none;
+}
 
 .wk-lbl {
   flex: 1;
@@ -172,6 +189,34 @@
 .wk-board.compact .wk-chk { width: 11px; height: 11px; }
 .wk-board.compact .wk-lbl { font-size: 10px; }
 .wk-board.compact .wk-empty { font-size: 10px; padding: 2px; }
+
+/* ── Month view ───────────────────────────────────────── */
+.mo-wrap { display: grid; grid-template-columns: 1fr 320px; gap: 16px; align-items: start; }
+@media (max-width: 900px) { .mo-wrap { grid-template-columns: 1fr; } }
+
+.mo-title { font-size: 15px; font-weight: 600; letter-spacing: -.01em; margin-bottom: 12px; }
+.mo-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+.mo-head { margin-bottom: 6px; }
+.mo-wd { font-size: 10px; font-family: var(--font-mono); color: var(--muted); text-align: center; text-transform: uppercase; letter-spacing: .04em; }
+
+.mo-cell {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+  background: var(--bg); border: 1px solid var(--border); border-radius: var(--r-sm);
+  color: var(--text); transition: border-color .15s, background .15s;
+}
+.mo-cell:hover { border-color: var(--border-strong); }
+.mo-cell.out { opacity: .38; }
+.mo-cell.today { border-color: var(--accent-line); }
+.mo-cell.sel { border-color: var(--accent); background: var(--accent-soft); }
+.mo-day { font-family: var(--font-mono); font-size: 13px; font-weight: 600; }
+.mo-dots { display: flex; gap: 3px; height: 6px; }
+.mo-dot { width: 5px; height: 5px; border-radius: 50%; }
+.mo-dot.one { background: var(--accent); }
+.mo-dot.rec { background: var(--border-strong); }
+
+.mo-agenda { align-self: start; }
 
 /* ── Lower stack: week picker + completed sub-goals ───── */
 /* Full width, stacked — the consistency grid matches the dashboard card so it

@@ -13,6 +13,7 @@ export const STORE_KEYS = [
   'consistent:schedule-done',
   'consistent:settings',
   'consistent:lifelong:v2',
+  'consistent:dayplan',
 ]
 
 export const BACKUP_VERSION = 1

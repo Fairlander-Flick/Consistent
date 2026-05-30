@@ -1,11 +1,11 @@
 import { useMemo, useState } from 'react'
 import { useLifelongStore } from '../../store/useLifelongStore'
-import { useGoalsStore } from '../../store/useGoalsStore'
+import { useDayPlanStore } from '../../store/useDayPlanStore'
 import { useScheduleDoneStore } from '../../store/useScheduleDoneStore'
 import { buildWeek } from '../../lib/weekPlanner'
 import { todayISO } from '../../lib/dateUtils'
 import { nodeDone } from '../../lib/lifelongProgress'
-import { IconCheck } from '../ui/Icons'
+import { IconCheck, IconPlus } from '../ui/Icons'
 
 const DAY_LETTER = { Mon: 'M', Tue: 'T', Wed: 'W', Thu: 'T', Fri: 'F', Sat: 'S', Sun: 'S' }
 
@@ -29,27 +29,34 @@ function leafGroups(nodes) {
   return out
 }
 
+function matchesFilter(item, filter) {
+  if (filter === 'oneoff') return item.source === 'oneoff'
+  if (filter === 'recurring') return item.source === 'lifelong'
+  return true
+}
+
 // 7-column weekly board. `compact` renders a read-only summary for the bento.
-export function WeekBoard({ refDate, compact = false }) {
+// `filter` is 'all' | 'oneoff' | 'recurring'.
+export function WeekBoard({ refDate, compact = false, filter = 'all' }) {
   const ref = refDate || todayISO()
 
   const lifelongNodes = useLifelongStore(s => s.nodes)
   const toggleNodeDay = useLifelongStore(s => s.toggleNodeDay)
   const moveNodeDay   = useLifelongStore(s => s.moveNodeDay)
 
-  const dailyGoals = useGoalsStore(s => s.goals)
-  const goalsLog   = useGoalsStore(s => s.goalsLog)
-  const toggleTodo = useGoalsStore(s => s.toggleTodo)
+  const dayPlan      = useDayPlanStore(s => s.byDate)
+  const addTodo      = useDayPlanStore(s => s.addTodo)
+  const toggleTodo   = useDayPlanStore(s => s.toggleTodo)
+  const deleteTodo   = useDayPlanStore(s => s.deleteTodo)
 
   const done       = useScheduleDoneStore(s => s.done)
   const toggleDone = useScheduleDoneStore(s => s.toggle)
 
   const week = useMemo(
-    () => buildWeek({ refDate: ref, lifelongGoals: lifelongNodes, dailyGoals, goalsLog, doneMap: done }),
-    [ref, lifelongNodes, dailyGoals, goalsLog, done],
+    () => buildWeek({ refDate: ref, lifelongGoals: lifelongNodes, dayPlan, doneMap: done }),
+    [ref, lifelongNodes, dayPlan, done],
   )
 
-  // Fast lookup of a node's current scheduled days, to guard add-vs-remove.
   const daysOf = useMemo(() => {
     const m = new Map()
     const walk = (n) => {
@@ -62,22 +69,22 @@ export function WeekBoard({ refDate, compact = false }) {
 
   const [dragOver, setDragOver] = useState(null)
   const [trayOver, setTrayOver] = useState(false)
+  const [addFor, setAddFor] = useState(null)   // date whose add-input is open
+  const [addText, setAddText] = useState('')
 
-  function onItemToggle(day, item) {
-    if (item.source === 'lifelong') toggleDone(day.date, item.key)
-    else if (item.live) toggleTodo('daily', item.todoId)
+  function onItemToggle(item) {
+    if (item.source === 'lifelong') toggleDone(item._date, item.key)
+    else if (item.source === 'oneoff') toggleTodo(item.date, item.todoId)
   }
 
   function startDrag(e, payload) {
     e.dataTransfer.effectAllowed = 'move'
     e.dataTransfer.setData('text/plain', JSON.stringify(payload))
   }
-
   function readPayload(e) {
     try { return JSON.parse(e.dataTransfer.getData('text/plain')) } catch { return null }
   }
 
-  // Drop onto a day column: move (from another day) or schedule (from the tray).
   function onDropDay(e, targetDay) {
     e.preventDefault()
     setDragOver(null)
@@ -89,8 +96,6 @@ export function WeekBoard({ refDate, compact = false }) {
       toggleNodeDay(data.nodeId, targetDay.weekday)
     }
   }
-
-  // Drop back onto the tray: unschedule that occurrence.
   function onDropTray(e) {
     e.preventDefault()
     setTrayOver(false)
@@ -98,52 +103,81 @@ export function WeekBoard({ refDate, compact = false }) {
     if (data?.nodeId && data.fromDay) toggleNodeDay(data.nodeId, data.fromDay)
   }
 
+  function submitAdd(date) {
+    if (addText.trim()) addTodo(date, addText)
+    setAddText('')
+    setAddFor(null)
+  }
+
   const board = (
     <div className={'wk-board' + (compact ? ' compact' : '')}>
-      {week.map(day => (
-        <div
-          key={day.date}
-          className={
-            'wk-col'
-            + (day.isToday ? ' today' : '')
-            + (day.isPast ? ' past' : '')
-            + (dragOver === day.weekday ? ' dragover' : '')
-          }
-          onDragOver={compact ? undefined : (e) => { e.preventDefault(); if (dragOver !== day.weekday) setDragOver(day.weekday) }}
-          onDragLeave={compact ? undefined : () => setDragOver(d => (d === day.weekday ? null : d))}
-          onDrop={compact ? undefined : (e) => onDropDay(e, day)}
-        >
-          <div className="wk-col-h">
-            <div className="wk-col-day">
-              <span className="wk-col-wd">{compact ? day.weekday[0] : day.weekday}</span>
-              <span className="wk-col-dt">{day.day}</span>
+      {week.map(day => {
+        const items = day.items.filter(it => matchesFilter(it, filter))
+        const doneCount = items.filter(it => it.done).length
+        return (
+          <div
+            key={day.date}
+            className={
+              'wk-col'
+              + (day.isToday ? ' today' : '')
+              + (day.isPast ? ' past' : '')
+              + (dragOver === day.weekday ? ' dragover' : '')
+            }
+            onDragOver={compact ? undefined : (e) => { e.preventDefault(); if (dragOver !== day.weekday) setDragOver(day.weekday) }}
+            onDragLeave={compact ? undefined : () => setDragOver(d => (d === day.weekday ? null : d))}
+            onDrop={compact ? undefined : (e) => onDropDay(e, day)}
+          >
+            <div className="wk-col-h">
+              <div className="wk-col-day">
+                <span className="wk-col-wd">{compact ? day.weekday[0] : day.weekday}</span>
+                <span className="wk-col-dt">{day.day}</span>
+              </div>
+              {items.length > 0 && <span className="wk-count">{doneCount}/{items.length}</span>}
             </div>
-            {day.total > 0 && <span className="wk-count">{day.doneCount}/{day.total}</span>}
-          </div>
 
-          <div className="wk-col-body">
-            {day.items.length === 0 && <div className="wk-empty">{compact ? '·' : 'Drop here'}</div>}
+            <div className="wk-col-body">
+              {items.length === 0 && <div className="wk-empty">{compact ? '·' : '—'}</div>}
 
-            {day.items.map(item => {
-              const interactive = item.source === 'lifelong' || item.live
-              return (
-                <div
-                  key={item.key}
-                  className={'wk-item ' + item.source + (item.done ? ' done' : '') + (interactive ? '' : ' static')}
-                  draggable={!compact && item.draggable}
-                  onDragStart={!compact && item.draggable
-                    ? (e) => startDrag(e, { nodeId: item.itemId, fromDay: day.weekday })
-                    : undefined}
-                  onClick={interactive ? () => onItemToggle(day, item) : undefined}
-                >
-                  <span className="wk-chk">{item.done && <IconCheck size={10} />}</span>
-                  <span className="wk-lbl">{item.label}</span>
-                </div>
-              )
-            })}
+              {items.map(item => {
+                const interactive = item.source === 'lifelong' || item.source === 'oneoff'
+                return (
+                  <div
+                    key={item.key}
+                    className={'wk-item ' + item.source + (item.done ? ' done' : '') + (interactive ? '' : ' static')}
+                    draggable={!compact && item.draggable}
+                    onDragStart={!compact && item.draggable
+                      ? (e) => startDrag(e, { nodeId: item.itemId, fromDay: day.weekday })
+                      : undefined}
+                    onClick={interactive ? () => onItemToggle({ ...item, _date: day.date }) : undefined}
+                  >
+                    <span className="wk-chk">{item.done && <IconCheck size={10} />}</span>
+                    <span className="wk-lbl">{item.label}</span>
+                    {!compact && item.source === 'oneoff' && (
+                      <span className="wk-x" onClick={e => { e.stopPropagation(); deleteTodo(item.date, item.todoId) }}>×</span>
+                    )}
+                  </div>
+                )
+              })}
+
+              {!compact && filter !== 'recurring' && (
+                addFor === day.date ? (
+                  <input
+                    className="wk-add-input" autoFocus value={addText}
+                    placeholder="New todo…"
+                    onChange={e => setAddText(e.target.value)}
+                    onBlur={() => submitAdd(day.date)}
+                    onKeyDown={e => { if (e.key === 'Enter') submitAdd(day.date); if (e.key === 'Escape') { setAddText(''); setAddFor(null) } }}
+                  />
+                ) : (
+                  <button className="wk-add" onClick={() => { setAddText(''); setAddFor(day.date) }}>
+                    <IconPlus size={11} /> add
+                  </button>
+                )
+              )}
+            </div>
           </div>
-        </div>
-      ))}
+        )
+      })}
     </div>
   )
 
@@ -164,8 +198,7 @@ export function WeekBoard({ refDate, compact = false }) {
   )
 }
 
-// Backlog of all schedulable lifelong leaves, grouped by pursuit. Drag a chip
-// onto a day to schedule it; drag a scheduled chip back here to unschedule.
+// Backlog of all schedulable lifelong leaves, grouped by pursuit.
 function ItemTray({ groups, over, onDragStart, onDragOver, onDragLeave, onDrop }) {
   return (
     <div
