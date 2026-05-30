@@ -145,24 +145,45 @@ function ItemRow({ goal, item, store }) {
 // ── Goal menu (complete / restore / delete) ─────────────────
 function GoalMenu({ isDone, onComplete, onRestore, onDelete }) {
   const [open, setOpen] = useState(false)
+  const [pos, setPos] = useState(null)
   const ref = useRef(null)
+
   useEffect(() => {
     if (!open) return
+    const close = () => setOpen(false)
     const onOutside = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
     document.addEventListener('mousedown', onOutside)
-    return () => document.removeEventListener('mousedown', onOutside)
+    // The menu is fixed-positioned, so close it if the page scrolls or resizes
+    // (it would otherwise float away from its button).
+    window.addEventListener('scroll', close, true)
+    window.addEventListener('resize', close)
+    return () => {
+      document.removeEventListener('mousedown', onOutside)
+      window.removeEventListener('scroll', close, true)
+      window.removeEventListener('resize', close)
+    }
   }, [open])
 
+  // Anchor the dropdown to the button via fixed coordinates so it escapes the
+  // pursuit card's overflow clipping and the Lifelong scroll container.
+  const toggle = (e) => {
+    e.stopPropagation()
+    if (open) { setOpen(false); return }
+    const r = e.currentTarget.getBoundingClientRect()
+    setPos({ top: r.bottom + 4, right: Math.max(8, window.innerWidth - r.right) })
+    setOpen(true)
+  }
+
   return (
-    <div ref={ref} style={{ position: 'relative', flexShrink: 0 }} onClick={e => e.stopPropagation()}>
-      <button className="btn ghost sm" style={{ fontSize: 16, padding: '0 5px', color: 'var(--muted)', letterSpacing: 1 }}
-              onClick={() => setOpen(v => !v)} title="Options">···</button>
-      {open && (
-        <div className="ll-menu">
+    <div ref={ref} style={{ flexShrink: 0 }} onClick={e => e.stopPropagation()}>
+      <button type="button" className="btn ghost sm" style={{ fontSize: 16, padding: '0 5px', color: 'var(--muted)', letterSpacing: 1 }}
+              onClick={toggle} title="Options">···</button>
+      {open && pos && (
+        <div className="ll-menu" style={{ position: 'fixed', top: pos.top, right: pos.right }}>
           {isDone
-            ? <button onClick={() => { onRestore(); setOpen(false) }}>Restore</button>
-            : <button onClick={() => { onComplete(); setOpen(false) }}>Complete</button>}
-          <button style={{ color: 'var(--negative)' }} onClick={() => { onDelete(); setOpen(false) }}>Delete</button>
+            ? <button type="button" onClick={() => { onRestore(); setOpen(false) }}>Restore</button>
+            : <button type="button" onClick={() => { onComplete(); setOpen(false) }}>Complete</button>}
+          <button type="button" style={{ color: 'var(--negative)' }} onClick={() => { onDelete(); setOpen(false) }}>Delete</button>
         </div>
       )}
     </div>
