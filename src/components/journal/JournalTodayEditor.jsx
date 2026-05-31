@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useJournalStore } from '../../store/useJournalStore'
 import { MOODS, moodForScore } from '../../lib/journalMood'
+import { toast } from '../../store/useToastStore'
 
 const NUTRITION = [
   { value: 'good', label: 'Good', color: 'var(--accent)' },
@@ -83,7 +84,10 @@ export function JournalTodayEditor({ entry, onSubmit, submitLabel = 'Save entry'
       />
 
       <div className="jx-foot">
-        <button className="btn primary" onClick={() => onSubmit(local)}>{submitLabel}</button>
+        <button
+          className="btn primary"
+          onClick={() => { onSubmit(local); toast('Journal entry saved', { tone: 'success' }) }}
+        >{submitLabel}</button>
       </div>
     </>
   )

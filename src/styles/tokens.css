@@ -396,10 +396,11 @@ a:focus-visible, button:focus-visible, [role="button"]:focus-visible,
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  transition: background 120ms, border 120ms, color 120ms;
+  transition: background 120ms var(--ease-out), border-color 120ms var(--ease-out), color 120ms var(--ease-out), transform 80ms var(--ease-out);
   line-height: 1;
 }
 .btn:hover { background: var(--card-hover); border-color: var(--muted); }
+.btn:active { transform: translateY(1px) scale(0.985); }
 .btn.primary {
   background: var(--accent);
   color: var(--on-accent);
@@ -603,6 +604,59 @@ a:focus-visible, button:focus-visible, [role="button"]:focus-visible,
   to   { transform: scale(1); opacity: 1; }
 }
 .pop { animation: pop-in 180ms var(--ease-out) both; }
+
+/* ── Toast ─────────────────────────────────────── */
+.toaster {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 300;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+}
+@media (max-width: 1023px) {
+  /* Clear the bottom nav on mobile. */
+  .toaster { bottom: calc(68px + env(safe-area-inset-bottom)); left: 16px; right: 16px; align-items: center; }
+}
+.toast {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  max-width: 340px;
+  background: var(--card);
+  border: 1px solid var(--border-strong);
+  border-radius: 9px;
+  padding: 10px 14px;
+  font-size: 13px;
+  color: var(--text);
+  box-shadow: 0 10px 28px -10px rgba(0, 0, 0, 0.55);
+  cursor: pointer;
+  animation: toast-in 240ms var(--ease-out) both;
+}
+.toast.leaving { animation: toast-out 200ms var(--ease-in) both; }
+.toast-i {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--on-accent);
+  flex-shrink: 0;
+}
+.toast-i svg { width: 12px; height: 12px; }
+.toast-msg { min-width: 0; }
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes toast-out {
+  from { opacity: 1; transform: translateY(0); }
+  to   { opacity: 0; transform: translateY(8px) scale(0.97); }
+}
 
 /* ── Dashboard strip (streaks / recap, above the bento) ── */
 .dash-strip {
