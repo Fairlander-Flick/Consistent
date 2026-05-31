@@ -112,7 +112,7 @@ function WeightSection() {
               </div>
               {goal.reached ? (
                 <div style={{ padding: '6px 0', textAlign: 'center' }}>
-                  <div className="num num-md" style={{ color: 'var(--accent)' }}>Reached 🎉</div>
+                  <div className="num num-md" style={{ color: 'var(--accent)' }}>Reached</div>
                   <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4 }}>
                     You're at your {goal.target.toFixed(1)} kg target.
                   </div>

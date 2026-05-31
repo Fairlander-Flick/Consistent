@@ -35,11 +35,11 @@ export function LifelongGoalsCard() {
               <div key={r.id}>
                 <div className="row between" style={{ marginBottom: 6 }}>
                   <span style={{ fontWeight: 500 }}>{r.title}</span>
-                  <span className="mono" style={{ color: 'var(--accent)', fontSize: 'var(--fs-num-sm)' }}>
+                  <span className="mono prog" style={{ '--p': r.pct != null ? Math.round(r.pct * 100) : 0, fontSize: 'var(--fs-num-sm)' }}>
                     {r.pct != null ? `${Math.round(r.pct * 100)}%` : '—'}
                   </span>
                 </div>
-                <div className="ll-bar"><i style={{ width: `${r.pct != null ? Math.round(r.pct * 100) : 0}%` }} /></div>
+                <div className="ll-bar" style={{ '--p': r.pct != null ? Math.round(r.pct * 100) : 0 }}><i style={{ width: `${r.pct != null ? Math.round(r.pct * 100) : 0}%` }} /></div>
               </div>
             ))}
           </div>

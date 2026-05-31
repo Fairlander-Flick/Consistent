@@ -9,8 +9,8 @@ import { IconChevLeft, IconChevRight, IconTrash } from '../components/ui/Icons'
 const MONTH_FULL = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
 const FILTERS = [
   { k: 'all', label: 'All' },
-  { k: 'oneoff', label: '○ One-off' },
-  { k: 'recurring', label: '🔁 Recurring' },
+  { k: 'oneoff', label: 'One-off' },
+  { k: 'recurring', label: 'Recurring' },
 ]
 
 function shiftMonthISO(iso, months) {
@@ -102,8 +102,8 @@ export function Planner() {
         : <MonthBoard refDate={refDate} filter={filter} />}
 
       <div className="wk-legend">
-        <span><i className="wk-leg-dot lifelong" /> 🔁 Recurring (lifelong / habit)</span>
-        <span><i className="wk-leg-dot daily" /> ○ One-off todo</span>
+        <span><i className="wk-leg-dot lifelong" /> Recurring (lifelong / habit)</span>
+        <span><i className="wk-leg-dot daily" /> One-off todo</span>
         {mode === 'week' && (
           <span className="wk-leg-hint">Drag an item from the tray onto a day to schedule it · drag back to remove · “+ add” for a one-off.</span>
         )}

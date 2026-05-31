@@ -5,6 +5,7 @@ import { useScheduleDoneStore } from '../../store/useScheduleDoneStore'
 import { todayISO, getWeekStart } from '../../lib/dateUtils'
 import { IconEdit } from '../ui/Icons'
 import { useLifelongStore } from '../../store/useLifelongStore'
+import { useDayPlanStore } from '../../store/useDayPlanStore'
 import { lifelongTodosForDate } from '../../lib/lifelongTodos'
 
 const PERIODS = ['daily', 'weekly', 'monthly', 'yearly']
@@ -97,8 +98,18 @@ export function GoalsCard() {
     [showSchedule, today, lifelongNodes]
   )
   const lifelongDoneCount = lifelongTodos.filter(lt => done[today]?.[lt.key]).length
-  const totalCount = goalTasks.length + lifelongTodos.length
-  const totalDone  = goalDone + lifelongDoneCount
+
+  // One-off todos planned on the Planner for this day surface here too, kept in
+  // sync via the shared day-plan store — toggling here updates the Planner, and
+  // vice-versa. Daily period only; reads whatever date the dashboard is viewing.
+  const dayPlanByDate = useDayPlanStore(s => s.byDate)
+  const toggleDayTodo = useDayPlanStore(s => s.toggleTodo)
+  const deleteDayTodo = useDayPlanStore(s => s.deleteTodo)
+  const planTodos = period === 'daily' ? (dayPlanByDate[viewDate]?.todos ?? []) : []
+  const planDone  = planTodos.filter(t => t.done).length
+
+  const totalCount = goalTasks.length + lifelongTodos.length + planTodos.length
+  const totalDone  = goalDone + lifelongDoneCount + planDone
 
   function openEdit() {
     const defaultTitle = period === 'daily' && !goals[period]?.title
@@ -183,12 +194,40 @@ export function GoalsCard() {
                 <div className="lbl">{lt.label}</div>
                 <span style={{
                   fontSize: 9, padding: '1px 5px', borderRadius: 3, flexShrink: 0,
-                  background: 'rgba(74,222,128,.08)',
-                  color: 'rgba(74,222,128,.6)',
-                  border: '1px solid rgba(74,222,128,.15)',
+                  background: 'var(--accent-soft)',
+                  color: 'var(--accent)',
+                  border: '1px solid var(--accent-line)',
                 }}>
                   {lt.goalTitle}
                 </span>
+              </div>
+            )
+          })}
+          {planTodos.map(t => {
+            const live = !isViewingPast
+            return (
+              <div
+                key={'pl-' + t.id}
+                className={'todo' + (t.done ? ' done' : '')}
+                onClick={() => live && toggleDayTodo(viewDate, t.id)}
+                style={{ cursor: live ? 'pointer' : 'default' }}
+                title="From: Planner"
+              >
+                <div className="chk" style={{ pointerEvents: live ? undefined : 'none' }} />
+                <div className="lbl">{t.text}</div>
+                <span style={{
+                  fontSize: 9, padding: '1px 6px', borderRadius: 3, flexShrink: 0,
+                  background: 'var(--faint)', color: 'var(--text-mid)', border: '1px solid var(--border)',
+                }}>
+                  Planner
+                </span>
+                {live && (
+                  <div
+                    className="x"
+                    style={{ color: 'var(--negative)', fontSize: 16 }}
+                    onClick={e => { e.stopPropagation(); deleteDayTodo(viewDate, t.id) }}
+                  >×</div>
+                )}
               </div>
             )
           })}

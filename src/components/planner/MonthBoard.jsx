@@ -100,7 +100,7 @@ export function MonthBoard({ refDate, filter = 'all' }) {
                   <div className="chk" />
                   <div className="lbl">{item.label}</div>
                   {item.source === 'lifelong'
-                    ? <span className="chip" style={{ fontSize: 10 }}>🔁</span>
+                    ? <span className="chip" style={{ fontSize: 10 }}>Recurring</span>
                     : <div className="x" style={{ color: 'var(--negative)', fontSize: 16 }}
                         onClick={e => { e.stopPropagation(); deleteTodo(item.date, item.todoId) }}>×</div>}
                 </div>

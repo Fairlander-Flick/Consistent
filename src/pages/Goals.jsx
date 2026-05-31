@@ -11,13 +11,13 @@ const DOT_THRESHOLD = 24
 
 // Template palette shown when adding a node.
 const KINDS = [
-  { k: null,        icon: '📂', label: 'Category',   hint: 'holds sub-goals' },
-  { k: 'book',      icon: '📖', label: 'Book',       hint: 'pages', fields: ['unit', 'total'] },
-  { k: 'playlist',  icon: '🎬', label: 'Video list', hint: 'episodes', fields: ['total'] },
-  { k: 'task',      icon: '✓',  label: 'Task',       hint: 'done / not done' },
-  { k: 'checklist', icon: '📋', label: 'Checklist',  hint: 'inline sub-items' },
-  { k: 'habit',     icon: '🔁', label: 'Habit',      hint: 'weekly', fields: ['perWeek'] },
-  { k: 'custom',    icon: '🔢', label: 'Custom',     hint: 'unit + total', fields: ['unit', 'total'] },
+  { k: null,        label: 'Category',   hint: 'holds sub-goals' },
+  { k: 'book',      label: 'Book',       hint: 'pages', fields: ['unit', 'total'] },
+  { k: 'playlist',  label: 'Video list', hint: 'episodes', fields: ['total'] },
+  { k: 'task',      label: 'Task',       hint: 'done / not done' },
+  { k: 'checklist', label: 'Checklist',  hint: 'inline sub-items' },
+  { k: 'habit',     label: 'Habit',      hint: 'weekly', fields: ['perWeek'] },
+  { k: 'custom',    label: 'Custom',     hint: 'unit + total', fields: ['unit', 'total'] },
 ]
 
 function fmtRate(n) { return Number.isInteger(n) ? String(n) : n.toFixed(1) }
@@ -121,7 +121,7 @@ function NodeRow({ node, store, onOpen }) {
         </span>
       </button>
 
-      {!quickTask && <span className="gl-row-pct mono">{pctTxt}</span>}
+      {!quickTask && <span className="gl-row-pct mono" style={{ '--p': pct != null ? Math.round(pct * 100) : 0 }}>{pctTxt}</span>}
       <button className="btn ghost icon" title="Open" onClick={onOpen}><IconChevRight size={14} /></button>
       <button className="btn ghost icon" title="Delete" onClick={() => store.deleteNode(node.id)}>
         <IconTrash size={13} />
@@ -169,7 +169,7 @@ function LeafDetail({ node, store }) {
         </div>
       ) : (
         <>
-          <div className="ll-bar" style={{ marginBottom: 10 }}>
+          <div className="ll-bar" style={{ marginBottom: 10, '--p': Math.round((pct || 0) * 100) }}>
             <i style={{ width: `${Math.round((pct || 0) * 100)}%` }} />
           </div>
           <MeasuredFoot node={node} />
@@ -295,7 +295,6 @@ function AddNode({ parentId, store, isRoot }) {
       <div className="gl-kinds">
         {KINDS.map(t => (
           <button key={String(t.k)} className={'gl-kind' + (kind === t.k ? ' on' : '')} onClick={() => setKind(t.k)}>
-            <span className="gl-kind-i">{t.icon}</span>
             <span className="gl-kind-l">{t.label}</span>
             <span className="gl-kind-h">{t.hint}</span>
           </button>
