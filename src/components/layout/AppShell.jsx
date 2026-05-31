@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { Outlet, useNavigate } from 'react-router-dom'
+import { Outlet, useNavigate, useLocation } from 'react-router-dom'
 import { Sidebar } from './Sidebar'
 import { BottomNav } from './BottomNav'
 import { Toaster } from '../ui/Toaster'
@@ -9,6 +9,7 @@ import { useDailyReminder } from '../../lib/useDailyReminder'
 export function AppShell() {
   const { init } = useSettingsStore()
   const navigate = useNavigate()
+  const location = useLocation()
   useEffect(() => { init() }, [init])
   useDailyReminder()
 
@@ -32,7 +33,11 @@ export function AppShell() {
     <div className="app">
       <Sidebar />
       <main className="main">
-        <Outlet />
+        {/* Keyed by pathname so each navigation remounts the content and
+            replays the soft fade-up entrance (.route-enter in tokens.css). */}
+        <div className="route-enter" key={location.pathname}>
+          <Outlet />
+        </div>
       </main>
       <BottomNav />
       <Toaster />

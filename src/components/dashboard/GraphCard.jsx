@@ -3,6 +3,7 @@ import { useWeightStore } from '../../store/useWeightStore'
 import { RangeOverlay } from '../ui/Widgets'
 import { useSettingsStore } from '../../store/useSettingsStore'
 import { deltaTone } from '../../lib/deltaTone'
+import { CardTitleLink } from './CardTitleLink'
 
 const SVG_W = 600
 const SVG_H = 200
@@ -190,7 +191,7 @@ export function GraphCard() {
     <div className="card area-weight">
       <div className="card-h">
         <div className="row" style={{ gap: 8, alignItems: 'center' }}>
-          <h3>Weight</h3>
+          <CardTitleLink to="/consistency">Weight</CardTitleLink>
         </div>
         <div className="row" style={{ gap: 12 }}>
           <span style={{ fontSize: 10, color: 'var(--muted)' }}>↔ drag to select</span>

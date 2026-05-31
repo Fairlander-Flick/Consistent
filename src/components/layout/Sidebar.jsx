@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { NavLink } from 'react-router-dom'
+import { NavLink, Link } from 'react-router-dom'
 import { useSettingsStore } from '../../store/useSettingsStore'
 import { useAuthStore } from '../../store/useAuthStore'
 import { consumeBrandRect } from '../../lib/brandTransition'
@@ -52,7 +52,7 @@ export function Sidebar() {
 
   return (
     <aside className="sb">
-      <div className="sb-brand">
+      <Link to="/" className="sb-brand" aria-label="Go to dashboard">
         <img
           ref={logoRef}
           src="/sisyphus.png"
@@ -61,7 +61,7 @@ export function Sidebar() {
           style={{ background: 'none', objectFit: 'contain' }}
         />
         <div className="sb-brand-name">Consistent</div>
-      </div>
+      </Link>
 
       <div className="sb-section">Workspace</div>
       {navItems.map(({ to, label, Icon, end }) => (

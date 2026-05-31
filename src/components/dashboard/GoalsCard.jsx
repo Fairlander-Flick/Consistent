@@ -7,6 +7,7 @@ import { IconEdit } from '../ui/Icons'
 import { useLifelongStore } from '../../store/useLifelongStore'
 import { useDayPlanStore } from '../../store/useDayPlanStore'
 import { lifelongTodosForDate } from '../../lib/lifelongTodos'
+import { CardTitleLink } from './CardTitleLink'
 
 const PERIODS = ['daily', 'weekly', 'monthly', 'yearly']
 
@@ -142,7 +143,7 @@ export function GoalsCard() {
     <>
       <div className="card area-goals">
         <div className="card-h">
-          <h3>Goals</h3>
+          <CardTitleLink to="/goals">Goals</CardTitleLink>
           <div className="row" style={{ gap: 8, alignItems: 'center' }}>
             <div className="tabs">
               {PERIODS.map(t => (

@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { useLifelongStore } from '../../store/useLifelongStore'
 import { nodePct, treeAvgPct, isCategory } from '../../lib/lifelongProgress'
 import { IconChevRight } from '../ui/Icons'
+import { CardTitleLink } from './CardTitleLink'
 
 // Compact dashboard summary. The full tree (drill-in, editing) lives on /goals.
 export function LifelongGoalsCard() {
@@ -17,7 +18,7 @@ export function LifelongGoalsCard() {
   return (
     <div className="card area-life">
       <div className="card-h">
-        <h3>Lifelong Goals</h3>
+        <CardTitleLink to="/goals">Lifelong Goals</CardTitleLink>
         <span className="meta">
           {nodes.length} {nodes.length === 1 ? 'pursuit' : 'pursuits'}{avgPct != null ? ` · ${avgPct}%` : ''}
         </span>

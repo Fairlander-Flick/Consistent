@@ -3,6 +3,7 @@ import { useJournalStore } from '../../store/useJournalStore'
 import { useDashboard } from '../../lib/DashboardContext'
 import { todayISO } from '../../lib/dateUtils'
 import { moodForScore } from '../../lib/journalMood'
+import { CardTitleLink } from './CardTitleLink'
 
 const MONTH_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
 const DAY_SHORT = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
@@ -28,7 +29,7 @@ export function JournalCard() {
   return (
     <div className="card area-journal">
       <div className="card-h">
-        <h3>Journal</h3>
+        <CardTitleLink to="/journal">Journal</CardTitleLink>
         <span className="meta">{label}</span>
       </div>
 

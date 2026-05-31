@@ -3,6 +3,7 @@ import { useJournalStore } from '../../store/useJournalStore'
 import { todayISO } from '../../lib/dateUtils'
 import { useDashboard } from '../../lib/DashboardContext'
 import { buildYearGrid } from '../../lib/consistencyGrid'
+import { CardTitleLink } from './CardTitleLink'
 
 const DOW_LABELS = ['Mon', '', 'Wed', '', 'Fri', '', '']
 const CELL = 12
@@ -71,7 +72,7 @@ export function ConsistencyCard() {
   return (
     <div className="card area-contrib">
       <div className="card-h">
-        <h3>Consistency</h3>
+        <CardTitleLink to="/consistency">Consistency</CardTitleLink>
         <div className="row" style={{ gap: 10, alignItems: 'center' }}>
           <span className="meta">{activeDays} active days in {selectedYear}</span>
           <div className="tabs">
