@@ -8,6 +8,7 @@ import { useLifelongStore } from '../../store/useLifelongStore'
 import { useDayPlanStore } from '../../store/useDayPlanStore'
 import { lifelongTodosForDate } from '../../lib/lifelongTodos'
 import { CardTitleLink } from './CardTitleLink'
+import { Swap, Modal } from '../ui/transitions'
 
 const PERIODS = ['daily', 'weekly', 'monthly', 'yearly']
 
@@ -123,8 +124,8 @@ export function GoalsCard() {
   }
 
   function handleSave() {
+    // Closing (with its exit animation) is handled by the Modal shell's `close`.
     replacePeriod(period, { title: editTitle, todos: editTodos })
-    setEditOpen(false)
   }
 
   function handleAddTodo() {
@@ -174,6 +175,7 @@ export function GoalsCard() {
           </div>
         )}
 
+        <Swap swapKey={`${period}:${key}`}>
         <div className="row between" style={{ marginBottom: 8 }}>
           <div style={{ fontSize: 13, fontWeight: 500 }}>{goalTitle || '—'}</div>
           <div className="mono" style={{ fontSize: 11, color: 'var(--muted)' }}>
@@ -270,62 +272,65 @@ export function GoalsCard() {
             }} />
           </div>
         )}
+        </Swap>
       </div>
 
       {editOpen && (
-        <div className="modal-overlay" onClick={() => setEditOpen(false)}>
-          <div className="modal" style={{ width: 340 }} onClick={e => e.stopPropagation()}>
-            <h4>{period[0].toUpperCase() + period.slice(1)} Goals</h4>
+        <Modal onClose={() => setEditOpen(false)} width={340}>
+          {close => (
+            <>
+              <h4>{period[0].toUpperCase() + period.slice(1)} Goals</h4>
 
-            <div style={{ marginBottom: 14 }}>
-              <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 4 }}>Title</div>
-              <input
-                className="input"
-                style={{ width: '100%', boxSizing: 'border-box' }}
-                placeholder="e.g. This week's focus"
-                value={editTitle}
-                onChange={e => setEditTitle(e.target.value)}
-              />
-            </div>
-
-            <div style={{ marginBottom: 10 }}>
-              <div className="col" style={{ gap: 0 }}>
-                {editTodos.map(t => (
-                  <div key={t.id} className="todo">
-                    <div className="chk" style={{ pointerEvents: 'none' }} />
-                    <div className="lbl">{t.text}</div>
-                    <div
-                      className="x"
-                      style={{ color: 'var(--negative)', fontSize: 16, opacity: 1 }}
-                      onClick={() => handleRemoveEditTodo(t.id)}
-                    >×</div>
-                  </div>
-                ))}
-                {editTodos.length === 0 && (
-                  <div style={{ fontSize: 12, color: 'var(--muted)', padding: '6px 4px' }}>No tasks yet.</div>
-                )}
+              <div style={{ marginBottom: 14 }}>
+                <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 4 }}>Title</div>
+                <input
+                  className="input"
+                  style={{ width: '100%', boxSizing: 'border-box' }}
+                  placeholder="e.g. This week's focus"
+                  value={editTitle}
+                  onChange={e => setEditTitle(e.target.value)}
+                />
               </div>
-            </div>
 
-            <div className="row" style={{ gap: 6, marginBottom: 16 }}>
-              <input
-                ref={addInputRef}
-                className="input"
-                style={{ flex: 1 }}
-                placeholder="Add a task..."
-                value={addText}
-                onChange={e => setAddText(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && handleAddTodo()}
-              />
-              <button className="btn primary sm" onClick={handleAddTodo}>Add</button>
-            </div>
+              <div style={{ marginBottom: 10 }}>
+                <div className="col" style={{ gap: 0 }}>
+                  {editTodos.map(t => (
+                    <div key={t.id} className="todo">
+                      <div className="chk" style={{ pointerEvents: 'none' }} />
+                      <div className="lbl">{t.text}</div>
+                      <div
+                        className="x"
+                        style={{ color: 'var(--negative)', fontSize: 16, opacity: 1 }}
+                        onClick={() => handleRemoveEditTodo(t.id)}
+                      >×</div>
+                    </div>
+                  ))}
+                  {editTodos.length === 0 && (
+                    <div style={{ fontSize: 12, color: 'var(--muted)', padding: '6px 4px' }}>No tasks yet.</div>
+                  )}
+                </div>
+              </div>
 
-            <div className="modal-footer">
-              <button className="btn ghost" onClick={() => setEditOpen(false)}>Cancel</button>
-              <button className="btn primary" onClick={handleSave}>Save</button>
-            </div>
-          </div>
-        </div>
+              <div className="row" style={{ gap: 6, marginBottom: 16 }}>
+                <input
+                  ref={addInputRef}
+                  className="input"
+                  style={{ flex: 1 }}
+                  placeholder="Add a task..."
+                  value={addText}
+                  onChange={e => setAddText(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleAddTodo()}
+                />
+                <button className="btn primary sm" onClick={handleAddTodo}>Add</button>
+              </div>
+
+              <div className="modal-footer">
+                <button className="btn ghost" onClick={close}>Cancel</button>
+                <button className="btn primary" onClick={() => { handleSave(); close() }}>Save</button>
+              </div>
+            </>
+          )}
+        </Modal>
       )}
     </>
   )

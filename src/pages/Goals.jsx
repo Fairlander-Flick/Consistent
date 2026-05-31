@@ -1,9 +1,11 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useLifelongStore, findNode, nodePath } from '../store/useLifelongStore'
 import {
   nodePct, isCategory, nodeDone, progressSummary,
 } from '../lib/lifelongProgress'
-import { IconPlus, IconTrash, IconCheck, IconChevRight } from '../components/ui/Icons'
+import { IconPlus, IconTrash, IconChevRight } from '../components/ui/Icons'
+import { ManageTree } from '../components/goals/ManageTree'
+import { TextSwap, PopNumber, SuccessCheck, useShake, useHoverSpring } from '../components/ui/transitions'
 
 const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
@@ -31,6 +33,7 @@ export function Goals() {
   const store = useLifelongStore()
   const { nodes } = store
   const [currentId, setCurrentId] = useState(null)
+  const [mode, setMode] = useState('browse')
 
   // The focused node may have been deleted — fall back to the root level.
   const focused = currentId ? findNode(nodes, currentId) : null
@@ -38,17 +41,31 @@ export function Goals() {
   const children = focused ? (focused.children || []) : nodes
   const showLeafControls = focused && !isCategory(focused) && focused.kind != null
 
+  const tabsRef = useRef(null)
+  useHoverSpring(tabsRef)
+
   return (
     <>
       <div className="page-head">
         <div>
           <h1>Goals</h1>
           <div className="sub" style={{ marginTop: 4 }}>
-            Your lifelong pursuits — nest them as deep as you like.
+            <TextSwap>
+              {mode === 'manage'
+                ? 'Reorganize freely — drag rows, or use the ⋯ menu.'
+                : 'Your lifelong pursuits — nest them as deep as you like.'}
+            </TextSwap>
           </div>
+        </div>
+        <div className="tabs" ref={tabsRef}>
+          <button className={'t-avatar' + (mode === 'browse' ? ' active' : '')} onClick={() => setMode('browse')}>Browse</button>
+          <button className={'t-avatar' + (mode === 'manage' ? ' active' : '')} onClick={() => setMode('manage')}>Manage</button>
         </div>
       </div>
 
+      <div key={mode} className={'gl-mode ' + (mode === 'manage' ? 'from-right' : 'from-left')}>
+      {mode === 'manage' ? <ManageTree store={store} /> : (
+      <>
       {/* Breadcrumb */}
       <div className="gl-crumb">
         <button className={'gl-crumb-link' + (currentId ? '' : ' here')} onClick={() => setCurrentId(null)}>
@@ -81,6 +98,9 @@ export function Goals() {
       </div>
 
       <AddNode parentId={currentId} store={store} isRoot={!focused} />
+      </>
+      )}
+      </div>
     </>
   )
 }
@@ -104,11 +124,11 @@ function NodeRow({ node, store, onOpen }) {
           onClick={() => store.toggleTask(node.id)}
           title="Toggle done"
         >
-          {node.done && <IconCheck size={11} />}
+          {node.done && <SuccessCheck size={11} style={{ '--check-y-amount': '10px' }} />}
         </button>
       ) : (
         <span className="gl-row-ring" style={{ '--p': pct != null ? Math.round(pct * 100) : 0 }}>
-          <i>{pct != null ? Math.round(pct * 100) : '·'}</i>
+          <i>{pct != null ? <PopNumber value={Math.round(pct * 100)} /> : '·'}</i>
         </span>
       )}
 
@@ -121,7 +141,7 @@ function NodeRow({ node, store, onOpen }) {
         </span>
       </button>
 
-      {!quickTask && <span className="gl-row-pct mono" style={{ '--p': pct != null ? Math.round(pct * 100) : 0 }}>{pctTxt}</span>}
+      {!quickTask && <span className="gl-row-pct mono" style={{ '--p': pct != null ? Math.round(pct * 100) : 0 }}><PopNumber value={pctTxt} /></span>}
       <button className="btn ghost icon" title="Open" onClick={onOpen}><IconChevRight size={14} /></button>
       <button className="btn ghost icon" title="Delete" onClick={() => store.deleteNode(node.id)}>
         <IconTrash size={13} />
@@ -200,7 +220,7 @@ function LeafDetail({ node, store }) {
       {/* task */}
       {node.kind === 'task' && (
         <button className={'btn' + (node.done ? '' : ' primary')} onClick={() => store.toggleTask(node.id)}>
-          {node.done ? 'Mark not done' : 'Mark done'}
+          <TextSwap>{node.done ? 'Mark not done' : 'Mark done'}</TextSwap>
         </button>
       )}
 
@@ -247,11 +267,13 @@ function MeasuredFoot({ node }) {
 
 function DaySchedule({ node, store }) {
   const set = new Set(node.days || [])
+  const ref = useRef(null)
+  useHoverSpring(ref)
   return (
-    <div className="gl-days">
+    <div className="gl-days" ref={ref}>
       <span className="gl-days-l">Schedule</span>
       {WEEKDAYS.map(d => (
-        <button key={d} className={'gl-day' + (set.has(d) ? ' on' : '')}
+        <button key={d} className={'gl-day t-avatar' + (set.has(d) ? ' on' : '')}
           onClick={() => store.toggleNodeDay(node.id, d)}>{d[0]}</button>
       ))}
     </div>
@@ -270,9 +292,13 @@ function AddNode({ parentId, store, isRoot }) {
   const tmpl = KINDS.find(t => t.k === kind) || KINDS[0]
   const fields = tmpl.fields || []
 
+  const kindsRef = useRef(null)
+  const { inputRef, trigger } = useShake()
+  useHoverSpring(kindsRef, [open])
+
   function reset() { setTitle(''); setTotal(''); setPerWeek(''); setOpen(false) }
   function add() {
-    if (!title.trim()) return
+    if (!title.trim()) { trigger(); return }
     store.addNode(parentId, {
       title, kind,
       unit: fields.includes('unit') ? unit : (kind === 'playlist' ? 'episodes' : null),
@@ -292,9 +318,9 @@ function AddNode({ parentId, store, isRoot }) {
 
   return (
     <div className="card gl-addform">
-      <div className="gl-kinds">
+      <div className="gl-kinds" ref={kindsRef}>
         {KINDS.map(t => (
-          <button key={String(t.k)} className={'gl-kind' + (kind === t.k ? ' on' : '')} onClick={() => setKind(t.k)}>
+          <button key={String(t.k)} className={'gl-kind t-avatar' + (kind === t.k ? ' on' : '')} onClick={() => setKind(t.k)}>
             <span className="gl-kind-l">{t.label}</span>
             <span className="gl-kind-h">{t.hint}</span>
           </button>
@@ -302,7 +328,7 @@ function AddNode({ parentId, store, isRoot }) {
       </div>
 
       <div className="col gap-2" style={{ marginTop: 12 }}>
-        <input className="input" autoFocus placeholder={kind === null ? 'Category name (e.g. AI Bachelor)' : 'Title'}
+        <input ref={inputRef} className="input t-input" autoFocus placeholder={kind === null ? 'Category name (e.g. AI Bachelor)' : 'Title'}
           value={title} onChange={e => setTitle(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && add()} />
 

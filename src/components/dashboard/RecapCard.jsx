@@ -4,6 +4,7 @@ import { useGoalsStore } from '../../store/useGoalsStore'
 import { periodRecap, monthDates, yearDates } from '../../lib/recap'
 import { isoWeekDates, todayISO } from '../../lib/dateUtils'
 import { useDashboard } from '../../lib/DashboardContext'
+import { Swap } from '../ui/transitions'
 
 function Metric({ label, value, sub, tone }) {
   return (
@@ -55,7 +56,7 @@ export function RecapCard() {
           </div>
         </div>
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }}>
+      <Swap swapKey={period} className="recap-metrics" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }}>
         <Metric
           label="Avg sleep"
           value={r.sleepAvg != null ? `${r.sleepAvg.toFixed(1)}h` : '—'}
@@ -67,7 +68,7 @@ export function RecapCard() {
           sub={r.goalsTotal ? `${Math.round((r.goalsDone / r.goalsTotal) * 100)}% done` : 'none set'}
           tone={r.goalsTotal && r.goalsDone === r.goalsTotal ? 'pos' : undefined}
         />
-      </div>
+      </Swap>
     </div>
   )
 }

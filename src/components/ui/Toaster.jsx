@@ -1,24 +1,42 @@
 import { useToastStore } from '../../store/useToastStore'
-import { IconCheck } from './Icons'
 
-// Renders the toast queue at a fixed corner. Mounted once in AppShell.
+// Bottom-center toasts. Click anywhere to dismiss. An optional action button
+// (e.g. Undo) runs onAction then dismisses.
 export function Toaster() {
   const toasts = useToastStore(s => s.toasts)
   const dismiss = useToastStore(s => s.dismiss)
-  if (toasts.length === 0) return null
+
+  if (!toasts.length) return null
 
   return (
-    <div className="toaster" role="status" aria-live="polite">
+    <div style={{
+      position: 'fixed', bottom: 20, left: '50%', transform: 'translateX(-50%)',
+      display: 'flex', flexDirection: 'column', gap: 8, zIndex: 1000,
+    }}>
       {toasts.map(t => (
         <div
           key={t.id}
-          className={'toast' + (t.tone !== 'default' ? ' ' + t.tone : '') + (t.leaving ? ' leaving' : '')}
           onClick={() => dismiss(t.id)}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 14,
+            background: 'var(--text)', color: 'var(--bg)', padding: '10px 16px',
+            borderRadius: 8, fontSize: 13, fontWeight: 500, cursor: 'pointer',
+            boxShadow: '0 4px 16px rgba(0,0,0,0.2)', maxWidth: 360,
+          }}
         >
-          {t.tone === 'success' && (
-            <span className="toast-i"><IconCheck size={12} /></span>
+          <span>{t.message}</span>
+          {t.actionLabel && (
+            <button
+              onClick={e => { e.stopPropagation(); t.onAction?.(); dismiss(t.id) }}
+              style={{
+                background: 'none', border: 'none', color: 'var(--bg)',
+                font: 'inherit', fontWeight: 700, textDecoration: 'underline',
+                cursor: 'pointer', padding: 0, flexShrink: 0,
+              }}
+            >
+              {t.actionLabel}
+            </button>
           )}
-          <span className="toast-msg">{t.message}</span>
         </div>
       ))}
     </div>

@@ -1,6 +1,15 @@
 import { create } from 'zustand'
 import { loadData, saveData } from '../lib/storage'
 import { todayISO } from '../lib/dateUtils'
+import {
+  moveNode as tMove,
+  groupNodes as tGroup,
+  ungroupNode as tUngroup,
+  duplicateNode as tDuplicate,
+  convertNode as tConvert,
+  indentNode as tIndent,
+  outdentNode as tOutdent,
+} from '../lib/lifelongTree'
 
 // v2 — recursive tree. Clean start: the old `consistent:lifelong` (2-level
 // pursuit/item) shape is intentionally NOT migrated.
@@ -96,8 +105,21 @@ export const useLifelongStore = create((set, get) => {
   const commit = (nodes) => { saveData(KEY, nodes); set({ nodes }) }
   const patch = (id, fn) => commit(mapNode(get().nodes, id, fn))
 
+  // Snapshot the current tree into _undo, then commit the next tree. Structural
+  // and destructive ops route through here so a single-level Undo always works.
+  // A no-op transform (same reference) is ignored — no toast-able change.
+  const transform = (fn) => {
+    const prev = get().nodes
+    const next = fn(prev)
+    if (next === prev) return false
+    saveData(KEY, next)
+    set({ nodes: next, _undo: prev })
+    return true
+  }
+
   return {
     nodes: load(),
+    _undo: null,
 
     addNode: (parentId, partial) => {
       const node = newNode(partial || {})
@@ -108,7 +130,27 @@ export const useLifelongStore = create((set, get) => {
 
     updateNode: (id, p) => patch(id, n => ({ ...n, ...p })),
 
-    deleteNode: (id) => commit(removeNode(get().nodes, id)),
+    deleteNode: (id) => transform(nodes => removeNode(nodes, id)),
+    deleteMany: (ids) => transform(nodes => (ids || []).reduce((acc, id) => removeNode(acc, id), nodes)),
+
+    // ── structural ops (undoable) ───────────────────────────
+    // All wrap the pure functions in lifelongTree.js. Each snapshots first via
+    // transform(); an illegal op (returns same tree) leaves _undo untouched.
+    moveNode: (id, newParentId, index) => transform(nodes => tMove(nodes, id, newParentId, index)),
+    groupNodes: (ids, title) => transform(nodes => tGroup(nodes, ids, title)),
+    ungroupNode: (id) => transform(nodes => tUngroup(nodes, id)),
+    duplicateNode: (id) => transform(nodes => tDuplicate(nodes, id)),
+    indentNode: (id) => transform(nodes => tIndent(nodes, id)),
+    outdentNode: (id) => transform(nodes => tOutdent(nodes, id)),
+    convertNode: (id, newKind) => transform(nodes => mapNode(nodes, id, n => tConvert(n, newKind))),
+
+    // Single-level undo: restore the last snapshot, then clear it.
+    undo: () => {
+      const prev = get()._undo
+      if (!prev) return
+      saveData(KEY, prev)
+      set({ nodes: prev, _undo: null })
+    },
 
     toggleCollapsed: (id) => patch(id, n => ({ ...n, collapsed: !n.collapsed })),
 

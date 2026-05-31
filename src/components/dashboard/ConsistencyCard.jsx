@@ -4,6 +4,7 @@ import { todayISO } from '../../lib/dateUtils'
 import { useDashboard } from '../../lib/DashboardContext'
 import { buildYearGrid } from '../../lib/consistencyGrid'
 import { CardTitleLink } from './CardTitleLink'
+import { Swap } from '../ui/transitions'
 
 const DOW_LABELS = ['Mon', '', 'Wed', '', 'Fri', '', '']
 const CELL = 12
@@ -83,7 +84,7 @@ export function ConsistencyCard() {
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 2 }}>
+      <Swap swapKey={selectedYear} style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 2 }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: GAP, marginTop: 18, flexShrink: 0 }}>
           {DOW_LABELS.map((lbl, i) => (
             <div key={i} style={{ height: CELL, fontSize: 9, color: 'var(--muted)', fontFamily: 'var(--font-mono)', lineHeight: `${CELL}px`, width: 24, textAlign: 'right' }}>
@@ -131,7 +132,7 @@ export function ConsistencyCard() {
             ))}
           </div>
         </div>
-      </div>
+      </Swap>
 
       {hover && (
         <div className="tt" style={{

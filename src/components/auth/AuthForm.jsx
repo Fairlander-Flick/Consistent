@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useAuthStore } from '../../store/useAuthStore'
+import { useShake } from '../ui/transitions'
 
 function IconEye() {
   return (
@@ -25,6 +26,7 @@ export function AuthForm({ onAuthSuccess }) {
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const { signIn, signUp, error, busy, clearError } = useAuthStore()
+  const { inputRef, trigger } = useShake()
 
   async function onSubmit(e) {
     e.preventDefault()
@@ -36,6 +38,7 @@ export function AuthForm({ onAuthSuccess }) {
       if (created) ok = await signIn(username, password)
     }
     if (ok) onAuthSuccess?.()
+    else trigger()
   }
 
   function switchMode(next) {
@@ -46,7 +49,7 @@ export function AuthForm({ onAuthSuccess }) {
   const isSignup = mode === 'signup'
 
   return (
-    <form className="af" onSubmit={onSubmit}>
+    <form ref={inputRef} className="af t-input" onSubmit={onSubmit}>
       <h1 className="af-title">{isSignup ? 'Create Account' : 'Sign In'}</h1>
 
       <label className="af-field">

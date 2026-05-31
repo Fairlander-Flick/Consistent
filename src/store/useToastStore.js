@@ -9,10 +9,12 @@ const DEFAULT_DURATION = 2800
 export const useToastStore = create((set, get) => ({
   toasts: [],
 
-  show: (message, { tone = 'default', duration = DEFAULT_DURATION } = {}) => {
+  show: (message, { tone = 'default', duration, actionLabel = null, onAction = null } = {}) => {
     const id = nextId++
-    set(s => ({ toasts: [...s.toasts, { id, message, tone }] }))
-    if (duration > 0) setTimeout(() => get().dismiss(id), duration)
+    // Toasts carrying an action (e.g. Undo) linger longer so they're reachable.
+    const ttl = duration ?? (actionLabel ? 5000 : DEFAULT_DURATION)
+    set(s => ({ toasts: [...s.toasts, { id, message, tone, actionLabel, onAction }] }))
+    if (ttl > 0) setTimeout(() => get().dismiss(id), ttl)
     return id
   },
 
