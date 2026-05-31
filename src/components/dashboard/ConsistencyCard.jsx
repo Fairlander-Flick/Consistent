@@ -4,7 +4,7 @@ import { todayISO } from '../../lib/dateUtils'
 import { useDashboard } from '../../lib/DashboardContext'
 import { buildYearGrid } from '../../lib/consistencyGrid'
 import { CardTitleLink } from './CardTitleLink'
-import { Swap } from '../ui/transitions'
+import { Swap, PopNumber } from '../ui/transitions'
 
 const DOW_LABELS = ['Mon', '', 'Wed', '', 'Fri', '', '']
 const CELL = 12
@@ -75,10 +75,10 @@ export function ConsistencyCard() {
       <div className="card-h">
         <CardTitleLink to="/consistency">Consistency</CardTitleLink>
         <div className="row" style={{ gap: 10, alignItems: 'center' }}>
-          <span className="meta">{activeDays} active days in {selectedYear}</span>
+          <span className="meta"><PopNumber value={activeDays} /> active days in {selectedYear}</span>
           <div className="tabs">
             {years.map(y => (
-              <button key={y} className={selectedYear === y ? 'active' : ''} onClick={() => setSelectedYear(y)}>{y}</button>
+              <button type="button" key={y} className={selectedYear === y ? 'active' : ''} onClick={() => setSelectedYear(y)}>{y}</button>
             ))}
           </div>
         </div>
@@ -105,7 +105,7 @@ export function ConsistencyCard() {
             ))}
           </div>
 
-          <div style={{
+          <div className="cg-grid" style={{
             display: 'grid',
             gridTemplateRows: `repeat(7, ${CELL}px)`,
             gridAutoFlow: 'column',
@@ -115,13 +115,15 @@ export function ConsistencyCard() {
             {cells.map((cell, i) => cell === null ? (
               <div key={`lead-${i}`} style={{ width: CELL, height: CELL }} />
             ) : (
-              <div
+              <button
+                type="button"
                 key={cell.dateStr}
                 className="cg-square"
                 data-fill={cell.level}
                 data-today={cell.dateStr === todayStr ? '1' : '0'}
+                aria-label={cell.dateStr}
                 style={{
-                  width: CELL, height: CELL, cursor: 'pointer',
+                  width: CELL, height: CELL, cursor: 'pointer', padding: 0,
                   outline: cell.dateStr === viewDate && viewDate !== todayStr ? '1.5px solid var(--accent)' : 'none',
                   outlineOffset: '1px',
                 }}

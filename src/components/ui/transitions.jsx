@@ -82,7 +82,7 @@ export function TextSwap({ children, className = '' }) {
 // ── Number pop-in (02) ──────────────────────────────────────
 // Each character re-enters with a blurred slide whenever `value` changes; the
 // last two characters stagger so decimals/percent feel alive.
-export function PopNumber({ value, className = '' }) {
+export function PopNumber({ value, className = '', style }) {
   const ref = useRef(null)
   const prev = useRef(String(value))
   const str = String(value)
@@ -99,7 +99,7 @@ export function PopNumber({ value, className = '' }) {
 
   const chars = str.split('')
   return (
-    <span ref={ref} className={'t-digit-group ' + className}>
+    <span ref={ref} className={'t-digit-group ' + className} style={style}>
       {chars.map((ch, i) => {
         const stagger = i === chars.length - 2 ? '1' : i === chars.length - 1 ? '2' : undefined
         return <span key={i} className="t-digit" data-stagger={stagger}>{ch}</span>

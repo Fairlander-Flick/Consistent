@@ -7,6 +7,7 @@ import {
   IconDashboard, IconConsistency, IconJournal, IconTarget,
   IconSun, IconMoon, IconSettings, IconChevRight, IconCalendar,
 } from '../ui/Icons'
+import { IconSwap, TextSwap } from '../ui/transitions'
 
 const navItems = [
   { to: '/', label: 'Dashboard', Icon: IconDashboard, end: true },
@@ -77,22 +78,24 @@ export function Sidebar() {
       ))}
 
       <div className="sb-foot">
-        <div className="sb-item" onClick={toggleTheme} role="button">
-          {dark ? <IconSun size={14} /> : <IconMoon size={14} />}
-          <span>{dark ? 'Light' : 'Dark'} mode</span>
-        </div>
+        <button type="button" className="sb-item" onClick={toggleTheme}
+          style={{ background: 'none', border: 'none', width: '100%', font: 'inherit', textAlign: 'left', cursor: 'pointer' }}>
+          <IconSwap state={dark ? 'a' : 'b'} a={<IconSun size={14} />} b={<IconMoon size={14} />} />
+          <TextSwap>{`${dark ? 'Light' : 'Dark'} mode`}</TextSwap>
+        </button>
         <NavLink to="/settings" className={({ isActive }) => 'sb-item' + (isActive ? ' active' : '')}>
           <IconSettings size={14} />
           <span>Settings</span>
         </NavLink>
         {user && (
-          <div className="sb-item" onClick={signOut} role="button" title={`@${user.username}`}>
+          <button type="button" className="sb-item" onClick={signOut} title={`@${user.username}`}
+            style={{ background: 'none', border: 'none', width: '100%', font: 'inherit', textAlign: 'left', cursor: 'pointer' }}>
             <IconChevRight size={14} />
             <span>Sign out</span>
             <span style={{ marginLeft: 'auto', fontSize: 10, color: 'var(--muted)' }}>
               @{user.username}
             </span>
-          </div>
+          </button>
         )}
       </div>
     </aside>

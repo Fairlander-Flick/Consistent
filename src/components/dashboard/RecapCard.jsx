@@ -4,7 +4,7 @@ import { useGoalsStore } from '../../store/useGoalsStore'
 import { periodRecap, monthDates, yearDates } from '../../lib/recap'
 import { isoWeekDates, todayISO } from '../../lib/dateUtils'
 import { useDashboard } from '../../lib/DashboardContext'
-import { Swap } from '../ui/transitions'
+import { Swap, PopNumber } from '../ui/transitions'
 
 function Metric({ label, value, sub, tone }) {
   return (
@@ -12,9 +12,8 @@ function Metric({ label, value, sub, tone }) {
       <div style={{ fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>
         {label}
       </div>
-      <div className="num num-md" style={{ color: tone === 'pos' ? 'var(--accent)' : tone === 'neg' ? 'var(--negative)' : 'var(--text)' }}>
-        {value}
-      </div>
+      <PopNumber className="num num-md" value={value} style={{ color: tone === 'pos' ? 'var(--accent)' : tone === 'neg' ? 'var(--negative)' : 'var(--text)' }} />
+
       {sub && <div style={{ fontSize: 10, color: 'var(--muted)', marginTop: 3, fontFamily: 'var(--font-mono)' }}>{sub}</div>}
     </div>
   )
@@ -50,9 +49,9 @@ export function RecapCard() {
             <span className="meta" style={{ color: 'var(--text-mid)' }}>as of today</span>
           )}
           <div className="tabs">
-            <button className={period === 'week' ? 'active' : ''} onClick={() => setPeriod('week')}>This week</button>
-            <button className={period === 'month' ? 'active' : ''} onClick={() => setPeriod('month')}>This month</button>
-            <button className={period === 'year' ? 'active' : ''} onClick={() => setPeriod('year')}>This year</button>
+            <button type="button" className={period === 'week' ? 'active' : ''} onClick={() => setPeriod('week')}>This week</button>
+            <button type="button" className={period === 'month' ? 'active' : ''} onClick={() => setPeriod('month')}>This month</button>
+            <button type="button" className={period === 'year' ? 'active' : ''} onClick={() => setPeriod('year')}>This year</button>
           </div>
         </div>
       </div>

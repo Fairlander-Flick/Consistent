@@ -333,11 +333,28 @@ a:focus-visible, button:focus-visible, [role="button"]:focus-visible,
   font-weight: 500;
   user-select: none;
   border: 1px solid transparent;
+  position: relative;
   transition: background 120ms, color 120ms;
   text-decoration: none;
 }
+/* Active-route indicator — an accent bar that grows in on the left edge,
+   giving navigation a spatial anchor rather than a flat background swap. */
+.sb-item::before {
+  content: '';
+  position: absolute;
+  left: -2px;
+  top: 50%;
+  width: 2.5px;
+  height: 0;
+  border-radius: 2px;
+  background: var(--accent);
+  transform: translateY(-50%);
+  transition: height 200ms var(--ease-out);
+}
+.sb-item.active::before { height: 15px; }
 .sb-item:hover { background: var(--faint); color: var(--text); }
 .sb-item.active { background: var(--faint); color: var(--text); }
+@media (prefers-reduced-motion: reduce) { .sb-item::before { transition: none; } }
 .sb-item svg { width: 14px; height: 14px; flex-shrink: 0; opacity: 0.85; }
 
 .sb-foot {
@@ -378,8 +395,23 @@ a:focus-visible, button:focus-visible, [role="button"]:focus-visible,
   letter-spacing: 0.04em;
   text-decoration: none;
 }
+.bn-item { position: relative; transition: color 120ms var(--ease-out); }
+.bn-item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 0;
+  height: 2px;
+  border-radius: 0 0 2px 2px;
+  background: var(--accent);
+  transform: translateX(-50%);
+  transition: width 200ms var(--ease-out);
+}
 .bn-item.active { color: var(--text); }
+.bn-item.active::before { width: 22px; }
 .bn-item svg { width: 18px; height: 18px; }
+@media (prefers-reduced-motion: reduce) { .bn-item::before { transition: none; } }
 
 /* ── Main ──────────────────────────────────────── */
 .main {
@@ -581,8 +613,10 @@ a:focus-visible, button:focus-visible, [role="button"]:focus-visible,
   border-radius: 3px;
   flex-shrink: 0;
   position: relative;
-  transition: all 120ms;
+  transition: background 140ms var(--ease-out), border-color 140ms var(--ease-out), transform 120ms var(--ease-out);
 }
+/* Press feedback — the box dips when the row is pressed, confirming the tap. */
+.todo:active .chk { transform: scale(0.86); }
 .todo.done .chk {
   background: var(--accent);
   border-color: var(--accent);
@@ -597,6 +631,19 @@ a:focus-visible, button:focus-visible, [role="button"]:focus-visible,
   border: solid var(--on-accent);
   border-width: 0 1.5px 1.5px 0;
   transform: rotate(45deg);
+  transform-origin: 50% 60%;
+  animation: chk-pop 200ms var(--ease-out) backwards;
+}
+/* The tick pops in (scaled + faded) when a todo flips to done, instead of
+   appearing flat. */
+@keyframes chk-pop {
+  from { opacity: 0; transform: rotate(45deg) scale(0.3); }
+  to   { opacity: 1; transform: rotate(45deg) scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .todo .chk { transition: background 140ms, border-color 140ms; }
+  .todo:active .chk { transform: none; }
+  .todo.done .chk::after { animation: none; }
 }
 .todo.done .lbl { color: var(--muted); text-decoration: line-through; }
 .todo .lbl {
@@ -627,14 +674,21 @@ a:focus-visible, button:focus-visible, [role="button"]:focus-visible,
   flex-shrink: 0;
   position: relative;
   cursor: pointer;
-  transition: transform 100ms, background 100ms;
+  transform-origin: center;
+  transition: transform 120ms var(--ease-out), background 100ms;
 }
 .cg-square[data-fill="1"] { background: color-mix(in oklab, var(--accent) 30%, var(--cg-empty)); }
 .cg-square[data-fill="2"] { background: color-mix(in oklab, var(--accent) 58%, var(--cg-empty)); }
 .cg-square[data-fill="3"] { background: color-mix(in oklab, var(--accent) 85%, var(--cg-empty)); }
 .cg-square[data-fill="4"] { background: var(--accent); }
 .cg-square[data-today="1"] { border-color: var(--text); }
-.cg-square:hover { transform: scale(1.4); z-index: 2; }
+.cg-square:hover { transform: scale(1.25); z-index: 2; }
+
+/* First-load wipe — the heatmap reveals left→right instead of snapping in.
+   Replays on year switch (occasional), collapses under reduced-motion. */
+@keyframes cg-wipe { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+.cg-grid { animation: cg-wipe var(--dur-4) var(--ease-out) backwards; }
+@media (prefers-reduced-motion: reduce) { .cg-grid { animation: none; } }
 
 /* ── Badge / chip ─────────────────────────────── */
 .chip {
@@ -719,6 +773,15 @@ a:focus-visible, button:focus-visible, [role="button"]:focus-visible,
 }
 .pop { animation: pop-in 180ms var(--ease-out) both; }
 
+/* Inline reveal — for panels/forms that mount on demand (add-forms, log rows,
+   detail cards). Eases in from slightly below with a faint scale so it grows
+   into place instead of snapping open. `backwards` keeps no trapped transform. */
+@keyframes reveal-rise {
+  from { opacity: 0; transform: translateY(6px) scale(0.985); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.reveal { animation: reveal-rise var(--dur-3) var(--ease-out) backwards; }
+
 /* ── Motion polish ─────────────────────────────────────
    Soft, unobtrusive page-level motion. The route content fades up on every
    navigation, and the bento/strip cards settle in with a gentle stagger so a
@@ -797,7 +860,23 @@ a:focus-visible, button:focus-visible, [role="button"]:focus-visible,
   flex-shrink: 0;
 }
 .toast-i svg { width: 12px; height: 12px; }
+.toast.tone-error .toast-i { background: var(--negative); }
 .toast-msg { min-width: 0; }
+.toast-action {
+  flex-shrink: 0;
+  margin-left: 4px;
+  padding: 0;
+  background: none;
+  border: none;
+  color: var(--accent);
+  font: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+  transition: opacity 120ms var(--ease-out);
+}
+.toast-action:hover { opacity: 0.7; }
 @keyframes toast-in {
   from { opacity: 0; transform: translateY(10px); }
   to   { opacity: 1; transform: translateY(0); }

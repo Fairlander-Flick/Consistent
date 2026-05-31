@@ -8,7 +8,7 @@ import { useLifelongStore } from '../../store/useLifelongStore'
 import { useDayPlanStore } from '../../store/useDayPlanStore'
 import { lifelongTodosForDate } from '../../lib/lifelongTodos'
 import { CardTitleLink } from './CardTitleLink'
-import { Swap, Modal } from '../ui/transitions'
+import { Swap, Modal, PopNumber } from '../ui/transitions'
 
 const PERIODS = ['daily', 'weekly', 'monthly', 'yearly']
 
@@ -148,13 +148,13 @@ export function GoalsCard() {
           <div className="row" style={{ gap: 8, alignItems: 'center' }}>
             <div className="tabs">
               {PERIODS.map(t => (
-                <button key={t} className={period === t ? 'active' : ''} onClick={() => setPeriod(t)}>
+                <button type="button" key={t} className={period === t ? 'active' : ''} onClick={() => setPeriod(t)}>
                   {t[0].toUpperCase() + t.slice(1)}
                 </button>
               ))}
             </div>
             {canEdit && (
-              <button className="btn icon" onClick={openEdit} title="Edit goals">
+              <button type="button" className="btn icon" onClick={openEdit} title="Edit goals">
                 <IconEdit size={13} />
               </button>
             )}
@@ -179,7 +179,7 @@ export function GoalsCard() {
         <div className="row between" style={{ marginBottom: 8 }}>
           <div style={{ fontSize: 13, fontWeight: 500 }}>{goalTitle || '—'}</div>
           <div className="mono" style={{ fontSize: 11, color: 'var(--muted)' }}>
-            {totalDone} / {totalCount} done
+            <PopNumber value={totalDone} /> / {totalCount} done
           </div>
         </div>
 
@@ -190,7 +190,10 @@ export function GoalsCard() {
               <div
                 key={'lf-' + lt.key}
                 className={'todo' + (isDone ? ' done' : '')}
+                role="button"
+                tabIndex={0}
                 onClick={() => toggleScheduleDone(today, lt.key)}
+                onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleScheduleDone(today, lt.key) } }}
                 title={`From: ${lt.goalTitle}`}
               >
                 <div className="chk"></div>
@@ -212,7 +215,10 @@ export function GoalsCard() {
               <div
                 key={'pl-' + t.id}
                 className={'todo' + (t.done ? ' done' : '')}
+                role="button"
+                tabIndex={live ? 0 : -1}
                 onClick={() => live && toggleDayTodo(viewDate, t.id)}
+                onKeyDown={e => { if (live && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); toggleDayTodo(viewDate, t.id) } }}
                 style={{ cursor: live ? 'pointer' : 'default' }}
                 title="From: Planner"
               >
@@ -225,11 +231,13 @@ export function GoalsCard() {
                   Planner
                 </span>
                 {live && (
-                  <div
+                  <button
+                    type="button"
                     className="x"
-                    style={{ color: 'var(--negative)', fontSize: 16 }}
+                    aria-label="Delete todo"
+                    style={{ color: 'var(--negative)', fontSize: 16, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
                     onClick={e => { e.stopPropagation(); deleteDayTodo(viewDate, t.id) }}
-                  >×</div>
+                  >×</button>
                 )}
               </div>
             )
@@ -238,19 +246,24 @@ export function GoalsCard() {
             <div
               key={t.id}
               className={'todo' + (t.done ? ' done' : '')}
+              role="button"
+              tabIndex={canEdit ? 0 : -1}
               onClick={() => canEdit && hasGoals && toggleTodo(period, t.id)}
+              onKeyDown={e => { if (canEdit && hasGoals && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); toggleTodo(period, t.id) } }}
               style={{ cursor: canEdit ? 'pointer' : 'default' }}
             >
               <div className="chk" style={{ pointerEvents: canEdit ? undefined : 'none' }} />
               <div className="lbl">{t.text}</div>
               {canEdit && hasGoals && (
-                <div
+                <button
+                  type="button"
                   className="x"
-                  style={{ color: 'var(--negative)', fontSize: 16 }}
+                  aria-label="Delete task"
+                  style={{ color: 'var(--negative)', fontSize: 16, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
                   onClick={e => { e.stopPropagation(); deleteTodo(period, t.id) }}
                 >
                   ×
-                </div>
+                </button>
               )}
             </div>
           ))}
@@ -258,7 +271,7 @@ export function GoalsCard() {
             <div style={{ fontSize: 12, color: 'var(--muted)', padding: '12px 4px' }}>
               {isViewingPast
                 ? 'No goals recorded.'
-                : <>No goals yet.{' '}<button className="btn ghost sm" style={{ padding: '2px 6px' }} onClick={openEdit}>Add one</button></>
+                : <>No goals yet.{' '}<button type="button" className="btn ghost sm" style={{ padding: '2px 6px' }} onClick={openEdit}>Add one</button></>
               }
             </div>
           )}
@@ -285,6 +298,7 @@ export function GoalsCard() {
                 <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 4 }}>Title</div>
                 <input
                   className="input"
+                  aria-label="Goal set title"
                   style={{ width: '100%', boxSizing: 'border-box' }}
                   placeholder="e.g. This week's focus"
                   value={editTitle}
@@ -298,11 +312,13 @@ export function GoalsCard() {
                     <div key={t.id} className="todo">
                       <div className="chk" style={{ pointerEvents: 'none' }} />
                       <div className="lbl">{t.text}</div>
-                      <div
+                      <button
+                        type="button"
                         className="x"
-                        style={{ color: 'var(--negative)', fontSize: 16, opacity: 1 }}
+                        aria-label="Remove task"
+                        style={{ color: 'var(--negative)', fontSize: 16, opacity: 1, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
                         onClick={() => handleRemoveEditTodo(t.id)}
-                      >×</div>
+                      >×</button>
                     </div>
                   ))}
                   {editTodos.length === 0 && (
@@ -315,18 +331,19 @@ export function GoalsCard() {
                 <input
                   ref={addInputRef}
                   className="input"
+                  aria-label="Add a task"
                   style={{ flex: 1 }}
                   placeholder="Add a task..."
                   value={addText}
                   onChange={e => setAddText(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && handleAddTodo()}
                 />
-                <button className="btn primary sm" onClick={handleAddTodo}>Add</button>
+                <button type="button" className="btn primary sm" onClick={handleAddTodo}>Add</button>
               </div>
 
               <div className="modal-footer">
-                <button className="btn ghost" onClick={close}>Cancel</button>
-                <button className="btn primary" onClick={() => { handleSave(); close() }}>Save</button>
+                <button type="button" className="btn ghost" onClick={close}>Cancel</button>
+                <button type="button" className="btn primary" onClick={() => { handleSave(); close() }}>Save</button>
               </div>
             </>
           )}
