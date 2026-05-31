@@ -45,10 +45,10 @@ export function ManageRow({ row, store, depth, selected, onToggleSelect, onActio
 
   return (
     <div ref={setNodeRef} style={style} className={'mng-row' + (selected ? ' sel' : '')}>
-      <button className="mng-handle" {...attributes} {...listeners} title="Drag to move" aria-label="Drag to move">⠿</button>
+      <button type="button" className="mng-handle" {...attributes} {...listeners} title="Drag to move" aria-label="Drag to move">⠿</button>
 
       {node.children?.length ? (
-        <button className="mng-chev" onClick={() => store.toggleCollapsed(node.id)}
+        <button type="button" className="mng-chev" onClick={() => store.toggleCollapsed(node.id)}
           title={node.collapsed ? 'Expand' : 'Collapse'}>
           <IconSwap state={node.collapsed ? 'b' : 'a'} a={<span>▾</span>} b={<span>▸</span>} />
         </button>
@@ -69,16 +69,16 @@ export function ManageRow({ row, store, depth, selected, onToggleSelect, onActio
       </div>
 
       <div className="mng-menu-wrap" ref={menuRef}>
-        <button className="mng-more" onClick={() => (menuOpen ? closeMenu() : setMenuOpen(true))} aria-label="Actions">⋯</button>
+        <button type="button" className="mng-more" onClick={() => (menuOpen ? closeMenu() : setMenuOpen(true))} aria-label="Actions">⋯</button>
         <div className={'mng-menu t-dropdown' + (menuOpen ? ' is-open' : '') + (menuClosing ? ' is-closing' : '')}
           data-origin="top-right">
-          <button onClick={() => act('edit')}>Edit / rename</button>
-          <button onClick={() => act('move')}>Move to…</button>
-          <button onClick={() => act('indent')}>Indent</button>
-          <button onClick={() => act('outdent')}>Outdent</button>
-          {node.children?.length > 0 && <button onClick={() => act('ungroup')}>Ungroup</button>}
-          <button onClick={() => act('duplicate')}>Duplicate</button>
-          <button className="danger" onClick={() => act('delete')}>Delete</button>
+          <button type="button" onClick={() => act('edit')}>Edit / rename</button>
+          <button type="button" onClick={() => act('move')}>Move to…</button>
+          <button type="button" onClick={() => act('indent')}>Indent</button>
+          <button type="button" onClick={() => act('outdent')}>Outdent</button>
+          {node.children?.length > 0 && <button type="button" onClick={() => act('ungroup')}>Ungroup</button>}
+          <button type="button" onClick={() => act('duplicate')}>Duplicate</button>
+          <button type="button" className="danger" onClick={() => act('delete')}>Delete</button>
         </div>
       </div>
     </div>

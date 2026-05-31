@@ -24,6 +24,7 @@ export function Dashboard() {
   const today = new Date()
 
   return (
+    // React Compiler auto-memoizes this value, so an inline object is safe here.
     <DashboardContext.Provider value={{ viewDate, setViewDate }}>
       <div className="page-head">
         <div>
@@ -51,6 +52,7 @@ export function Dashboard() {
             Viewing <strong>{formatViewDate(viewDate)}</strong>
           </span>
           <button
+            type="button"
             className="btn ghost sm"
             onClick={() => setViewDate(todayStr)}
           >

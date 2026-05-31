@@ -39,6 +39,7 @@ export function JournalTodayEditor({ entry, onSubmit, submitLabel = 'Save entry'
       <div className="jm-row">
         {MOODS.map(m => (
           <button
+            type="button"
             key={m.key}
             className={'jm' + (mood && mood.key === m.key ? ' on' : '')}
             style={{ '--c': m.color }}
@@ -54,9 +55,9 @@ export function JournalTodayEditor({ entry, onSubmit, submitLabel = 'Save entry'
         <div>
           <div className="jx-lbl">Sleep</div>
           <div className="stepper">
-            <button onClick={() => stepSleep(-0.5)}>−</button>
+            <button type="button" onClick={() => stepSleep(-0.5)} aria-label="Decrease sleep">−</button>
             <span className="val">{local.sleepHours != null ? `${local.sleepHours}h` : '—'}</span>
-            <button onClick={() => stepSleep(0.5)}>+</button>
+            <button type="button" onClick={() => stepSleep(0.5)} aria-label="Increase sleep">+</button>
           </div>
         </div>
         <div>
@@ -64,6 +65,7 @@ export function JournalTodayEditor({ entry, onSubmit, submitLabel = 'Save entry'
           <div className="jx-nut">
             {NUTRITION.map(n => (
               <button
+                type="button"
                 key={n.value}
                 className={'jx-chip' + (local.nutrition === n.value ? ' on' : '')}
                 style={{ '--c': n.color }}
@@ -77,6 +79,7 @@ export function JournalTodayEditor({ entry, onSubmit, submitLabel = 'Save entry'
       <div className="jx-lbl">How are you feeling?</div>
       <textarea
         className="input jx-ta"
+        aria-label="How are you feeling?"
         placeholder="Write freely…"
         value={local.feelings}
         onChange={e => setLocal(p => ({ ...p, feelings: e.target.value }))}
@@ -85,6 +88,7 @@ export function JournalTodayEditor({ entry, onSubmit, submitLabel = 'Save entry'
 
       <div className="jx-foot">
         <button
+          type="button"
           className="btn primary"
           onClick={() => { onSubmit(local); toast('Journal entry saved', { tone: 'success' }) }}
         >{submitLabel}</button>

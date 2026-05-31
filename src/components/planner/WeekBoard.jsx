@@ -35,6 +35,16 @@ function matchesFilter(item, filter) {
   return true
 }
 
+// Drag helpers — pure, so they live at module scope rather than being
+// reallocated on every render.
+function startDrag(e, payload) {
+  e.dataTransfer.effectAllowed = 'move'
+  e.dataTransfer.setData('text/plain', JSON.stringify(payload))
+}
+function readPayload(e) {
+  try { return JSON.parse(e.dataTransfer.getData('text/plain')) } catch { return null }
+}
+
 // 7-column weekly board. `compact` renders a read-only summary for the bento.
 // `filter` is 'all' | 'oneoff' | 'recurring'.
 export function WeekBoard({ refDate, compact = false, filter = 'all' }) {
@@ -75,14 +85,6 @@ export function WeekBoard({ refDate, compact = false, filter = 'all' }) {
   function onItemToggle(item) {
     if (item.source === 'lifelong') toggleDone(item._date, item.key)
     else if (item.source === 'oneoff') toggleTodo(item.date, item.todoId)
-  }
-
-  function startDrag(e, payload) {
-    e.dataTransfer.effectAllowed = 'move'
-    e.dataTransfer.setData('text/plain', JSON.stringify(payload))
-  }
-  function readPayload(e) {
-    try { return JSON.parse(e.dataTransfer.getData('text/plain')) } catch { return null }
   }
 
   function onDropDay(e, targetDay) {
@@ -145,10 +147,13 @@ export function WeekBoard({ refDate, compact = false, filter = 'all' }) {
                     key={item.key}
                     className={'wk-item ' + item.source + (item.done ? ' done' : '') + (interactive ? '' : ' static')}
                     draggable={!compact && item.draggable}
+                    role={interactive ? 'button' : undefined}
+                    tabIndex={interactive ? 0 : undefined}
                     onDragStart={!compact && item.draggable
                       ? (e) => startDrag(e, { nodeId: item.itemId, fromDay: day.weekday })
                       : undefined}
                     onClick={interactive ? () => onItemToggle({ ...item, _date: day.date }) : undefined}
+                    onKeyDown={interactive ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onItemToggle({ ...item, _date: day.date }) } } : undefined}
                   >
                     <span className="wk-chk">{item.done && <IconCheck size={10} />}</span>
                     <span className="wk-lbl">{item.label}</span>
@@ -162,14 +167,15 @@ export function WeekBoard({ refDate, compact = false, filter = 'all' }) {
               {!compact && filter !== 'recurring' && (
                 addFor === day.date ? (
                   <input
-                    className="wk-add-input" autoFocus value={addText}
+                    className="wk-add-input reveal" autoFocus value={addText}
+                    aria-label="New todo"
                     placeholder="New todo…"
                     onChange={e => setAddText(e.target.value)}
                     onBlur={() => submitAdd(day.date)}
                     onKeyDown={e => { if (e.key === 'Enter') submitAdd(day.date); if (e.key === 'Escape') { setAddText(''); setAddFor(null) } }}
                   />
                 ) : (
-                  <button className="wk-add" onClick={() => { setAddText(''); setAddFor(day.date) }}>
+                  <button type="button" className="wk-add" onClick={() => { setAddText(''); setAddFor(day.date) }}>
                     <IconPlus size={11} /> add
                   </button>
                 )

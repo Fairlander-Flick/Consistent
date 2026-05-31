@@ -106,7 +106,7 @@ export function AuthForm({ onAuthSuccess }) {
         </button>
       </div>
 
-      <p className="af-hint">Save your password — there's no recovery.</p>
+      <p className="af-hint">Save your password; there's no recovery.</p>
     </form>
   )
 }

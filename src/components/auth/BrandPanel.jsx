@@ -5,7 +5,7 @@ export function BrandPanel() {
 
   return (
     <aside className="bp">
-      <div className="bp-mark">— CONSISTENT —</div>
+      <div className="bp-mark">· CONSISTENT ·</div>
 
       <img
         src="/sisyphus.png"

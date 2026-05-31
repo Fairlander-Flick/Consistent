@@ -62,6 +62,7 @@ export function MonthBoard({ refDate, filter = 'all' }) {
             const showRec = (filter !== 'oneoff') && c.recurringCount > 0
             return (
               <button
+                type="button"
                 key={c.date}
                 className={'mo-cell'
                   + (c.inMonth ? '' : ' out')
@@ -84,7 +85,7 @@ export function MonthBoard({ refDate, filter = 'all' }) {
         {!selected ? (
           <div className="wk-done-empty">Pick a day to see and plan its todos.</div>
         ) : (
-          <>
+          <div key={selected} className="reveal">
             <div className="card-h">
               <h3>{selected}</h3>
               <span className="meta">{agenda.length} item{agenda.length === 1 ? '' : 's'}</span>
@@ -95,14 +96,18 @@ export function MonthBoard({ refDate, filter = 'all' }) {
                 <div
                   key={item.key}
                   className={'todo' + (item.done ? ' done' : '')}
+                  role="button"
+                  tabIndex={0}
                   onClick={() => item.source === 'oneoff' ? toggleTodo(item.date, item.todoId) : toggleDone(selected, item.key)}
+                  onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); item.source === 'oneoff' ? toggleTodo(item.date, item.todoId) : toggleDone(selected, item.key) } }}
                 >
                   <div className="chk" />
                   <div className="lbl">{item.label}</div>
                   {item.source === 'lifelong'
                     ? <span className="chip" style={{ fontSize: 10 }}>Recurring</span>
-                    : <div className="x" style={{ color: 'var(--negative)', fontSize: 16 }}
-                        onClick={e => { e.stopPropagation(); deleteTodo(item.date, item.todoId) }}>×</div>}
+                    : <button type="button" className="x" aria-label="Delete todo"
+                        style={{ color: 'var(--negative)', fontSize: 16, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                        onClick={e => { e.stopPropagation(); deleteTodo(item.date, item.todoId) }}>×</button>}
                 </div>
               ))}
               {agenda.length === 0 && (
@@ -112,13 +117,13 @@ export function MonthBoard({ refDate, filter = 'all' }) {
 
             {filter !== 'recurring' && (
               <div className="row" style={{ gap: 6, marginTop: 10 }}>
-                <input className="input" placeholder="Add a todo for this day…" value={addText}
+                <input className="input" aria-label="Add a todo for this day" placeholder="Add a todo for this day…" value={addText}
                   onChange={e => setAddText(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && submitAdd()} />
-                <button className="btn primary sm" onClick={submitAdd}><IconPlus size={12} /></button>
+                <button type="button" className="btn primary sm" onClick={submitAdd} aria-label="Add todo"><IconPlus size={12} /></button>
               </div>
             )}
-          </>
+          </div>
         )}
       </div>
     </div>

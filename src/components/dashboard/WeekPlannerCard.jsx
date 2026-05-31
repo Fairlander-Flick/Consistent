@@ -11,7 +11,7 @@ export function WeekPlannerCard() {
     <div className="card area-week">
       <div className="card-h">
         <CardTitleLink to="/planner">This Week</CardTitleLink>
-        <button className="btn ghost sm" onClick={() => navigate('/planner')}>
+        <button type="button" className="btn ghost sm" onClick={() => navigate('/planner')}>
           Open Planner <IconChevRight size={12} style={{ verticalAlign: '-2px' }} />
         </button>
       </div>

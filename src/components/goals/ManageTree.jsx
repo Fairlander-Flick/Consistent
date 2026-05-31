@@ -110,15 +110,15 @@ export function ManageTree({ store }) {
         <div className="mng-bulkbar">
           <span>{selectedIds.length} selected</span>
           <div className="row" style={{ gap: 8 }}>
-            <button className="btn sm" disabled={!canGroup} onClick={bulkGroup}>Group</button>
-            <button className="btn sm danger" onClick={bulkDelete}>Delete</button>
-            <button className="btn ghost sm" onClick={() => setSelected(new Set())}>Clear</button>
+            <button type="button" className="btn sm" disabled={!canGroup} onClick={bulkGroup}>Group</button>
+            <button type="button" className="btn sm danger" onClick={bulkDelete}>Delete</button>
+            <button type="button" className="btn ghost sm" onClick={() => setSelected(new Set())}>Clear</button>
           </div>
         </div>
       )}
 
       {rows.length === 0 ? (
-        <div className="gl-empty">No pursuits yet — switch to Browse to add your first one.</div>
+        <div className="gl-empty">No pursuits yet. Switch to Browse to add your first one.</div>
       ) : (
         <DndContext
           sensors={sensors}
@@ -157,8 +157,8 @@ export function ManageTree({ store }) {
               <h4>Delete “{confirmDelete.title}”?</h4>
               <p>This also removes its {countDescendants(confirmDelete)} nested item(s). You can undo right after.</p>
               <div className="modal-footer">
-                <button className="btn ghost" onClick={close}>Cancel</button>
-                <button className="btn primary" style={{ background: 'var(--negative)', borderColor: 'var(--negative)' }}
+                <button type="button" className="btn ghost" onClick={close}>Cancel</button>
+                <button type="button" className="btn primary" style={{ background: 'var(--negative)', borderColor: 'var(--negative)' }}
                   onClick={() => { store.deleteNode(confirmDelete.id); withUndo('Deleted'); close() }}>
                   Delete
                 </button>

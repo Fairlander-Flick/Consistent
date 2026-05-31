@@ -20,7 +20,7 @@ function kindKey(node) {
 
 export function NodeEditModal({ node, store, onClose }) {
   const [title, setTitle] = useState(node.title || '')
-  const [kind, setKind] = useState(kindKey(node))
+  const [kind, setKind] = useState(() => kindKey(node))
   const [unit, setUnit] = useState(node.unit || 'pages')
   const [total, setTotal] = useState(node.total ?? '')
   const [perWeek, setPerWeek] = useState(node.perWeek ?? '')
@@ -57,7 +57,7 @@ export function NodeEditModal({ node, store, onClose }) {
           <div style={{ marginBottom: 14 }}>
             <div className="mng-field-l">Title</div>
             <input ref={inputRef} className="input t-input" style={{ width: '100%', boxSizing: 'border-box' }}
-              autoFocus value={title} onChange={e => setTitle(e.target.value)}
+              aria-label="Title" autoFocus value={title} onChange={e => setTitle(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && save(close)} />
           </div>
 
@@ -65,7 +65,7 @@ export function NodeEditModal({ node, store, onClose }) {
             <div className="mng-field-l">Type</div>
             <div className="gl-kinds" ref={kindsRef}>
               {KINDS.map(t => (
-                <button key={t.k} className={'gl-kind t-avatar' + (kind === t.k ? ' on' : '')} onClick={() => setKind(t.k)}>
+                <button type="button" key={t.k} className={'gl-kind t-avatar' + (kind === t.k ? ' on' : '')} onClick={() => setKind(t.k)}>
                   <span className="gl-kind-l">{t.label}</span>
                   <span className="gl-kind-h">{t.hint}</span>
                 </button>
@@ -79,15 +79,15 @@ export function NodeEditModal({ node, store, onClose }) {
           {(fields.includes('unit') || fields.includes('total') || fields.includes('perWeek')) && (
             <div className="row" style={{ gap: 6, flexWrap: 'wrap', marginBottom: 14 }}>
               {fields.includes('unit') && (
-                <input className="input" placeholder="unit" value={unit} style={{ width: 100 }}
+                <input className="input" aria-label="Unit" placeholder="unit" value={unit} style={{ width: 100 }}
                   onChange={e => setUnit(e.target.value)} />
               )}
               {fields.includes('total') && (
-                <input className="input" type="number" placeholder="total" value={total} style={{ width: 110 }}
+                <input className="input" type="number" aria-label="Total" placeholder="total" value={total} style={{ width: 110 }}
                   onChange={e => setTotal(e.target.value)} />
               )}
               {fields.includes('perWeek') && (
-                <input className="input" type="number" placeholder="×/week" value={perWeek} style={{ width: 110 }}
+                <input className="input" type="number" aria-label="Times per week" placeholder="×/week" value={perWeek} style={{ width: 110 }}
                   onChange={e => setPerWeek(e.target.value)} />
               )}
             </div>
@@ -95,16 +95,16 @@ export function NodeEditModal({ node, store, onClose }) {
 
           <div style={{ marginBottom: 16 }}>
             <div className="mng-field-l">Deadline (optional)</div>
-            <input className="input" type="date" value={deadline}
+            <input className="input" type="date" aria-label="Deadline" value={deadline}
               onChange={e => setDeadline(e.target.value)} style={{ width: 'auto' }} />
             {deadline && (
-              <button className="btn ghost sm" style={{ marginLeft: 8 }} onClick={() => setDeadline('')}>Clear</button>
+              <button type="button" className="btn ghost sm" style={{ marginLeft: 8 }} onClick={() => setDeadline('')}>Clear</button>
             )}
           </div>
 
           <div className="modal-footer">
-            <button className="btn ghost" onClick={close}>Cancel</button>
-            <button className="btn primary" onClick={() => save(close)}>Save</button>
+            <button type="button" className="btn ghost" onClick={close}>Cancel</button>
+            <button type="button" className="btn primary" onClick={() => save(close)}>Save</button>
           </div>
         </>
       )}

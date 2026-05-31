@@ -1,7 +1,10 @@
 import { useToastStore } from '../../store/useToastStore'
+import { IconCheck } from './Icons'
 
-// Bottom-center toasts. Click anywhere to dismiss. An optional action button
-// (e.g. Undo) runs onAction then dismisses.
+// Bottom-corner toasts. They slide+fade in on mount and play the exit
+// animation (via the store's two-phase `leaving` flag) before unmounting.
+// Click or press a toast to dismiss; an optional action button (e.g. Undo)
+// runs onAction then dismisses.
 export function Toaster() {
   const toasts = useToastStore(s => s.toasts)
   const dismiss = useToastStore(s => s.dismiss)
@@ -9,30 +12,26 @@ export function Toaster() {
   if (!toasts.length) return null
 
   return (
-    <div style={{
-      position: 'fixed', bottom: 20, left: '50%', transform: 'translateX(-50%)',
-      display: 'flex', flexDirection: 'column', gap: 8, zIndex: 1000,
-    }}>
+    <div className="toaster">
       {toasts.map(t => (
         <div
           key={t.id}
+          className={'toast' + (t.leaving ? ' leaving' : '') + (t.tone ? ' tone-' + t.tone : '')}
+          role="button"
+          tabIndex={0}
+          aria-label="Dismiss notification"
           onClick={() => dismiss(t.id)}
-          style={{
-            display: 'flex', alignItems: 'center', gap: 14,
-            background: 'var(--text)', color: 'var(--bg)', padding: '10px 16px',
-            borderRadius: 8, fontSize: 13, fontWeight: 500, cursor: 'pointer',
-            boxShadow: '0 4px 16px rgba(0,0,0,0.2)', maxWidth: 360,
-          }}
+          onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') dismiss(t.id) }}
         >
-          <span>{t.message}</span>
+          {t.tone === 'success' && (
+            <span className="toast-i"><IconCheck size={12} /></span>
+          )}
+          <span className="toast-msg">{t.message}</span>
           {t.actionLabel && (
             <button
+              type="button"
+              className="toast-action"
               onClick={e => { e.stopPropagation(); t.onAction?.(); dismiss(t.id) }}
-              style={{
-                background: 'none', border: 'none', color: 'var(--bg)',
-                font: 'inherit', fontWeight: 700, textDecoration: 'underline',
-                cursor: 'pointer', padding: 0, flexShrink: 0,
-              }}
             >
               {t.actionLabel}
             </button>

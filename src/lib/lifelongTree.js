@@ -52,13 +52,14 @@ export function isDescendant(nodes, ancestorId, maybeId) {
 // Detach the node with `id`, returning [treeWithout, detachedNode].
 function detach(nodes, id) {
   let removed = null
-  const strip = (arr) =>
-    arr
-      .filter(n => {
-        if (n.id === id) { removed = n; return false }
-        return true
-      })
-      .map(n => (n.children?.length ? { ...n, children: strip(n.children) } : n))
+  const strip = (arr) => {
+    const out = []
+    for (const n of arr) {
+      if (n.id === id) { removed = n; continue }
+      out.push(n.children?.length ? { ...n, children: strip(n.children) } : n)
+    }
+    return out
+  }
   const next = strip(nodes)
   return [next, removed]
 }

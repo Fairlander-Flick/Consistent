@@ -46,7 +46,7 @@ export function JournalCard() {
           </div>
           {entry.feelings && <div className="jx-quote">{entry.feelings}</div>}
           {!isViewingPast && (
-            <button className="btn ghost sm" style={{ alignSelf: 'flex-start' }} onClick={() => navigate('/journal')}>
+            <button type="button" className="btn ghost sm" style={{ alignSelf: 'flex-start' }} onClick={() => navigate('/journal')}>
               Open journal →
             </button>
           )}
@@ -60,7 +60,7 @@ export function JournalCard() {
             {isViewingPast ? 'No journal entry for this day.' : 'No journal entry yet today.'}
           </div>
           {!isViewingPast && (
-            <button className="btn primary" onClick={() => navigate('/journal')}>Log now</button>
+            <button type="button" className="btn primary" onClick={() => navigate('/journal')}>Log now</button>
           )}
         </div>
       )}

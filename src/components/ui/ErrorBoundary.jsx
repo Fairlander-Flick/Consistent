@@ -23,6 +23,7 @@ export class ErrorBoundary extends Component {
             {this.state.error.message}
           </pre>
           <button
+            type="button"
             className="btn"
             style={{ marginTop: 12 }}
             onClick={() => this.setState({ error: null })}
