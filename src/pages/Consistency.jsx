@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef } from 'react'
 import { useWeightStore } from '../store/useWeightStore'
 import { useJournalStore } from '../store/useJournalStore'
 import { useSettingsStore } from '../store/useSettingsStore'
@@ -7,9 +7,12 @@ import { weightProgress } from '../lib/weightGoal'
 import { trendSeries, sleepScoreInsight, correlationLabel } from '../lib/wellbeing'
 import { WeightChart } from '../components/ui/Widgets'
 import { IconPlus, IconTrash } from '../components/ui/Icons'
+import { useTabPill } from '../components/ui/transitions'
 
 export function Consistency() {
   const [section, setSection] = useState('weight')
+  const tabsRef = useRef(null)
+  useTabPill(tabsRef)
 
   return (
     <>
@@ -18,9 +21,9 @@ export function Consistency() {
           <h1>Consistency</h1>
           <div className="sub" style={{ marginTop: 4 }}>Log weight · Track wellbeing</div>
         </div>
-        <div className="tabs" style={{ fontSize: 12 }}>
-          <button className={section === 'weight' ? 'active' : ''} onClick={() => setSection('weight')}>Weight log</button>
-          <button className={section === 'wellbeing' ? 'active' : ''} onClick={() => setSection('wellbeing')}>Wellbeing</button>
+        <div className="tabs" style={{ fontSize: 12 }} ref={tabsRef}>
+          <button type="button" className={section === 'weight' ? 'active' : ''} onClick={() => setSection('weight')}>Weight log</button>
+          <button type="button" className={section === 'wellbeing' ? 'active' : ''} onClick={() => setSection('wellbeing')}>Wellbeing</button>
         </div>
       </div>
 
@@ -121,7 +124,7 @@ function WeightSection() {
                 <div style={{ padding: '6px 0', textAlign: 'center' }}>
                   <div className="num num-md" style={{ color: 'var(--accent)' }}>Overshot</div>
                   <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4 }}>
-                    Passed your {goal.target.toFixed(1)} kg target — now {goal.current.toFixed(1)} kg.
+                    Passed your {goal.target.toFixed(1)} kg target, now {goal.current.toFixed(1)} kg.
                   </div>
                 </div>
               ) : (
@@ -159,17 +162,17 @@ function WeightSection() {
             <div className="card-h"><h3>Add Entry</h3></div>
             <div className="row" style={{ gap: 8, alignItems: 'flex-end', flexWrap: 'wrap' }}>
               <div style={{ flex: 1, minWidth: 84 }}>
-                <label style={{ fontSize: 11, color: 'var(--muted)', display: 'block', marginBottom: 4 }}>Weight (kg)</label>
-                <input className="input" placeholder="77.4" value={val}
+                <label htmlFor="weight-kg" style={{ fontSize: 11, color: 'var(--muted)', display: 'block', marginBottom: 4 }}>Weight (kg)</label>
+                <input id="weight-kg" className="input" placeholder="77.4" value={val}
                        onChange={e => setVal(e.target.value)}
                        onKeyDown={e => { if (e.key === 'Enter') handleAdd() }}
                        style={{ width: '100%' }} />
               </div>
               <div style={{ flex: 1, minWidth: 120 }}>
-                <label style={{ fontSize: 11, color: 'var(--muted)', display: 'block', marginBottom: 4 }}>Date</label>
-                <input className="input" type="date" value={date} onChange={e => setDate(e.target.value)} style={{ width: '100%' }} />
+                <label htmlFor="weight-date" style={{ fontSize: 11, color: 'var(--muted)', display: 'block', marginBottom: 4 }}>Date</label>
+                <input id="weight-date" className="input" type="date" value={date} onChange={e => setDate(e.target.value)} style={{ width: '100%' }} />
               </div>
-              <button className="btn primary" onClick={handleAdd} style={{ height: 36 }}>
+              <button type="button" className="btn primary" onClick={handleAdd} style={{ height: 36 }}>
                 <IconPlus size={12} /> Log
               </button>
             </div>
@@ -196,7 +199,7 @@ function WeightSection() {
                       <div className={'delta ' + (delta < 0 ? 'pos' : delta > 0 ? 'neg' : '')}>
                         {prev ? `${delta < 0 ? '↓' : delta > 0 ? '↑' : '—'} ${Math.abs(delta).toFixed(1)}` : '—'}
                       </div>
-                      <button className="btn ghost icon" onClick={() => deleteEntry(w.date)}>
+                      <button type="button" className="btn ghost icon" onClick={() => deleteEntry(w.date)} aria-label="Delete entry">
                         <IconTrash size={12} />
                       </button>
                     </div>
@@ -297,7 +300,7 @@ function WellbeingSection() {
               {delta != null && Math.abs(delta) >= 0.1 ? (
                 <>You score <strong style={{ color: delta > 0 ? 'var(--accent)' : 'var(--negative)' }}>
                   {Math.abs(delta).toFixed(1)} pts {delta > 0 ? 'higher' : 'lower'}
-                </strong> on days after {insight.threshold}h+ of sleep — {correlationLabel(insight.r)}.</>
+                </strong> on days after {insight.threshold}h+ of sleep ({correlationLabel(insight.r)}).</>
               ) : (
                 <>Sleep shows {correlationLabel(insight.r)} with your day score so far.</>
               )}

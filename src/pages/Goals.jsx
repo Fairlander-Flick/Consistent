@@ -5,7 +5,7 @@ import {
 } from '../lib/lifelongProgress'
 import { IconPlus, IconTrash, IconChevRight } from '../components/ui/Icons'
 import { ManageTree } from '../components/goals/ManageTree'
-import { TextSwap, PopNumber, SuccessCheck, useShake, useHoverSpring } from '../components/ui/transitions'
+import { TextSwap, PopNumber, SuccessCheck, useShake, useHoverSpring, useTabPill } from '../components/ui/transitions'
 
 const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
@@ -43,6 +43,7 @@ export function Goals() {
 
   const tabsRef = useRef(null)
   useHoverSpring(tabsRef)
+  useTabPill(tabsRef)
 
   return (
     <>
@@ -58,8 +59,8 @@ export function Goals() {
           </div>
         </div>
         <div className="tabs" ref={tabsRef}>
-          <button className={'t-avatar' + (mode === 'browse' ? ' active' : '')} onClick={() => setMode('browse')}>Browse</button>
-          <button className={'t-avatar' + (mode === 'manage' ? ' active' : '')} onClick={() => setMode('manage')}>Manage</button>
+          <button type="button" className={'t-avatar' + (mode === 'browse' ? ' active' : '')} onClick={() => setMode('browse')}>Browse</button>
+          <button type="button" className={'t-avatar' + (mode === 'manage' ? ' active' : '')} onClick={() => setMode('manage')}>Manage</button>
         </div>
       </div>
 
@@ -68,13 +69,14 @@ export function Goals() {
       <>
       {/* Breadcrumb */}
       <div className="gl-crumb">
-        <button className={'gl-crumb-link' + (currentId ? '' : ' here')} onClick={() => setCurrentId(null)}>
+        <button type="button" className={'gl-crumb-link' + (currentId ? '' : ' here')} onClick={() => setCurrentId(null)}>
           All pursuits
         </button>
         {path.map((n, i) => (
           <span key={n.id} className="gl-crumb-seg">
             <span className="gl-crumb-sep">›</span>
             <button
+              type="button"
               className={'gl-crumb-link' + (i === path.length - 1 ? ' here' : '')}
               onClick={() => setCurrentId(n.id)}
             >
@@ -93,7 +95,7 @@ export function Goals() {
           <NodeRow key={node.id} node={node} store={store} onOpen={() => setCurrentId(node.id)} />
         ))}
         {children.length === 0 && !showLeafControls && (
-          <div className="gl-empty">Nothing here yet — add the first {focused ? 'sub-goal' : 'pursuit'}.</div>
+          <div className="gl-empty">Nothing here yet. Add the first {focused ? 'sub-goal' : 'pursuit'}.</div>
         )}
       </div>
 
@@ -120,6 +122,7 @@ function NodeRow({ node, store, onOpen }) {
     <div className={'gl-row' + (done ? ' done' : '')}>
       {quickTask ? (
         <button
+          type="button"
           className={'todo-chk' + (node.done ? ' on' : '')}
           onClick={() => store.toggleTask(node.id)}
           title="Toggle done"
@@ -132,7 +135,7 @@ function NodeRow({ node, store, onOpen }) {
         </span>
       )}
 
-      <button className="gl-row-main" onClick={onOpen}>
+      <button type="button" className="gl-row-main" onClick={onOpen}>
         <span className="gl-row-title">{node.title}</span>
         <span className="gl-row-sub">
           {category
@@ -142,8 +145,8 @@ function NodeRow({ node, store, onOpen }) {
       </button>
 
       {!quickTask && <span className="gl-row-pct mono" style={{ '--p': pct != null ? Math.round(pct * 100) : 0 }}><PopNumber value={pctTxt} /></span>}
-      <button className="btn ghost icon" title="Open" onClick={onOpen}><IconChevRight size={14} /></button>
-      <button className="btn ghost icon" title="Delete" onClick={() => store.deleteNode(node.id)}>
+      <button type="button" className="btn ghost icon" title="Open" onClick={onOpen}><IconChevRight size={14} /></button>
+      <button type="button" className="btn ghost icon" title="Delete" onClick={() => store.deleteNode(node.id)}>
         <IconTrash size={13} />
       </button>
     </div>
@@ -172,7 +175,7 @@ function LeafDetail({ node, store }) {
   const [newItem, setNewItem] = useState('')
 
   return (
-    <div className="card gl-detail">
+    <div className="card gl-detail reveal">
       <div className="gl-detail-h">
         <h3>{node.title}</h3>
         <span className="chip">{kindLabel(node)}</span>
@@ -184,7 +187,8 @@ function LeafDetail({ node, store }) {
           {Array.from({ length: node.total }, (_, i) => (
             <button key={i} type="button"
               className={'ll-dot' + (i < (node.current ?? 0) ? ' on' : '')}
-              onClick={() => store.logProgress(node.id, i + 1)} title={`Set to ${i + 1}`} />
+              onClick={() => store.logProgress(node.id, i + 1)} title={`Set to ${i + 1}`}
+              aria-label={`Set to ${i + 1}`} />
           ))}
         </div>
       ) : (
@@ -194,19 +198,20 @@ function LeafDetail({ node, store }) {
           </div>
           <MeasuredFoot node={node} />
           {logging ? (
-            <div className="ll-logrow" style={{ marginTop: 10 }}>
+            <div className="ll-logrow reveal" style={{ marginTop: 10 }}>
               <input className="input" type="number" autoFocus value={draft}
+                aria-label="Progress value"
                 onChange={e => setDraft(e.target.value)}
                 onKeyDown={e => {
                   if (e.key === 'Enter') { store.logProgress(node.id, draft); setLogging(false) }
                   if (e.key === 'Escape') setLogging(false)
                 }} />
               <span className="ll-of">/ {node.total}</span>
-              <button className="btn primary sm" onClick={() => { store.logProgress(node.id, draft); setLogging(false) }}>Save</button>
-              <button className="btn ghost sm" onClick={() => setLogging(false)}>Cancel</button>
+              <button type="button" className="btn primary sm" onClick={() => { store.logProgress(node.id, draft); setLogging(false) }}>Save</button>
+              <button type="button" className="btn ghost sm" onClick={() => setLogging(false)}>Cancel</button>
             </div>
           ) : (
-            <button className="btn sm" style={{ marginTop: 10 }}
+            <button type="button" className="btn sm" style={{ marginTop: 10 }}
               onClick={() => { setDraft(String(node.current ?? 0)); setLogging(true) }}>Log progress</button>
           )}
         </>
@@ -214,12 +219,12 @@ function LeafDetail({ node, store }) {
 
       {/* playlist with a +1 affordance even when using dots */}
       {node.kind === 'playlist' && !useDots && measurable && (
-        <button className="btn sm" style={{ marginTop: 8 }} onClick={() => store.bumpProgress(node.id, 1)}>+1 watched</button>
+        <button type="button" className="btn sm" style={{ marginTop: 8 }} onClick={() => store.bumpProgress(node.id, 1)}>+1 watched</button>
       )}
 
       {/* task */}
       {node.kind === 'task' && (
-        <button className={'btn' + (node.done ? '' : ' primary')} onClick={() => store.toggleTask(node.id)}>
+        <button type="button" className={'btn' + (node.done ? '' : ' primary')} onClick={() => store.toggleTask(node.id)}>
           <TextSwap>{node.done ? 'Mark not done' : 'Mark done'}</TextSwap>
         </button>
       )}
@@ -228,18 +233,21 @@ function LeafDetail({ node, store }) {
       {node.kind === 'checklist' && (
         <div className="col" style={{ gap: 0 }}>
           {(node.checklist || []).map(it => (
-            <div key={it.id} className={'todo' + (it.done ? ' done' : '')} onClick={() => store.toggleChecklistItem(node.id, it.id)}>
+            <div key={it.id} className={'todo' + (it.done ? ' done' : '')} role="button" tabIndex={0}
+              onClick={() => store.toggleChecklistItem(node.id, it.id)}
+              onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); store.toggleChecklistItem(node.id, it.id) } }}>
               <div className="chk" />
               <div className="lbl">{it.text}</div>
-              <div className="x" style={{ color: 'var(--negative)', fontSize: 16 }}
-                onClick={e => { e.stopPropagation(); store.deleteChecklistItem(node.id, it.id) }}>×</div>
+              <button type="button" className="x" aria-label="Delete item"
+                style={{ color: 'var(--negative)', fontSize: 16, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                onClick={e => { e.stopPropagation(); store.deleteChecklistItem(node.id, it.id) }}>×</button>
             </div>
           ))}
           <div className="row" style={{ gap: 6, marginTop: 8 }}>
-            <input className="input" placeholder="Add an item…" value={newItem}
+            <input className="input" aria-label="Add a checklist item" placeholder="Add an item…" value={newItem}
               onChange={e => setNewItem(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter' && newItem.trim()) { store.addChecklistItem(node.id, newItem); setNewItem('') } }} />
-            <button className="btn primary sm" onClick={() => { if (newItem.trim()) { store.addChecklistItem(node.id, newItem); setNewItem('') } }}>Add</button>
+            <button type="button" className="btn primary sm" onClick={() => { if (newItem.trim()) { store.addChecklistItem(node.id, newItem); setNewItem('') } }}>Add</button>
           </div>
         </div>
       )}
@@ -273,7 +281,7 @@ function DaySchedule({ node, store }) {
     <div className="gl-days" ref={ref}>
       <span className="gl-days-l">Schedule</span>
       {WEEKDAYS.map(d => (
-        <button key={d} className={'gl-day t-avatar' + (set.has(d) ? ' on' : '')}
+        <button type="button" key={d} className={'gl-day t-avatar' + (set.has(d) ? ' on' : '')}
           onClick={() => store.toggleNodeDay(node.id, d)}>{d[0]}</button>
       ))}
     </div>
@@ -310,17 +318,17 @@ function AddNode({ parentId, store, isRoot }) {
 
   if (!open) {
     return (
-      <button className="gl-add" onClick={() => setOpen(true)}>
+      <button type="button" className="gl-add" onClick={() => setOpen(true)}>
         <IconPlus size={14} /> add {isRoot ? 'pursuit' : 'sub-goal'}
       </button>
     )
   }
 
   return (
-    <div className="card gl-addform">
+    <div className="card gl-addform reveal">
       <div className="gl-kinds" ref={kindsRef}>
         {KINDS.map(t => (
-          <button key={String(t.k)} className={'gl-kind t-avatar' + (kind === t.k ? ' on' : '')} onClick={() => setKind(t.k)}>
+          <button type="button" key={String(t.k)} className={'gl-kind t-avatar' + (kind === t.k ? ' on' : '')} onClick={() => setKind(t.k)}>
             <span className="gl-kind-l">{t.label}</span>
             <span className="gl-kind-h">{t.hint}</span>
           </button>
@@ -328,25 +336,26 @@ function AddNode({ parentId, store, isRoot }) {
       </div>
 
       <div className="col gap-2" style={{ marginTop: 12 }}>
-        <input ref={inputRef} className="input t-input" autoFocus placeholder={kind === null ? 'Category name (e.g. AI Bachelor)' : 'Title'}
+        <input ref={inputRef} className="input t-input" autoFocus aria-label="Title"
+          placeholder={kind === null ? 'Category name (e.g. AI Bachelor)' : 'Title'}
           value={title} onChange={e => setTitle(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && add()} />
 
         <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
           {fields.includes('unit') && (
-            <input className="input" placeholder="unit" value={unit} style={{ width: 90 }}
+            <input className="input" aria-label="Unit" placeholder="unit" value={unit} style={{ width: 90 }}
               onChange={e => setUnit(e.target.value)} />
           )}
           {fields.includes('total') && (
-            <input className="input" type="number" placeholder="total" value={total} style={{ width: 100 }}
+            <input className="input" type="number" aria-label="Total" placeholder="total" value={total} style={{ width: 100 }}
               onChange={e => setTotal(e.target.value)} />
           )}
           {fields.includes('perWeek') && (
-            <input className="input" type="number" placeholder="×/week" value={perWeek} style={{ width: 100 }}
+            <input className="input" type="number" aria-label="Times per week" placeholder="×/week" value={perWeek} style={{ width: 100 }}
               onChange={e => setPerWeek(e.target.value)} />
           )}
-          <button className="btn primary sm" onClick={add}>Add</button>
-          <button className="btn ghost sm" onClick={reset}>Cancel</button>
+          <button type="button" className="btn primary sm" onClick={add}>Add</button>
+          <button type="button" className="btn ghost sm" onClick={reset}>Cancel</button>
         </div>
       </div>
     </div>

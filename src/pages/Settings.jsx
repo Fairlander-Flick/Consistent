@@ -1,13 +1,14 @@
 import { useRef, useState } from 'react'
+import { Modal, useTabPill } from '../components/ui/transitions'
 import { useSettingsStore } from '../store/useSettingsStore'
 import { STORE_KEYS, exportBackup, parseBackup, restoreBackup } from '../lib/backup'
 import { useAuthStore } from '../store/useAuthStore'
 import { pushAll } from '../lib/cloudSync'
 
-function Toggle({ checked, onChange }) {
+function Toggle({ checked, onChange, label }) {
   return (
     <label className="toggle">
-      <input type="checkbox" checked={checked} onChange={e => onChange(e.target.checked)} />
+      <input type="checkbox" aria-label={label} checked={checked} onChange={e => onChange(e.target.checked)} />
       <span className="toggle-track" />
     </label>
   )
@@ -42,6 +43,8 @@ export function Settings() {
   const [pendingRestore, setPendingRestore] = useState(null)
   const [importError, setImportError] = useState('')
   const fileInputRef = useRef(null)
+  const weightTabRef = useRef(null)
+  useTabPill(weightTabRef)
 
   const notifSupported = typeof window !== 'undefined' && 'Notification' in window
   const [notifPerm, setNotifPerm] = useState(notifSupported ? Notification.permission : 'unsupported')
@@ -108,9 +111,10 @@ export function Settings() {
             <div className="setting-label">Direction</div>
             <div className="setting-desc">Controls how weight changes are colored on the dashboard graph.</div>
           </div>
-          <div className="tabs">
+          <div className="tabs" ref={weightTabRef}>
             {WEIGHT_GOALS.map(g => (
               <button
+                type="button"
                 key={String(g.value)}
                 className={weightGoal === g.value ? 'active' : ''}
                 onClick={() => setWeightGoal(g.value)}
@@ -129,6 +133,7 @@ export function Settings() {
             <input
               type="number"
               className="input mono"
+              aria-label="Target weight in kilograms"
               min="1"
               step="0.1"
               placeholder="—"
@@ -149,7 +154,7 @@ export function Settings() {
             <div className="setting-label">Confirm before deleting a goal</div>
             <div className="setting-desc">Shows a dialog before removing a goal item.</div>
           </div>
-          <Toggle checked={confirmGoalDelete} onChange={setConfirmGoalDelete} />
+          <Toggle checked={confirmGoalDelete} onChange={setConfirmGoalDelete} label="Confirm before deleting a goal" />
         </div>
       </div>
 
@@ -165,7 +170,7 @@ export function Settings() {
             </div>
             {notifPerm === 'denied' && (
               <div className="setting-desc" style={{ color: 'var(--negative)' }}>
-                Notifications are blocked in your browser settings — unblock them to enable this.
+                Notifications are blocked in your browser settings. Unblock them to enable this.
               </div>
             )}
           </div>
@@ -182,6 +187,7 @@ export function Settings() {
           <input
             type="time"
             className="input"
+            aria-label="Reminder time"
             value={reminderTime}
             onChange={e => setReminderTime(e.target.value)}
             disabled={!reminderEnabled}
@@ -197,7 +203,7 @@ export function Settings() {
             <div className="setting-label">Export backup</div>
             <div className="setting-desc">Download all your data as a single JSON file you can keep or move to another device.</div>
           </div>
-          <button className="btn" onClick={() => exportBackup()}>Export</button>
+          <button type="button" className="btn" onClick={() => exportBackup()}>Export</button>
         </div>
         <div className="setting-row" style={{ borderBottom: 0 }}>
           <div>
@@ -210,11 +216,12 @@ export function Settings() {
           <input
             ref={fileInputRef}
             type="file"
+            aria-label="Choose backup file to import"
             accept="application/json,.json"
             style={{ display: 'none' }}
             onChange={handleFilePicked}
           />
-          <button className="btn" onClick={() => fileInputRef.current?.click()}>Import</button>
+          <button type="button" className="btn" onClick={() => fileInputRef.current?.click()}>Import</button>
         </div>
       </div>
 
@@ -230,10 +237,11 @@ export function Settings() {
               <div className="setting-desc" style={{ color: 'var(--accent)' }}>Synced successfully.</div>
             )}
             {syncStatus === 'error' && (
-              <div className="setting-desc" style={{ color: 'var(--negative)' }}>Sync failed — check your connection.</div>
+              <div className="setting-desc" style={{ color: 'var(--negative)' }}>Sync failed, check your connection.</div>
             )}
           </div>
           <button
+            type="button"
             className="btn"
             disabled={syncStatus === 'syncing'}
             onClick={handlePushToCloud}
@@ -251,6 +259,7 @@ export function Settings() {
             <div className="setting-desc">Permanently clears all stored entries. Settings are kept.</div>
           </div>
           <button
+            type="button"
             className="btn"
             style={{ borderColor: 'var(--negative)', color: 'var(--negative)' }}
             onClick={() => { setDeleteInput(''); setDeleteOpen(true) }}
@@ -261,54 +270,60 @@ export function Settings() {
       </div>
 
       {deleteOpen && (
-        <div className="modal-overlay" onClick={() => setDeleteOpen(false)}>
-          <div className="modal" onClick={e => e.stopPropagation()}>
-            <h4>Delete all data?</h4>
-            <p>This will permanently remove all weight, journal, and goals data. This cannot be undone.</p>
-            <p style={{ marginBottom: 8 }}>
-              Please type <span className="highlight">Fairlander</span> to confirm.
-            </p>
-            <input
-              className="input"
-              style={{ width: '100%', boxSizing: 'border-box', marginBottom: 16 }}
-              placeholder="Fairlander"
-              value={deleteInput}
-              onChange={e => setDeleteInput(e.target.value)}
-            />
-            <div className="modal-footer">
-              <button className="btn ghost" onClick={() => setDeleteOpen(false)}>Cancel</button>
-              <button
-                className="btn primary"
-                style={{
-                  background: deleteInput === 'Fairlander' ? 'var(--negative)' : 'var(--faint)',
-                  borderColor: deleteInput === 'Fairlander' ? 'var(--negative)' : 'var(--border)',
-                  color: deleteInput === 'Fairlander' ? '#fff' : 'var(--muted)',
-                  cursor: deleteInput === 'Fairlander' ? 'pointer' : 'not-allowed',
-                }}
-                onClick={() => deleteInput === 'Fairlander' && doDeleteAllData()}
-              >
-                Delete everything
-              </button>
-            </div>
-          </div>
-        </div>
+        <Modal onClose={() => setDeleteOpen(false)} width={400}>
+          {close => (
+            <>
+              <h4>Delete all data?</h4>
+              <p>This will permanently remove all weight, journal, and goals data. This cannot be undone.</p>
+              <p style={{ marginBottom: 8 }}>
+                Please type <span className="highlight">Fairlander</span> to confirm.
+              </p>
+              <input
+                className="input"
+                aria-label="Type Fairlander to confirm deletion"
+                style={{ width: '100%', boxSizing: 'border-box', marginBottom: 16 }}
+                placeholder="Fairlander"
+                value={deleteInput}
+                onChange={e => setDeleteInput(e.target.value)}
+              />
+              <div className="modal-footer">
+                <button type="button" className="btn ghost" onClick={close}>Cancel</button>
+                <button
+                  type="button"
+                  className="btn primary"
+                  style={{
+                    background: deleteInput === 'Fairlander' ? 'var(--negative)' : 'var(--faint)',
+                    borderColor: deleteInput === 'Fairlander' ? 'var(--negative)' : 'var(--border)',
+                    color: deleteInput === 'Fairlander' ? '#fff' : 'var(--muted)',
+                    cursor: deleteInput === 'Fairlander' ? 'pointer' : 'not-allowed',
+                  }}
+                  onClick={() => deleteInput === 'Fairlander' && doDeleteAllData()}
+                >
+                  Delete everything
+                </button>
+              </div>
+            </>
+          )}
+        </Modal>
       )}
 
       {pendingRestore && (
-        <div className="modal-overlay" onClick={() => setPendingRestore(null)}>
-          <div className="modal" onClick={e => e.stopPropagation()}>
-            <h4>Restore this backup?</h4>
-            <p>
-              <span className="highlight" style={{ background: 'var(--faint)', color: 'var(--text)' }}>{pendingRestore.name}</span> will
-              overwrite {pendingRestore.keyCount} data {pendingRestore.keyCount === 1 ? 'store' : 'stores'} with
-              their contents from the file. This cannot be undone.
-            </p>
-            <div className="modal-footer">
-              <button className="btn ghost" onClick={() => setPendingRestore(null)}>Cancel</button>
-              <button className="btn primary" onClick={confirmRestore}>Restore &amp; reload</button>
-            </div>
-          </div>
-        </div>
+        <Modal onClose={() => setPendingRestore(null)} width={400}>
+          {close => (
+            <>
+              <h4>Restore this backup?</h4>
+              <p>
+                <span className="highlight" style={{ background: 'var(--faint)', color: 'var(--text)' }}>{pendingRestore.name}</span> will
+                overwrite {pendingRestore.keyCount} data {pendingRestore.keyCount === 1 ? 'store' : 'stores'} with
+                their contents from the file. This cannot be undone.
+              </p>
+              <div className="modal-footer">
+                <button type="button" className="btn ghost" onClick={close}>Cancel</button>
+                <button type="button" className="btn primary" onClick={confirmRestore}>Restore &amp; reload</button>
+              </div>
+            </>
+          )}
+        </Modal>
       )}
     </>
   )

@@ -1,10 +1,10 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef } from 'react'
 import { useJournalStore } from '../../store/useJournalStore'
 import { todayISO } from '../../lib/dateUtils'
 import { useDashboard } from '../../lib/DashboardContext'
 import { buildYearGrid } from '../../lib/consistencyGrid'
 import { CardTitleLink } from './CardTitleLink'
-import { Swap, PopNumber } from '../ui/transitions'
+import { Swap, PopNumber, useTabPill } from '../ui/transitions'
 
 const DOW_LABELS = ['Mon', '', 'Wed', '', 'Fri', '', '']
 const CELL = 12
@@ -55,6 +55,8 @@ export function ConsistencyCard() {
 
   const [selectedYear, setSelectedYear] = useState(currentYear)
   const [hover, setHover] = useState(null)
+  const tabsRef = useRef(null)
+  useTabPill(tabsRef)
 
   const byDate = useMemo(() => new Map(entries.map(e => [e.date, e])), [entries])
 
@@ -76,7 +78,7 @@ export function ConsistencyCard() {
         <CardTitleLink to="/consistency">Consistency</CardTitleLink>
         <div className="row" style={{ gap: 10, alignItems: 'center' }}>
           <span className="meta"><PopNumber value={activeDays} /> active days in {selectedYear}</span>
-          <div className="tabs">
+          <div className="tabs" ref={tabsRef}>
             {years.map(y => (
               <button type="button" key={y} className={selectedYear === y ? 'active' : ''} onClick={() => setSelectedYear(y)}>{y}</button>
             ))}

@@ -244,3 +244,49 @@ export function useHoverSpring(rootRef, deps = []) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, deps)
 }
+
+// ── Sliding tab pill ────────────────────────────────────────
+// Attach to a `.tabs` container ref. Injects a single `.tab-pill` element that
+// slides + resizes to sit under whichever child carries `.active`, so the
+// indicator glides between tabs instead of snapping background from button to
+// button. Tracks `.active` via a MutationObserver (works regardless of how the
+// active state is wired) and repositions on resize / font load. The initial
+// placement is jumpless (no transition); subsequent moves animate.
+export function useTabPill(rootRef, deps = []) {
+  useEffect(() => {
+    const root = rootRef.current
+    if (!root) return
+
+    let pill = root.querySelector(':scope > .tab-pill')
+    if (!pill) {
+      pill = document.createElement('div')
+      pill.className = 'tab-pill'
+      pill.setAttribute('aria-hidden', 'true')
+      root.insertBefore(pill, root.firstChild)
+    }
+
+    const move = (animate) => {
+      const active = root.querySelector(':scope > .active, :scope > button.active')
+      if (!active) { pill.style.opacity = '0'; return }
+      if (!animate) pill.style.transition = 'none'
+      pill.style.top = active.offsetTop + 'px'
+      pill.style.height = active.offsetHeight + 'px'
+      pill.style.width = active.offsetWidth + 'px'
+      pill.style.transform = `translateX(${active.offsetLeft}px)`
+      pill.style.opacity = '1'
+      if (!animate) { void pill.offsetWidth; pill.style.transition = '' }
+    }
+
+    move(false)
+    // Re-place once webfonts settle (tab widths shift as Inter/Grotesk load).
+    document.fonts?.ready.then(() => move(false)).catch(() => {})
+
+    const mo = new MutationObserver(() => move(true))
+    mo.observe(root, { attributes: true, subtree: true, attributeFilter: ['class'] })
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(() => move(false)) : null
+    ro?.observe(root)
+
+    return () => { mo.disconnect(); ro?.disconnect() }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, deps)
+}

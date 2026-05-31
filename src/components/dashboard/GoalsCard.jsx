@@ -8,7 +8,7 @@ import { useLifelongStore } from '../../store/useLifelongStore'
 import { useDayPlanStore } from '../../store/useDayPlanStore'
 import { lifelongTodosForDate } from '../../lib/lifelongTodos'
 import { CardTitleLink } from './CardTitleLink'
-import { Swap, Modal, PopNumber } from '../ui/transitions'
+import { Swap, Modal, PopNumber, useTabPill } from '../ui/transitions'
 
 const PERIODS = ['daily', 'weekly', 'monthly', 'yearly']
 
@@ -70,6 +70,8 @@ export function GoalsCard() {
   const [editTodos, setEditTodos] = useState([])
   const [addText, setAddText]     = useState('')
   const addInputRef = useRef(null)
+  const tabsRef = useRef(null)
+  useTabPill(tabsRef)
 
   // Per-day done state for ephemeral daily todos (lifelong-goal steps)
   const done               = useScheduleDoneStore(s => s.done)
@@ -146,7 +148,7 @@ export function GoalsCard() {
         <div className="card-h">
           <CardTitleLink to="/goals">Goals</CardTitleLink>
           <div className="row" style={{ gap: 8, alignItems: 'center' }}>
-            <div className="tabs">
+            <div className="tabs" ref={tabsRef}>
               {PERIODS.map(t => (
                 <button type="button" key={t} className={period === t ? 'active' : ''} onClick={() => setPeriod(t)}>
                   {t[0].toUpperCase() + t.slice(1)}

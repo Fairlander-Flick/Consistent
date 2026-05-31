@@ -1,10 +1,11 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { WeekBoard } from '../components/planner/WeekBoard'
 import { MonthBoard } from '../components/planner/MonthBoard'
 import { PlannerConsistency } from '../components/planner/PlannerConsistency'
 import { useLifelongStore } from '../store/useLifelongStore'
 import { todayISO, isoWeekDates } from '../lib/dateUtils'
 import { IconChevLeft, IconChevRight, IconTrash } from '../components/ui/Icons'
+import { useTabPill } from '../components/ui/transitions'
 
 const MONTH_FULL = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
 const FILTERS = [
@@ -48,6 +49,10 @@ export function Planner() {
   const [refDate, setRefDate] = useState(todayStr)
   const [mode, setMode] = useState('week')   // 'week' | 'month'
   const [filter, setFilter] = useState('all')
+  const modeTabRef = useRef(null)
+  const filterTabRef = useRef(null)
+  useTabPill(modeTabRef)
+  useTabPill(filterTabRef)
 
   const isThisWeek = isoWeekDates(new Date(refDate + 'T00:00:00')).includes(todayStr)
   const isThisMonth = refDate.slice(0, 7) === todayStr.slice(0, 7)
@@ -68,21 +73,22 @@ export function Planner() {
           </div>
         </div>
         <div className="wk-nav">
-          <div className="tabs">
-            <button className={mode === 'week' ? 'active' : ''} onClick={() => setMode('week')}>Week</button>
-            <button className={mode === 'month' ? 'active' : ''} onClick={() => setMode('month')}>Month</button>
+          <div className="tabs" ref={modeTabRef}>
+            <button type="button" className={mode === 'week' ? 'active' : ''} onClick={() => setMode('week')}>Week</button>
+            <button type="button" className={mode === 'month' ? 'active' : ''} onClick={() => setMode('month')}>Month</button>
           </div>
-          <button className="btn icon" onClick={() => step(-1)} title={mode === 'week' ? 'Previous week' : 'Previous month'}>
+          <button type="button" className="btn icon" onClick={() => step(-1)} title={mode === 'week' ? 'Previous week' : 'Previous month'}>
             <IconChevLeft size={14} />
           </button>
           <button
+            type="button"
             className={'btn sm' + (isCurrent ? '' : ' primary')}
             onClick={() => setRefDate(todayStr)}
             disabled={isCurrent}
           >
             Today
           </button>
-          <button className="btn icon" onClick={() => step(1)} title={mode === 'week' ? 'Next week' : 'Next month'}>
+          <button type="button" className="btn icon" onClick={() => step(1)} title={mode === 'week' ? 'Next week' : 'Next month'}>
             <IconChevRight size={14} />
           </button>
         </div>
@@ -90,9 +96,9 @@ export function Planner() {
 
       <div className="row between" style={{ marginBottom: 14, flexWrap: 'wrap', gap: 10 }}>
         <div className="wk-range" style={{ margin: 0 }}>{rangeText}</div>
-        <div className="tabs">
+        <div className="tabs" ref={filterTabRef}>
           {FILTERS.map(f => (
-            <button key={f.k} className={filter === f.k ? 'active' : ''} onClick={() => setFilter(f.k)}>{f.label}</button>
+            <button type="button" key={f.k} className={filter === f.k ? 'active' : ''} onClick={() => setFilter(f.k)}>{f.label}</button>
           ))}
         </div>
       </div>
@@ -156,8 +162,8 @@ function CompletedSection() {
             {items.map(it => (
               <div key={it.id} className="wk-done-item">
                 <span className="wk-done-lbl">{it.title}</span>
-                <button className="btn ghost sm" onClick={() => toggleTask(it.id)}>Restore</button>
-                <button className="btn ghost icon" title="Delete permanently" onClick={() => deleteNode(it.id)}>
+                <button type="button" className="btn ghost sm" onClick={() => toggleTask(it.id)}>Restore</button>
+                <button type="button" className="btn ghost icon" title="Delete permanently" onClick={() => deleteNode(it.id)}>
                   <IconTrash size={12} />
                 </button>
               </div>

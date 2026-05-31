@@ -1,10 +1,10 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useRef } from 'react'
 import { useJournalStore } from '../../store/useJournalStore'
 import { useGoalsStore } from '../../store/useGoalsStore'
 import { periodRecap, monthDates, yearDates } from '../../lib/recap'
 import { isoWeekDates, todayISO } from '../../lib/dateUtils'
 import { useDashboard } from '../../lib/DashboardContext'
-import { Swap, PopNumber } from '../ui/transitions'
+import { Swap, PopNumber, useTabPill } from '../ui/transitions'
 
 function Metric({ label, value, sub, tone }) {
   return (
@@ -25,6 +25,8 @@ export function RecapCard() {
   const [period, setPeriod] = useState('week')
   const { viewDate } = useDashboard()
   const isViewingPast = viewDate !== todayISO()
+  const tabsRef = useRef(null)
+  useTabPill(tabsRef)
 
   const dates = useMemo(() => {
     const now = new Date()
@@ -48,7 +50,7 @@ export function RecapCard() {
           {isViewingPast && (
             <span className="meta" style={{ color: 'var(--text-mid)' }}>as of today</span>
           )}
-          <div className="tabs">
+          <div className="tabs" ref={tabsRef}>
             <button type="button" className={period === 'week' ? 'active' : ''} onClick={() => setPeriod('week')}>This week</button>
             <button type="button" className={period === 'month' ? 'active' : ''} onClick={() => setPeriod('month')}>This month</button>
             <button type="button" className={period === 'year' ? 'active' : ''} onClick={() => setPeriod('year')}>This year</button>

@@ -1,7 +1,8 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useRef } from 'react'
 import { useJournalStore } from '../../store/useJournalStore'
 import { buildYearGrid } from '../../lib/consistencyGrid'
 import { getWeekStart } from '../../lib/dateUtils'
+import { useTabPill } from '../ui/transitions'
 
 const DOW_LABELS = ['Mon', '', 'Wed', '', 'Fri', '', '']
 const CELL = 12
@@ -22,6 +23,8 @@ export function PlannerConsistency({ refDate, onPick }) {
   const { entries } = useJournalStore()
   const currentYear = new Date().getFullYear()
   const selectedWeek = weekStartISO(refDate)
+  const tabsRef = useRef(null)
+  useTabPill(tabsRef)
 
   const years = useMemo(() => {
     const ys = entries.map(e => parseInt(e.date.slice(0, 4))).filter(y => !isNaN(y))
@@ -38,9 +41,9 @@ export function PlannerConsistency({ refDate, onPick }) {
     <div className="card">
       <div className="card-h">
         <h3>Pick a week</h3>
-        <div className="tabs">
+        <div className="tabs" ref={tabsRef}>
           {years.map(y => (
-            <button key={y} className={year === y ? 'active' : ''} onClick={() => setYear(y)}>{y}</button>
+            <button type="button" key={y} className={year === y ? 'active' : ''} onClick={() => setYear(y)}>{y}</button>
           ))}
         </div>
       </div>
@@ -76,13 +79,15 @@ export function PlannerConsistency({ refDate, onPick }) {
             {cells.map((cell, i) => cell === null ? (
               <div key={`lead-${i}`} style={{ width: CELL, height: CELL }} />
             ) : (
-              <div
+              <button
+                type="button"
                 key={cell.dateStr}
                 className="cg-square"
                 data-fill={cell.level}
                 title={cell.dateStr}
+                aria-label={`Jump to week of ${cell.dateStr}`}
                 style={{
-                  width: CELL, height: CELL, cursor: 'pointer',
+                  width: CELL, height: CELL, cursor: 'pointer', padding: 0,
                   outline: weekStartISO(cell.dateStr) === selectedWeek ? '1.5px solid var(--accent)' : 'none',
                   outlineOffset: '1px',
                 }}
