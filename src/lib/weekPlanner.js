@@ -30,6 +30,7 @@ export function itemsForDate(date, { lifelongGoals = [], dayPlan = {}, doneMap =
       label: lt.label,
       source: 'lifelong',
       goalTitle: lt.goalTitle,
+      crumb: lt.crumb,
       itemId: lt.itemId,
       done: !!dayDone[lt.key],
       draggable: true,

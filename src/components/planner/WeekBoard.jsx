@@ -9,21 +9,34 @@ import { IconCheck, IconPlus } from '../ui/Icons'
 
 const DAY_LETTER = { Mon: 'M', Tue: 'T', Wed: 'W', Thu: 'T', Fri: 'F', Sat: 'S', Sun: 'S' }
 
-// Flatten the tree into { pursuit, leaves:[{id,title,days}] } groups for the
-// drag tray. Only unfinished leaves (no children) are schedulable.
+// Flatten the tree into { pursuit, leaves:[{id,title,days,crumb,path}] } groups
+// for the drag tray. Only unfinished leaves (no children) are schedulable.
+// `crumb` is the immediate parent (e.g. the course "Deutsch B2.1") shown under
+// the leaf so two "Lecture" leaves from different courses are distinguishable;
+// it's null when the parent is the group's own root (no extra info). `path` is
+// the full ancestor chain for a hover tooltip.
 function leafGroups(nodes) {
   const out = []
   for (const root of nodes) {
     const leaves = []
-    const walk = (node) => {
+    const walk = (node, trail) => {
       const isLeaf = !(node.children && node.children.length)
       if (isLeaf) {
-        if (!nodeDone(node)) leaves.push({ id: node.id, title: node.title, days: node.days || [] })
+        if (!nodeDone(node)) {
+          const parent = trail[trail.length - 1] || null
+          leaves.push({
+            id: node.id,
+            title: node.title,
+            days: node.days || [],
+            crumb: parent && parent.id !== root.id ? parent.title : null,
+            path: trail.map(n => n.title).join(' › '),
+          })
+        }
         return
       }
-      node.children.forEach(walk)
+      node.children.forEach(child => walk(child, [...trail, node]))
     }
-    walk(root)
+    walk(root, [])
     if (leaves.length) out.push({ id: root.id, title: root.title, leaves })
   }
   return out
@@ -155,10 +168,17 @@ export function WeekBoard({ refDate, compact = false, filter = 'all' }) {
                     onClick={interactive ? () => onItemToggle({ ...item, _date: day.date }) : undefined}
                     onKeyDown={interactive ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onItemToggle({ ...item, _date: day.date }) } } : undefined}
                   >
-                    <span className="wk-chk">{item.done && <IconCheck size={10} />}</span>
-                    <span className="wk-lbl">{item.label}</span>
-                    {!compact && item.source === 'oneoff' && (
-                      <span className="wk-x" onClick={e => { e.stopPropagation(); deleteTodo(item.date, item.todoId) }}>×</span>
+                    <div className="wk-item-main">
+                      <span className="wk-chk">{item.done && <IconCheck size={10} />}</span>
+                      <span className="wk-lbl">{item.label}</span>
+                      {!compact && item.source === 'oneoff' && (
+                        <span className="wk-x" onClick={e => { e.stopPropagation(); deleteTodo(item.date, item.todoId) }}>×</span>
+                      )}
+                    </div>
+                    {!compact && item.source === 'lifelong' && item.goalTitle && (
+                      <span className="wk-src" title={`From: ${(item.crumb || []).join(' › ') || item.goalTitle}`}>
+                        {item.goalTitle}
+                      </span>
                     )}
                   </div>
                 )
@@ -228,9 +248,12 @@ function ItemTray({ groups, over, onDragStart, onDragOver, onDragLeave, onDrop }
               className="wk-chip"
               draggable
               onDragStart={(e) => onDragStart(e, { nodeId: it.id })}
-              title="Drag onto a day to schedule"
+              title={it.path ? `${it.path}\nDrag onto a day to schedule` : 'Drag onto a day to schedule'}
             >
-              <span className="wk-chip-lbl">{it.title}</span>
+              <span className="wk-chip-text">
+                <span className="wk-chip-lbl">{it.title}</span>
+                {it.crumb && <span className="wk-chip-crumb">{it.crumb}</span>}
+              </span>
               {(it.days || []).length > 0 && (
                 <span className="wk-chip-days">
                   {it.days.map(d => <i key={d} title={d}>{DAY_LETTER[d]}</i>)}

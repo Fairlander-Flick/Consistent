@@ -37,6 +37,7 @@ describe('lifelongTodosForDate', () => {
       goalTitle: 'Math',
       goalId: 'g1',
       itemId: 'i1',
+      crumb: ['Math'],
     })
     expect(todos[1].key).toBe('lifelong|i3')
   })
@@ -106,5 +107,10 @@ describe('lifelongTodosForDate — nested pursuits', () => {
       goalId: 'deutsch',
       itemId: 'lh',
     })
+  })
+
+  it('carries the full ancestor crumb for a where-from tooltip', () => {
+    const todos = lifelongTodosForDate('2026-05-25', NESTED)
+    expect(todos[0].crumb).toEqual(['Academy', 'AI Bachelor', 'Second Semester', 'Deutsch B2.1'])
   })
 })
