@@ -229,12 +229,18 @@ export function findParentNode(nodes, id) {
 // ── Flattening for the drag list ────────────────────────────
 
 // Ordered, depth-tagged list of visible rows. Collapsed nodes hide descendants.
-export function flattenVisible(nodes, depth = 0, parentId = null, out = []) {
-  for (const n of nodes) {
-    out.push({ id: n.id, node: n, depth, parentId })
+// Each row also carries tree-guide metadata:
+//   isLast  – true when the node is the last among its siblings (elbow vs tee)
+//   prefix  – one boolean per ancestor (outermost → parent); true means that
+//             ancestor has a following sibling, so its vertical rail keeps going
+//             past this row. Lets ManageRow draw connected file-tree rails.
+export function flattenVisible(nodes, depth = 0, parentId = null, out = [], prefix = []) {
+  nodes.forEach((n, i) => {
+    const isLast = i === nodes.length - 1
+    out.push({ id: n.id, node: n, depth, parentId, isLast, prefix })
     if (n.children?.length && !n.collapsed) {
-      flattenVisible(n.children, depth + 1, n.id, out)
+      flattenVisible(n.children, depth + 1, n.id, out, [...prefix, !isLast])
     }
-  }
+  })
   return out
 }

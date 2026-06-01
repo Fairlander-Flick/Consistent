@@ -1567,6 +1567,30 @@ a:focus-visible, button:focus-visible, [role="button"]:focus-visible,
   background: var(--card);
   transition: border-color 140ms var(--ease-out), background 140ms var(--ease-out), box-shadow 140ms var(--ease-out);
 }
+
+/* ── Tree-guide rails ────────────────────────────────────────
+   File-tree connectors so nesting reads at a glance instead of relying on
+   raw indentation. One 24px column per depth: pass-through columns carry a
+   vertical line when an ancestor still has siblings below; the last column is
+   the elbow (└, last child) / tee (├) connecting the row to its parent. */
+.mng-rails { display: flex; align-self: stretch; flex-shrink: 0; margin: -8px 0; }
+.mng-rail { position: relative; width: 24px; flex-shrink: 0; }
+.mng-rail.v::before {
+  content: ''; position: absolute; left: 11px; top: 0; bottom: 0; width: 2px;
+  background: var(--border);
+}
+.mng-rail.elbow::before {
+  content: ''; position: absolute; left: 11px; top: 0; bottom: 0; width: 2px;
+  background: var(--border);
+}
+.mng-rail.elbow.last::before { bottom: auto; height: 50%; }
+.mng-rail.elbow::after {
+  content: ''; position: absolute; left: 11px; top: 50%; width: 11px; height: 2px;
+  border-radius: 1px;
+  background: var(--border);
+}
+.mng-row:hover .mng-rail.elbow::before,
+.mng-row:hover .mng-rail.elbow::after { background: var(--border-strong); }
 .mng-row:hover { border-color: var(--border-strong); background: var(--card-hover); }
 .mng-row.sel { border-color: var(--accent); background: var(--accent-soft); }
 .mng-handle {

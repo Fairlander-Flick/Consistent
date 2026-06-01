@@ -32,19 +32,33 @@ export function ManageRow({ row, store, depth, selected, onToggleSelect, onActio
   const category = isCategory(node)
   const pct = nodePct(node)
   const pctTxt = pct != null ? `${Math.round(pct * 100)}%` : '—'
-  const indent = (ghostDepth ?? depth) * INDENT
+
+  // While this row is the one being dragged the projection changes its depth, so
+  // fall back to a plain indent (rails would point at a stale parent mid-drag).
+  const dragging = ghostDepth != null
+  // Tree-guide rails: drop the root-level flag (roots carry no rail), leaving one
+  // pass-through column per intermediate ancestor, then this row's own connector.
+  const rail = (row.prefix || []).slice(1)
 
   const style = {
     transform: CSS.Translate.toString(transform),
     transition,
     opacity: isDragging ? 0.4 : 1,
-    marginLeft: indent,
+    ...(dragging ? { marginLeft: ghostDepth * INDENT } : null),
   }
 
   function act(action) { closeMenu(); onAction(action, node) }
 
   return (
     <div ref={setNodeRef} style={style} className={'mng-row' + (selected ? ' sel' : '')}>
+      {!dragging && depth > 0 && (
+        <span className="mng-rails" aria-hidden="true">
+          {rail.map((cont, k) => (
+            <span key={k} className={'mng-rail' + (cont ? ' v' : '')} />
+          ))}
+          <span className={'mng-rail elbow' + (row.isLast ? ' last' : '')} />
+        </span>
+      )}
       <button type="button" className="mng-handle" {...attributes} {...listeners} title="Drag to move" aria-label="Drag to move">⠿</button>
 
       {node.children?.length ? (
