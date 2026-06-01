@@ -66,4 +66,45 @@ describe('lifelongTodosForDate', () => {
       expect(t).toHaveProperty('itemId')
     }
   })
+
+  it('labels a leaf directly under a pursuit with that pursuit (parent == root)', () => {
+    const todos = lifelongTodosForDate('2026-05-25', NODES)
+    expect(todos[0].goalTitle).toBe('Math')
+    expect(todos[0].goalId).toBe('g1')
+  })
+})
+
+// A deep tree: Academy › AI Bachelor › Second Semester › Deutsch B2.1 › leaf.
+// The badge should read the immediate parent (Deutsch B2.1), not the root.
+const NESTED = [
+  {
+    id: 'academy', title: 'Academy', children: [
+      {
+        id: 'ai', title: 'AI Bachelor', children: [
+          {
+            id: 'sem2', title: 'Second Semester', children: [
+              {
+                id: 'deutsch', title: 'Deutsch B2.1', children: [
+                  { id: 'lh', title: 'Lecture & Homework', kind: 'habit', days: ['Mon'], children: [] },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+]
+
+describe('lifelongTodosForDate — nested pursuits', () => {
+  it('labels a deep leaf with its immediate parent, not the root pursuit', () => {
+    const todos = lifelongTodosForDate('2026-05-25', NESTED)
+    expect(todos).toHaveLength(1)
+    expect(todos[0]).toMatchObject({
+      label: 'Lecture & Homework',
+      goalTitle: 'Deutsch B2.1',
+      goalId: 'deutsch',
+      itemId: 'lh',
+    })
+  })
 })
