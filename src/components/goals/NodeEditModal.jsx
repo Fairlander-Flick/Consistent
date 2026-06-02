@@ -25,6 +25,7 @@ export function NodeEditModal({ node, store, onClose }) {
   const [total, setTotal] = useState(node.total ?? '')
   const [perWeek, setPerWeek] = useState(node.perWeek ?? '')
   const [deadline, setDeadline] = useState(node.deadline || '')
+  const [sessionHours, setSessionHours] = useState(node.sessionHours ?? '')
 
   const tmpl = KINDS.find(t => t.k === kind) || KINDS[0]
   const fields = tmpl.fields
@@ -44,6 +45,7 @@ export function NodeEditModal({ node, store, onClose }) {
       total: fields.includes('total') ? (total === '' ? null : Number(total)) : null,
       perWeek: fields.includes('perWeek') ? (perWeek === '' ? null : Number(perWeek)) : null,
       deadline: deadline || null,
+      sessionHours: kind === 'category' ? null : (sessionHours === '' ? null : Number(sessionHours)),
     })
     close()
   }
@@ -90,6 +92,23 @@ export function NodeEditModal({ node, store, onClose }) {
                 <input className="input" type="number" aria-label="Times per week" placeholder="×/week" value={perWeek} style={{ width: 110 }}
                   onChange={e => setPerWeek(e.target.value)} />
               )}
+            </div>
+          )}
+
+          {kind !== 'category' && (
+            <div style={{ marginBottom: 14 }}>
+              <div className="mng-field-l">Session length (hours)</div>
+              <input
+                className="input"
+                type="number"
+                min="0"
+                step="0.25"
+                aria-label="Session length in hours"
+                placeholder="e.g. 2"
+                value={sessionHours}
+                onChange={e => setSessionHours(e.target.value)}
+                style={{ width: 120 }}
+              />
             </div>
           )}
 

@@ -21,7 +21,7 @@ function genId() {
 
 // A fresh node. `kind` null = a plain category until a leaf kind is chosen.
 // Categories are simply nodes that end up with children.
-export function newNode({ title, kind = null, unit = null, total = null, perWeek = null, deadline = null }) {
+export function newNode({ title, kind = null, unit = null, total = null, perWeek = null, deadline = null, sessionHours = null }) {
   return {
     id: genId(),
     title: (title || '').trim(),
@@ -41,6 +41,8 @@ export function newNode({ title, kind = null, unit = null, total = null, perWeek
     // scheduling (any leaf can surface on planner/daily days)
     days: [],
     deadline: deadline || null,
+    // time budgeting: hours one session of this leaf takes
+    sessionHours: sessionHours != null && sessionHours !== '' ? Number(sessionHours) : null,
     collapsed: false,
   }
 }
