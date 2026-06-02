@@ -1,19 +1,15 @@
 // Shared builder for the GitHub-style year contribution grid. Used by the
 // dashboard Consistency card and the Planner's week picker.
+import { levelForCount } from './activity'
 
 export const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-
-export function levelForScore(score) {
-  if (score == null) return 0
-  return score >= 8 ? 4 : score >= 6 ? 3 : score >= 4 ? 2 : 1
-}
 
 function isoOf(d) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
 // Build column-major day cells for `year`, with leading blanks so weeks align to
-// Monday rows. `byDate` maps ISO date → entry ({ score }).
+// Monday rows. `byDate` maps ISO date → completion count (number).
 export function buildYearGrid(year, byDate) {
   const jan1 = new Date(year, 0, 1)
   const leadingEmpty = (jan1.getDay() + 6) % 7
@@ -24,8 +20,8 @@ export function buildYearGrid(year, byDate) {
   for (let i = 0; i < daysInYear; i++) {
     const d = new Date(year, 0, 1 + i)
     const dateStr = isoOf(d)
-    const entry = byDate.get(dateStr)
-    cells.push({ dateStr, level: levelForScore(entry?.score ?? null) })
+    const count = byDate.get(dateStr) || 0
+    cells.push({ dateStr, level: levelForCount(count), count })
   }
 
   const monthCols = MONTH_LABELS.map((label, m) => {

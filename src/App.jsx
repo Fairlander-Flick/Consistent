@@ -5,7 +5,6 @@ import { Dashboard } from './pages/Dashboard'
 import { Goals } from './pages/Goals'
 import { Planner } from './pages/Planner'
 import { Consistency } from './pages/Consistency'
-import { Journal } from './pages/Journal'
 import { Settings } from './pages/Settings'
 import { Login } from './pages/Login'
 import { ErrorBoundary } from './components/ui/ErrorBoundary'
@@ -47,7 +46,6 @@ export default function App() {
           <Route path="/goals" element={<ErrorBoundary><Goals /></ErrorBoundary>} />
           <Route path="/planner" element={<ErrorBoundary><Planner /></ErrorBoundary>} />
           <Route path="/consistency" element={<ErrorBoundary><Consistency /></ErrorBoundary>} />
-          <Route path="/journal" element={<ErrorBoundary><Journal /></ErrorBoundary>} />
           <Route path="/settings" element={<ErrorBoundary><Settings /></ErrorBoundary>} />
         </Route>
       </Routes>

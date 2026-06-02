@@ -1,12 +1,11 @@
 import { NavLink } from 'react-router-dom'
-import { IconDashboard, IconConsistency, IconJournal, IconTarget, IconCalendar } from '../ui/Icons'
+import { IconDashboard, IconConsistency, IconTarget, IconCalendar } from '../ui/Icons'
 
 const items = [
   { to: '/', label: 'Dashboard', Icon: IconDashboard, end: true },
   { to: '/goals', label: 'Goals', Icon: IconTarget },
   { to: '/planner', label: 'Planner', Icon: IconCalendar },
   { to: '/consistency', label: 'Consistency', Icon: IconConsistency },
-  { to: '/journal', label: 'Journal', Icon: IconJournal },
 ]
 
 export function BottomNav() {

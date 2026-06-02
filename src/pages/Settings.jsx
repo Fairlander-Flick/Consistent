@@ -332,7 +332,7 @@ export function Settings() {
           {close => (
             <>
               <h4>Delete all data?</h4>
-              <p>This will permanently remove all weight, journal, and goals data. This cannot be undone.</p>
+              <p>This will permanently remove all weight, goals, and planning data. This cannot be undone.</p>
               <p style={{ marginBottom: 8 }}>
                 Please type <span className="highlight">Fairlander</span> to confirm.
               </p>

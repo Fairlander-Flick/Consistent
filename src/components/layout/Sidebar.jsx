@@ -4,7 +4,7 @@ import { useSettingsStore } from '../../store/useSettingsStore'
 import { useAuthStore } from '../../store/useAuthStore'
 import { consumeBrandRect } from '../../lib/brandTransition'
 import {
-  IconDashboard, IconConsistency, IconJournal, IconTarget,
+  IconDashboard, IconConsistency, IconTarget,
   IconSun, IconMoon, IconSettings, IconChevRight, IconCalendar,
 } from '../ui/Icons'
 import { IconSwap, TextSwap } from '../ui/transitions'
@@ -14,7 +14,6 @@ const navItems = [
   { to: '/goals', label: 'Goals', Icon: IconTarget },
   { to: '/planner', label: 'Planner', Icon: IconCalendar },
   { to: '/consistency', label: 'Consistency', Icon: IconConsistency },
-  { to: '/journal', label: 'Journal', Icon: IconJournal },
 ]
 
 export function Sidebar() {

@@ -1,30 +1,27 @@
 import { describe, it, expect } from 'vitest'
 import { periodRecap, monthDates } from './recap'
 
-const data = {
-  journalEntries: [
-    { date: '2026-05-11', sleepHours: 8, score: 9 },
-    { date: '2026-05-12', sleepHours: 6, score: 5 },
-    { date: '2026-05-12', score: null, sleepHours: null },
-  ],
-  goalPeriod: { todos: [{ done: true }, { done: false }, { done: true }] },
-}
+const activityByDate = new Map([
+  ['2026-05-11', 3],
+  ['2026-05-12', 1],
+  ['2026-05-20', 5], // outside the week below
+])
 
 const week = ['2026-05-11', '2026-05-12', '2026-05-13', '2026-05-14', '2026-05-15', '2026-05-16', '2026-05-17']
 
 describe('periodRecap', () => {
-  it('aggregates only entries within the period', () => {
-    const r = periodRecap(data, week)
-    expect(r.sleepAvg).toBeCloseTo(7, 6)
-    expect(r.moodAvg).toBeCloseTo(7, 6)
+  it('sums completions and active days within the period only', () => {
+    const r = periodRecap({ activityByDate, goalPeriod: { todos: [{ done: true }, { done: false }, { done: true }] } }, week)
+    expect(r.sessionsDone).toBe(4) // 3 + 1 (the 5 on 05-20 is outside)
+    expect(r.activeDays).toBe(2)
     expect(r.goalsDone).toBe(2)
     expect(r.goalsTotal).toBe(3)
   })
 
-  it('returns null averages when nothing logged', () => {
-    const r = periodRecap({ journalEntries: [], goalPeriod: null }, week)
-    expect(r.sleepAvg).toBeNull()
-    expect(r.moodAvg).toBeNull()
+  it('returns zeroes when nothing logged', () => {
+    const r = periodRecap({ activityByDate: new Map(), goalPeriod: null }, week)
+    expect(r.sessionsDone).toBe(0)
+    expect(r.activeDays).toBe(0)
     expect(r.goalsTotal).toBe(0)
   })
 })
