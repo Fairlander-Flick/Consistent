@@ -933,7 +933,7 @@ a:focus-visible, button:focus-visible, [role="button"]:focus-visible,
 .bento .bento-left  { grid-area: A; display: flex; flex-direction: column; gap: var(--gap-bento); min-width: 0; }
 .bento .bento-right { grid-area: B; display: flex; flex-direction: column; gap: var(--gap-bento); min-width: 0; }
 .bento .area-contrib { grid-area: c; }  /* Consistency (GitHub grid) */
-.bento .area-journal { grid-area: j; }  /* Today's journal (beside grid) */
+.bento .area-free { grid-area: j; }  /* Free time (beside the consistency grid) */
 
 /* Recap stays compact; This Week grows to fill the rest of the left column and
    scrolls internally so a full week never stretches the bento. Goals (right,
@@ -1772,3 +1772,32 @@ button:active:not(:disabled) { transform: scale(0.97); }
   .gl-list > *, .mng-list > * { animation: none !important; transition: none !important; }
   .card:hover, .gl-row:hover, button:active:not(:disabled) { transform: none !important; }
 }
+
+/* ── Free Time card ─────────────────────────────────────── */
+.ft-ring-wrap { display: flex; justify-content: center; margin: 6px 0 12px; }
+.ft-ring { position: relative; width: 132px; height: 132px; }
+.ft-center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.ft-center .ft-h { font-family: var(--font-display); font-size: 26px; font-weight: 700; line-height: 1; color: var(--text); }
+.ft-center .ft-l { font-size: 10px; letter-spacing: 0.07em; color: var(--muted); margin-top: 2px; }
+.ft-center .ft-h.over { color: var(--negative); }
+
+.ft-leg { display: flex; align-items: center; gap: 8px; font-size: 12px; padding: 4px 0; }
+.ft-leg .dot { width: 9px; height: 9px; border-radius: 3px; flex: none; }
+.ft-leg .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ft-leg .hr { font-family: var(--font-mono); font-variant-numeric: tabular-nums; color: var(--muted); }
+.ft-more { font-size: 11px; color: var(--muted); padding-top: 2px; }
+
+.ft-week { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
+.ft-day { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.ft-day .wd { font-size: 9px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
+.ft-day.today .wd { color: var(--accent); }
+.ft-day .fr { font-family: var(--font-mono); font-size: 10px; font-variant-numeric: tabular-nums; color: var(--text-mid); }
+.ft-day.over .fr { color: var(--negative); }
+
+.ft-empty { font-size: 12px; color: var(--muted); text-align: center; padding: 8px 0 4px; }
+.ft-empty a { color: var(--accent); }
+
+/* Ring reveal — fades + lifts in on mount; collapses under reduced-motion. */
+@keyframes ft-ring-in { from { opacity: 0; transform: scale(0.92); } to { opacity: 1; transform: scale(1); } }
+.ft-ring-in { animation: ft-ring-in var(--dur-3) var(--ease-out) backwards; transform-origin: center; }
+@media (prefers-reduced-motion: reduce) { .ft-ring-in { animation: none; } }
