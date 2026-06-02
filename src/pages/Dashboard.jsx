@@ -68,9 +68,9 @@ export function Dashboard() {
         <div className="bento-right">
           <GraphCard />
           <GoalsCard />
+          <FreeTimeCard />
         </div>
         <ConsistencyCard />
-        <FreeTimeCard />
       </div>
     </DashboardContext.Provider>
   )

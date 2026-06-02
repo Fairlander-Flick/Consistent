@@ -928,12 +928,11 @@ a:focus-visible, button:focus-visible, [role="button"]:focus-visible,
   grid-template-columns: repeat(12, 1fr);
   grid-template-areas:
     "A A A A A A B B B B B B"
-    "c c c c c c c c c j j j";
+    "c c c c c c c c c c c c";
 }
 .bento .bento-left  { grid-area: A; display: flex; flex-direction: column; gap: var(--gap-bento); min-width: 0; }
 .bento .bento-right { grid-area: B; display: flex; flex-direction: column; gap: var(--gap-bento); min-width: 0; }
-.bento .area-contrib { grid-area: c; }  /* Consistency (GitHub grid) */
-.bento .area-free { grid-area: j; }  /* Free time (beside the consistency grid) */
+.bento .area-contrib { grid-area: c; }  /* Consistency (GitHub grid) — full width */
 
 /* Recap stays compact; This Week grows to fill the rest of the left column and
    scrolls internally so a full week never stretches the bento. Goals (right,
@@ -947,7 +946,7 @@ a:focus-visible, button:focus-visible, [role="button"]:focus-visible,
 @media (max-width: 1023px) {
   .bento {
     grid-template-columns: 1fr;
-    grid-template-areas: "A" "B" "c" "j";
+    grid-template-areas: "A" "B" "c";
   }
   /* Single column: let This Week show every day; the page scrolls instead. */
   .bento-left .area-week { display: block; }

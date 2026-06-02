@@ -59,7 +59,7 @@ export function FreeTimeCard() {
   const moreCount = breakdown.length - shownLegend.length
 
   return (
-    <div className="card area-free">
+    <div className="card">
       <div className="card-h">
         <CardTitleLink to="/planner">Free time</CardTitleLink>
         <span className="meta">today</span>
