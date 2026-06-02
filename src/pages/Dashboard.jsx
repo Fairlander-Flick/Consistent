@@ -20,7 +20,7 @@ const CARDS = [
   { key: 'week', label: 'This week', Comp: WeekPlannerCard },
   { key: 'weight', label: 'Weight', Comp: GraphCard },
   { key: 'pursuits', label: 'Pursuits', Comp: GoalsCard },
-  { key: 'free', label: 'Free time', Comp: FreeTimeCard },
+  { key: 'free', label: 'Time Management', Comp: FreeTimeCard },
   { key: 'consistency', label: 'Consistency', Comp: ConsistencyCard },
 ]
 
@@ -117,8 +117,17 @@ export function Dashboard() {
         </div>
       )}
 
-      <div className="dash-grid">
-        {CARDS.filter(c => isOn(c.key)).map(({ key, Comp }) => <Comp key={key} />)}
+      <div className="bento">
+        <div className="bento-left">
+          {isOn('recap') && <RecapCard />}
+          {isOn('week') && <WeekPlannerCard />}
+        </div>
+        <div className="bento-right">
+          {isOn('weight') && <GraphCard />}
+          {isOn('pursuits') && <GoalsCard />}
+          {isOn('free') && <FreeTimeCard />}
+        </div>
+        {isOn('consistency') && <ConsistencyCard />}
       </div>
     </DashboardContext.Provider>
   )

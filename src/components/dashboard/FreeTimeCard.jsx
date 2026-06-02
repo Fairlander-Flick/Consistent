@@ -61,7 +61,7 @@ export function FreeTimeCard() {
   return (
     <div className="card">
       <div className="card-h">
-        <CardTitleLink to="/planner">Free time</CardTitleLink>
+        <CardTitleLink to="/planner">Time Management</CardTitleLink>
         <span className="meta">today</span>
       </div>
 
