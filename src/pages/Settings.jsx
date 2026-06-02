@@ -220,10 +220,10 @@ export function Settings() {
         <div className="card-h"><h3>Reminders</h3></div>
         <div className="setting-row">
           <div>
-            <div className="setting-label">Daily journal reminder</div>
+            <div className="setting-label">Daily reminder</div>
             <div className="setting-desc">
               {notifSupported
-                ? 'Sends a notification if you haven’t logged your journal yet. Fires only while the app is open in a tab.'
+                ? 'Sends a notification if you still have tasks planned for today. Fires only while the app is open in a tab.'
                 : 'Your browser does not support notifications.'}
             </div>
             {notifPerm === 'denied' && (
