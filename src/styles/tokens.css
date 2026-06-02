@@ -826,16 +826,16 @@ a:focus-visible, button:focus-visible, [role="button"]:focus-visible,
 /* Stagger the dashboard's top strip + bento children so they arrive in
    sequence rather than all at once — a calmer reveal. */
 .route-enter .dash-strip > *,
-.route-enter .bento > * {
+.route-enter .dash-grid > * {
   animation: page-rise var(--dur-4) var(--ease-out) backwards;
 }
 .route-enter .dash-strip > *:nth-child(1),
-.route-enter .bento > *:nth-child(1) { animation-delay: 40ms; }
+.route-enter .dash-grid > *:nth-child(1) { animation-delay: 40ms; }
 .route-enter .dash-strip > *:nth-child(2),
-.route-enter .bento > *:nth-child(2) { animation-delay: 90ms; }
+.route-enter .dash-grid > *:nth-child(2) { animation-delay: 90ms; }
 .route-enter .dash-strip > *:nth-child(3),
-.route-enter .bento > *:nth-child(3) { animation-delay: 140ms; }
-.route-enter .bento > *:nth-child(4) { animation-delay: 190ms; }
+.route-enter .dash-grid > *:nth-child(3) { animation-delay: 140ms; }
+.route-enter .dash-grid > *:nth-child(4) { animation-delay: 190ms; }
 
 /* Smooth the theme flip: surfaces cross-fade their colour instead of snapping
    between dark and light. Scoped to backgrounds/borders so text stays crisp. */
@@ -921,37 +921,40 @@ a:focus-visible, button:focus-visible, [role="button"]:focus-visible,
   margin-bottom: var(--gap-bento);
 }
 
-/* ── Bento grid ────────────────────────────────── */
-.bento {
-  display: grid;
-  gap: var(--gap-bento);
-  grid-template-columns: repeat(12, 1fr);
-  grid-template-areas:
-    "A A A A A A B B B B B B"
-    "c c c c c c c c c c c c";
+/* ── Dashboard masonry ─────────────────────────────
+   Visible cards flow into balanced columns (CSS multicol), so toggling any card
+   on/off just reflows — there is never an empty grid hole. Cards take the column
+   width; the tall ones (Consistency, This week) scroll internally. */
+.dash-grid { columns: 1; column-gap: var(--gap-bento); }
+@media (min-width: 768px)  { .dash-grid { columns: 2; } }
+@media (min-width: 1500px) { .dash-grid { columns: 3; } }
+.dash-grid > * {
+  break-inside: avoid;
+  margin-bottom: var(--gap-bento);
 }
-.bento .bento-left  { grid-area: A; display: flex; flex-direction: column; gap: var(--gap-bento); min-width: 0; }
-.bento .bento-right { grid-area: B; display: flex; flex-direction: column; gap: var(--gap-bento); min-width: 0; }
-.bento .area-contrib { grid-area: c; }  /* Consistency (GitHub grid) — full width */
+/* Bound the tall cards so one card can't dominate a column; they scroll inside. */
+.dash-grid .area-week { display: flex; flex-direction: column; max-height: 460px; }
+.dash-grid .area-week .wkp-scroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; margin-right: -6px; padding-right: 6px; }
+.dash-grid .area-week .wkp-scroll::-webkit-scrollbar { width: 7px; }
+.dash-grid .area-week .wkp-scroll::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 4px; }
 
-/* Recap stays compact; This Week grows to fill the rest of the left column and
-   scrolls internally so a full week never stretches the bento. Goals (right,
-   natural height) drives the row height; This Week stretches to match it. */
-.bento-left .area-recap { flex: 0 0 auto; }
-.bento-left .area-week { flex: 1 1 auto; min-height: 300px; display: flex; flex-direction: column; }
-.bento-left .area-week .wkp-scroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; margin-right: -6px; padding-right: 6px; }
-.bento-left .area-week .wkp-scroll::-webkit-scrollbar { width: 7px; }
-.bento-left .area-week .wkp-scroll::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 4px; }
-
-@media (max-width: 1023px) {
-  .bento {
-    grid-template-columns: 1fr;
-    grid-template-areas: "A" "B" "c";
-  }
-  /* Single column: let This Week show every day; the page scrolls instead. */
-  .bento-left .area-week { display: block; }
-  .bento-left .area-week .wkp-scroll { max-height: none; overflow: visible; margin-right: 0; padding-right: 0; }
+/* ── Dashboard "Customize" control ─────────────────── */
+.dash-cust { position: relative; }
+.dash-cust-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 40;
+  background: var(--card);
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  padding: 6px;
+  min-width: 220px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
 }
+.dash-cust-title { font-size: 11px; color: var(--muted); padding: 4px 8px 6px; }
+.dash-cust-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 7px 8px; border-radius: 6px; font-size: 13px; }
+.dash-cust-row:hover { background: var(--faint); }
 
 /* ── This Week card (dashboard) — day groups of checkable todos ── */
 .wkp-scroll { display: flex; flex-direction: column; }
