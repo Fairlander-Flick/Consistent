@@ -2,7 +2,7 @@ import { create } from 'zustand'
 
 // Lightweight toast queue. Toasts stack at a screen corner, auto-dismiss, and
 // never shift page layout. Reserve them for actions whose effect isn't already
-// visible on screen (e.g. saving a journal entry) — not celebratory noise.
+// visible on screen (e.g. restoring a backup) — not celebratory noise.
 let nextId = 1
 const DEFAULT_DURATION = 2800
 

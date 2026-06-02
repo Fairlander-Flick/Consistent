@@ -20,9 +20,9 @@ describe('backup', () => {
   })
 
   it('skips corrupt entries instead of throwing', () => {
-    localStorage.setItem('consistent:journal', '{ not json')
+    localStorage.setItem('consistent:weight', '{ not json')
     const b = buildBackup()
-    expect(b.data['consistent:journal']).toBeUndefined()
+    expect(b.data['consistent:weight']).toBeUndefined()
   })
 
   it('parseBackup rejects non-Consistent files', () => {

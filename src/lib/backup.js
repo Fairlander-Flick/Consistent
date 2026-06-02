@@ -7,13 +7,13 @@
 
 export const STORE_KEYS = [
   'consistent:weight',
-  'consistent:journal',
   'consistent:goals',
   'consistent:goals-log',
   'consistent:schedule-done',
   'consistent:settings',
   'consistent:lifelong:v2',
   'consistent:dayplan',
+  'consistent:essentials',
 ]
 
 export const BACKUP_VERSION = 1

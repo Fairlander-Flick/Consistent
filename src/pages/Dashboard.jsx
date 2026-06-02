@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { GraphCard } from '../components/dashboard/GraphCard'
-import { JournalCard } from '../components/dashboard/JournalCard'
+import { FreeTimeCard } from '../components/dashboard/FreeTimeCard'
 import { GoalsCard } from '../components/dashboard/GoalsCard'
 import { ConsistencyCard } from '../components/dashboard/ConsistencyCard'
 import { RecapCard } from '../components/dashboard/RecapCard'
@@ -68,9 +68,9 @@ export function Dashboard() {
         <div className="bento-right">
           <GraphCard />
           <GoalsCard />
+          <FreeTimeCard />
         </div>
         <ConsistencyCard />
-        <JournalCard />
       </div>
     </DashboardContext.Provider>
   )

@@ -1,31 +1,24 @@
 // Cross-store summary for a date range (a week or a month).
 //
 // `dates` is the list of YYYY-MM-DD strings the period covers.
+// `activityByDate` is a Map<dateStr, completionCount> (see lib/activity.js).
 // `goalPeriod` is the goals horizon object ({ todos: [...] }) that matches
 // the period (weekly goals for a week recap, monthly for a month).
 
-function avg(nums) {
-  return nums.length ? nums.reduce((a, b) => a + b, 0) / nums.length : null
-}
-
-export function periodRecap({ journalEntries, goalPeriod }, dates) {
-  const set = new Set(dates)
-  const has = (d) => set.has(d)
-
-  const periodJournal = journalEntries.filter(e => has(e.date))
-  const sleepAvg = avg(periodJournal.filter(e => e.sleepHours != null).map(e => e.sleepHours))
-  const moodAvg = avg(periodJournal.filter(e => e.score != null).map(e => e.score))
+export function periodRecap({ activityByDate, goalPeriod }, dates) {
+  const counts = dates.map(d => activityByDate?.get(d) || 0)
+  const sessionsDone = counts.reduce((a, b) => a + b, 0)
+  const activeDays = counts.filter(c => c > 0).length
 
   const todos = goalPeriod?.todos ?? []
   const goalsTotal = todos.length
   const goalsDone = todos.filter(t => t.done).length
 
   return {
-    sleepAvg,
-    moodAvg,
+    sessionsDone,
+    activeDays,
     goalsTotal,
     goalsDone,
-    journalCount: periodJournal.length,
   }
 }
 

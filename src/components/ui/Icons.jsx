@@ -28,10 +28,6 @@ export const IconConsistency = (p) => <Icon {...p}>
   <rect x="3" y="17" width="4" height="4" rx="1"/>
 </Icon>
 
-export const IconJournal = (p) => <Icon {...p}>
-  <path d="M5 3h11a2 2 0 0 1 2 2v15a1 1 0 0 1-1 1H6a2 2 0 0 1-2-2V4a1 1 0 0 1 1-1z"/>
-  <path d="M8 7h7M8 11h7M8 15h4"/>
-</Icon>
 
 export const IconWallet = (p) => <Icon {...p}>
   <path d="M20 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-9a2 2 0 0 0-2-2z"/>

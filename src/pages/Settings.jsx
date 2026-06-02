@@ -1,6 +1,8 @@
 import { useRef, useState } from 'react'
 import { Modal, useTabPill } from '../components/ui/transitions'
 import { useSettingsStore } from '../store/useSettingsStore'
+import { useEssentialsStore } from '../store/useEssentialsStore'
+import { dailyAvailableHours } from '../lib/timeBudget'
 import { STORE_KEYS, exportBackup, parseBackup, restoreBackup } from '../lib/backup'
 import { useAuthStore } from '../store/useAuthStore'
 import { pushAll } from '../lib/cloudSync'
@@ -34,6 +36,9 @@ export function Settings() {
     reminderEnabled, setReminderEnabled,
     reminderTime, setReminderTime,
   } = useSettingsStore()
+
+  const { sleepPerDay, factors, setSleepPerDay, addFactor, updateFactor, removeFactor } = useEssentialsStore()
+  const availablePerDay = dailyAvailableHours({ sleepPerDay, factors })
 
   const user = useAuthStore(s => s.user)
   const [syncStatus, setSyncStatus] = useState('idle') // idle | syncing | done | error
@@ -148,6 +153,59 @@ export function Settings() {
       </div>
 
       <div className="card" style={{ maxWidth: 560, marginTop: 16 }}>
+        <div className="card-h">
+          <h3>Life Essentials</h3>
+          <span className="meta">{availablePerDay}h free / day</span>
+        </div>
+        <div className="setting-row">
+          <div>
+            <div className="setting-label">Sleep</div>
+            <div className="setting-desc">Hours per day. Subtracted from every day's budget.</div>
+          </div>
+          <div className="row" style={{ gap: 6 }}>
+            <input
+              type="number" className="input mono" aria-label="Sleep hours per day"
+              min="0" max="24" step="0.5"
+              value={sleepPerDay}
+              onChange={e => setSleepPerDay(e.target.value)}
+              style={{ width: 90, textAlign: 'right' }}
+            />
+            <span style={{ fontSize: 12, color: 'var(--muted)' }}>h/day</span>
+          </div>
+        </div>
+
+        {factors.map(f => (
+          <div className="setting-row" key={f.id}>
+            <input
+              className="input" aria-label="Factor name" value={f.name}
+              onChange={e => updateFactor(f.id, { name: e.target.value })}
+              style={{ maxWidth: 220 }}
+            />
+            <div className="row" style={{ gap: 6 }}>
+              <input
+                type="number" className="input mono" aria-label={`${f.name} hours per week`}
+                min="0" step="0.5"
+                value={f.hoursPerWeek}
+                onChange={e => updateFactor(f.id, { hoursPerWeek: e.target.value })}
+                style={{ width: 90, textAlign: 'right' }}
+              />
+              <span style={{ fontSize: 12, color: 'var(--muted)' }}>h/wk</span>
+              <button type="button" className="btn ghost sm" aria-label={`Remove ${f.name}`}
+                onClick={() => removeFactor(f.id)}>✕</button>
+            </div>
+          </div>
+        ))}
+
+        <div className="setting-row" style={{ borderBottom: 0 }}>
+          <div>
+            <div className="setting-label">Add a factor</div>
+            <div className="setting-desc">Weekly fixed time: meals, getting ready, commute, chores…</div>
+          </div>
+          <button type="button" className="btn" onClick={() => addFactor('New factor', 0)}>+ Add</button>
+        </div>
+      </div>
+
+      <div className="card" style={{ maxWidth: 560, marginTop: 16 }}>
         <div className="card-h"><h3>Confirmations</h3></div>
         <div className="setting-row" style={{ borderBottom: 0 }}>
           <div>
@@ -162,10 +220,10 @@ export function Settings() {
         <div className="card-h"><h3>Reminders</h3></div>
         <div className="setting-row">
           <div>
-            <div className="setting-label">Daily journal reminder</div>
+            <div className="setting-label">Daily reminder</div>
             <div className="setting-desc">
               {notifSupported
-                ? 'Sends a notification if you haven’t logged your journal yet. Fires only while the app is open in a tab.'
+                ? 'Sends a notification if you still have tasks planned for today. Fires only while the app is open in a tab.'
                 : 'Your browser does not support notifications.'}
             </div>
             {notifPerm === 'denied' && (
@@ -274,7 +332,7 @@ export function Settings() {
           {close => (
             <>
               <h4>Delete all data?</h4>
-              <p>This will permanently remove all weight, journal, and goals data. This cannot be undone.</p>
+              <p>This will permanently remove all weight, goals, and planning data. This cannot be undone.</p>
               <p style={{ marginBottom: 8 }}>
                 Please type <span className="highlight">Fairlander</span> to confirm.
               </p>

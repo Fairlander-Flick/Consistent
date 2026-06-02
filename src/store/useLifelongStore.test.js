@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { act, renderHook } from '@testing-library/react'
-import { useLifelongStore, findNode } from './useLifelongStore'
+import { useLifelongStore, findNode, newNode } from './useLifelongStore'
 
 beforeEach(() => {
   localStorage.clear()
@@ -107,5 +107,13 @@ describe('useLifelongStore — tree', () => {
     expect(findNode(result.current.nodes, id).days).toEqual(['Mon'])
     act(() => result.current.toggleNodeDay(id, 'Mon'))
     expect(findNode(result.current.nodes, id).days).toEqual([])
+  })
+})
+
+describe('newNode sessionHours', () => {
+  it('defaults sessionHours to null and accepts a number', () => {
+    expect(newNode({ title: 'x' }).sessionHours).toBe(null)
+    expect(newNode({ title: 'x', sessionHours: 2 }).sessionHours).toBe(2)
+    expect(newNode({ title: 'x', sessionHours: '1.5' }).sessionHours).toBe(1.5)
   })
 })

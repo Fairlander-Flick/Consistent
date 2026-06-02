@@ -1,7 +1,9 @@
 import { useMemo, useState, useRef } from 'react'
-import { useJournalStore } from '../../store/useJournalStore'
+import { useScheduleDoneStore } from '../../store/useScheduleDoneStore'
+import { useDayPlanStore } from '../../store/useDayPlanStore'
 import { useGoalsStore } from '../../store/useGoalsStore'
 import { periodRecap, monthDates, yearDates } from '../../lib/recap'
+import { buildActivityMap } from '../../lib/activity'
 import { isoWeekDates, todayISO } from '../../lib/dateUtils'
 import { useDashboard } from '../../lib/DashboardContext'
 import { Swap, PopNumber, useTabPill } from '../ui/transitions'
@@ -20,7 +22,8 @@ function Metric({ label, value, sub, tone }) {
 }
 
 export function RecapCard() {
-  const { entries } = useJournalStore()
+  const scheduleDone = useScheduleDoneStore(s => s.done)
+  const dayPlan = useDayPlanStore(s => s.byDate)
   const { goals } = useGoalsStore()
   const [period, setPeriod] = useState('week')
   const { viewDate } = useDashboard()
@@ -37,9 +40,11 @@ export function RecapCard() {
 
   const goalPeriod = period === 'week' ? goals.weekly : period === 'month' ? goals.monthly : goals.yearly
 
+  const activityByDate = useMemo(() => buildActivityMap(scheduleDone, dayPlan), [scheduleDone, dayPlan])
+
   const r = useMemo(
-    () => periodRecap({ journalEntries: entries, goalPeriod }, dates),
-    [entries, goalPeriod, dates]
+    () => periodRecap({ activityByDate, goalPeriod }, dates),
+    [activityByDate, goalPeriod, dates]
   )
 
   return (
@@ -59,9 +64,10 @@ export function RecapCard() {
       </div>
       <Swap swapKey={period} className="recap-metrics" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }}>
         <Metric
-          label="Avg sleep"
-          value={r.sleepAvg != null ? `${r.sleepAvg.toFixed(1)}h` : '—'}
-          sub={r.moodAvg != null ? `mood ${r.moodAvg.toFixed(1)}` : 'no mood'}
+          label="Done"
+          value={r.sessionsDone || '—'}
+          sub={r.activeDays ? `${r.activeDays} active ${r.activeDays === 1 ? 'day' : 'days'}` : 'nothing yet'}
+          tone={r.sessionsDone ? 'pos' : undefined}
         />
         <Metric
           label="Goals"

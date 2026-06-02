@@ -1,6 +1,8 @@
 import { useMemo, useState, useRef } from 'react'
-import { useJournalStore } from '../../store/useJournalStore'
+import { useScheduleDoneStore } from '../../store/useScheduleDoneStore'
+import { useDayPlanStore } from '../../store/useDayPlanStore'
 import { buildYearGrid } from '../../lib/consistencyGrid'
+import { buildActivityMap } from '../../lib/activity'
 import { getWeekStart } from '../../lib/dateUtils'
 import { useTabPill } from '../ui/transitions'
 
@@ -20,21 +22,23 @@ function weekStartISO(dateStr) {
 // Year contribution grid repurposed as a week picker: click any day to jump the
 // Planner to that week; the selected week's column is outlined.
 export function PlannerConsistency({ refDate, onPick }) {
-  const { entries } = useJournalStore()
+  const scheduleDone = useScheduleDoneStore(s => s.done)
+  const dayPlan = useDayPlanStore(s => s.byDate)
   const currentYear = new Date().getFullYear()
   const selectedWeek = weekStartISO(refDate)
   const tabsRef = useRef(null)
   useTabPill(tabsRef)
 
+  const byDate = useMemo(() => buildActivityMap(scheduleDone, dayPlan), [scheduleDone, dayPlan])
+
   const years = useMemo(() => {
-    const ys = entries.map(e => parseInt(e.date.slice(0, 4))).filter(y => !isNaN(y))
+    const ys = [...byDate.keys()].map(d => parseInt(d.slice(0, 4))).filter(y => !isNaN(y))
     const min = ys.length ? Math.min(...ys) : currentYear
     const max = Math.max(currentYear, Number(refDate.slice(0, 4)) || currentYear)
     return Array.from({ length: max - min + 1 }, (_, i) => min + i)
-  }, [entries, currentYear, refDate])
+  }, [byDate, currentYear, refDate])
 
   const [year, setYear] = useState(Number(refDate.slice(0, 4)) || currentYear)
-  const byDate = useMemo(() => new Map(entries.map(e => [e.date, e])), [entries])
   const { cells, monthCols, totalCols } = useMemo(() => buildYearGrid(year, byDate), [year, byDate])
 
   return (

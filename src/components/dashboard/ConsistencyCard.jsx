@@ -1,8 +1,10 @@
 import { useState, useMemo, useRef } from 'react'
-import { useJournalStore } from '../../store/useJournalStore'
+import { useScheduleDoneStore } from '../../store/useScheduleDoneStore'
+import { useDayPlanStore } from '../../store/useDayPlanStore'
 import { todayISO } from '../../lib/dateUtils'
 import { useDashboard } from '../../lib/DashboardContext'
 import { buildYearGrid } from '../../lib/consistencyGrid'
+import { buildActivityMap } from '../../lib/activity'
 import { CardTitleLink } from './CardTitleLink'
 import { Swap, PopNumber, useTabPill } from '../ui/transitions'
 
@@ -19,46 +21,42 @@ function buildTooltip(dateStr, byDate) {
   const dayOfWeek = (d.getDay() + 6) % 7
   const monday = new Date(d)
   monday.setDate(d.getDate() - dayOfWeek)
-  const sunday = new Date(monday)
-  sunday.setDate(monday.getDate() + 6)
 
-  const scores = []
+  let weekTotal = 0
   for (let i = 0; i < 7; i++) {
     const wd = new Date(monday)
     wd.setDate(monday.getDate() + i)
     const ds = `${wd.getFullYear()}-${String(wd.getMonth() + 1).padStart(2, '0')}-${String(wd.getDate()).padStart(2, '0')}`
-    const entry = byDate.get(ds)
-    if (entry?.score != null) scores.push(entry.score / 10)
+    weekTotal += byDate.get(ds) || 0
   }
-  const avg = scores.length ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length * 100) : 0
-  const monLabel = monday.toLocaleString('en', { month: 'short', day: 'numeric' })
-  const sunLabel = sunday.toLocaleString('en', { month: 'short', day: 'numeric' })
+  const dayCount = byDate.get(dateStr) || 0
 
-  return `${line1}\nWeek: ${monLabel} – ${sunLabel} · ${avg}%`
+  return `${line1}\n${dayCount} done · ${weekTotal} this week`
 }
 
 export function ConsistencyCard() {
-  const { entries } = useJournalStore()
+  const scheduleDone = useScheduleDoneStore(s => s.done)
+  const dayPlan = useDayPlanStore(s => s.byDate)
   const { viewDate, setViewDate } = useDashboard()
   const todayStr = todayISO()
   const currentYear = new Date().getFullYear()
 
+  const byDate = useMemo(() => buildActivityMap(scheduleDone, dayPlan), [scheduleDone, dayPlan])
+
   const years = useMemo(() => {
     const dataYears = []
-    for (const e of entries) {
-      const y = parseInt(e.date.slice(0, 4))
+    for (const ds of byDate.keys()) {
+      const y = parseInt(ds.slice(0, 4))
       if (!isNaN(y)) dataYears.push(y)
     }
     const minYear = dataYears.length ? Math.min(...dataYears) : currentYear
     return Array.from({ length: currentYear - minYear + 1 }, (_, i) => minYear + i)
-  }, [entries, currentYear])
+  }, [byDate, currentYear])
 
   const [selectedYear, setSelectedYear] = useState(currentYear)
   const [hover, setHover] = useState(null)
   const tabsRef = useRef(null)
   useTabPill(tabsRef)
-
-  const byDate = useMemo(() => new Map(entries.map(e => [e.date, e])), [entries])
 
   const { cells, monthCols, totalCols } = useMemo(
     () => buildYearGrid(selectedYear, byDate), [selectedYear, byDate]

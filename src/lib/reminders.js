@@ -11,7 +11,7 @@ export function nextOccurrence(timeStr, from = new Date()) {
 }
 
 // Schedules a recurring daily check. At each firing `shouldNotify()` decides
-// whether to actually call `notify()` (e.g. skip if already journaled).
+// whether to actually call `notify()` (e.g. skip if nothing is pending).
 // Returns a cancel function. setTimeout is clamped to a 24h-safe delay.
 export function scheduleDailyReminder({ time, shouldNotify, notify, now = () => new Date() }) {
   let timer = null
