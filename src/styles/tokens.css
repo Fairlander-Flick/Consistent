@@ -2,43 +2,44 @@
 
 /* ─────────────────────────────────────────────────────────
    Consistent+Potent — design tokens
-   Editorial-dark · Space Grotesk display, warm ink, calibrated green.
-   The login surface set the voice; the app now carries it.
+   Carbon (dark) · Parchment classic navy (light).
+   Cool graphite-black surfaces + vivid azure in the dark; warm
+   laid-paper + classic navy ink in the light. Space Grotesk display.
    ───────────────────────────────────────────────────────── */
 
 :root {
-  /* Color — dark (primary). Warm-neutral ink, not flat #111/#fff. */
-  --bg: oklch(20% 0.006 70);
-  --card: oklch(23.5% 0.006 70);
-  --card-hover: oklch(27% 0.008 70);
-  --border: oklch(30% 0.008 70);
-  --border-strong: oklch(38% 0.008 70);
-  --text: oklch(96% 0.005 85);
-  --text-mid: oklch(72% 0.01 75);
-  --muted: oklch(57% 0.01 72);
-  --faint: oklch(27% 0.008 70);
+  /* Color — Carbon dark (primary). Cool near-black graphite, layered greys. */
+  --bg: oklch(16% 0.004 256);
+  --card: oklch(20.5% 0.005 256);
+  --card-hover: oklch(24% 0.006 256);
+  --border: oklch(27.5% 0.007 256);
+  --border-strong: oklch(36% 0.009 256);
+  --text: oklch(96% 0.003 250);
+  --text-mid: oklch(73% 0.006 252);
+  --muted: oklch(56% 0.008 254);
+  --faint: oklch(24.5% 0.006 256);
   /* Empty contribution-grid cell — kept brighter than --faint so the heatmap
      lattice reads clearly against the card. */
-  --cg-empty: oklch(32% 0.008 70);
+  --cg-empty: oklch(29% 0.007 256);
   /* Empty progress track (rings + bars). */
-  --track: oklch(30% 0.008 70);
+  --track: oklch(27% 0.007 256);
 
-  /* Semantic — calibrated green (not raw Tailwind green-400). */
-  --accent: oklch(74% 0.16 150);
-  --accent-soft: color-mix(in oklab, var(--accent) 12%, transparent);
-  --accent-line: color-mix(in oklab, var(--accent) 34%, transparent);
-  --negative: oklch(66% 0.17 26);
+  /* Semantic — vivid azure, the Carbon signature lifted to pop on graphite. */
+  --accent: oklch(68% 0.16 248);
+  --accent-soft: color-mix(in oklab, var(--accent) 14%, transparent);
+  --accent-line: color-mix(in oklab, var(--accent) 36%, transparent);
+  --negative: oklch(67% 0.17 26);
   --negative-soft: color-mix(in oklab, var(--negative) 13%, transparent);
   --warn: oklch(80% 0.13 78);
   --warn-soft: color-mix(in oklab, var(--warn) 10%, transparent);
   /* Text/icon colour that sits on top of a solid --accent fill. */
-  --on-accent: oklch(18% 0.03 150);
+  --on-accent: oklch(19% 0.05 250);
 
   /* Radius / shadow */
   --r-card: 8px;
   --r-sm: 4px;
   --r-pill: 999px;
-  --shadow-1: 0 1px 3px rgba(0, 0, 0, 0.32);
+  --shadow-1: 0 1px 3px rgba(0, 0, 0, 0.45);
 
   /* Spacing scale (4px base) */
   --s-1: 4px;
@@ -88,6 +89,18 @@
   /* Card resize */
   --resize-dur: 300ms;
   --resize-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  /* Notification badge */
+  --badge-slide-dur: 260ms;
+  --badge-pop-dur: 500ms;
+  --badge-pop-close-dur: 180ms;
+  --badge-fade-dur: 400ms;
+  --badge-fade-close-dur: 180ms;
+  --badge-blur: 2px;
+  --badge-offset-x: -8.2px;
+  --badge-offset-y: 12.4px;
+  --badge-slide-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --badge-pop-ease: cubic-bezier(0.34, 1.36, 0.64, 1);
+  --badge-close-ease: cubic-bezier(0.4, 0, 0.2, 1);
   /* Number pop-in */
   --digit-dur: 500ms;
   --digit-distance: 8px;
@@ -166,46 +179,48 @@
 }
 
 [data-theme='light'] {
-  /* Warm paper, not cool #fff — echoes the login surface (#f1ede4). */
-  --bg: oklch(94% 0.006 85);
-  --card: oklch(98.5% 0.004 85);
-  --card-hover: oklch(96.5% 0.005 85);
-  --border: oklch(88% 0.007 80);
-  --border-strong: oklch(80% 0.008 78);
-  --text: oklch(24% 0.012 60);
-  --text-mid: oklch(48% 0.012 65);
-  --muted: oklch(60% 0.01 68);
-  --faint: oklch(92% 0.006 82);
-  --cg-empty: oklch(87% 0.007 80);
-  --track: oklch(89% 0.007 82);
-  /* Accent darkens on paper so progress bars, checks, and links clear WCAG AA;
-     the bright dark-mode green is unreadable on a light surface. */
-  --accent: oklch(52% 0.15 150);
-  --accent-soft: color-mix(in oklab, var(--accent) 10%, transparent);
-  --accent-line: color-mix(in oklab, var(--accent) 30%, transparent);
-  --negative: oklch(54% 0.2 27);
+  /* Parchment classic navy — warm cream laid-paper, classic navy ink. */
+  --bg: oklch(92.5% 0.016 84);
+  --card: oklch(96.8% 0.011 84);
+  --card-hover: oklch(94.6% 0.014 84);
+  --border: oklch(84% 0.018 80);
+  --border-strong: oklch(74% 0.024 78);
+  --text: oklch(27% 0.045 264);
+  --text-mid: oklch(44% 0.04 264);
+  --muted: oklch(56% 0.03 266);
+  --faint: oklch(89% 0.015 82);
+  --cg-empty: oklch(85% 0.016 80);
+  --track: oklch(87% 0.015 82);
+  /* Deep classic navy — the light-mode brand colour. Darkened on paper so
+     progress bars, checks, and links clear WCAG AA. */
+  --accent: oklch(40% 0.11 262);
+  --accent-soft: color-mix(in oklab, var(--accent) 9%, transparent);
+  --accent-line: color-mix(in oklab, var(--accent) 28%, transparent);
+  --negative: oklch(50% 0.16 28);
   --negative-soft: color-mix(in oklab, var(--negative) 10%, transparent);
-  --warn: oklch(62% 0.13 70);
-  --warn-soft: color-mix(in oklab, var(--warn) 12%, transparent);
-  --on-accent: oklch(99% 0.01 150);
-  --shadow-1: 0 1px 2px rgba(40, 34, 22, 0.06), 0 1px 3px rgba(40, 34, 22, 0.05);
+  --warn: oklch(58% 0.11 70);
+  --warn-soft: color-mix(in oklab, var(--warn) 14%, transparent);
+  --on-accent: oklch(97% 0.012 84);
+  --shadow-1: 0 1px 2px rgba(40, 34, 22, 0.07), 0 1px 3px rgba(40, 34, 22, 0.05);
 }
 
-/* Progress heat: driven by --p (0–100, set inline as data). Colourless at 0,
-   warming through orange → yellow, landing exactly on --accent green at 100.
-   A continuous sweep, not fixed buckets. Declared on the elements that carry
+/* Progress heat: driven by --p (0–100, set inline as data). A quiet blue-grey
+   at 0, gaining chroma through the run and landing on the --accent azure/navy
+   at 100. A continuous sweep, not fixed buckets. Declared on the elements that carry
    --p so each instance computes its own colour (a :root declaration would bake
    in --p=0 and inherit grey everywhere). */
 .ll-bar, .ll-ring, .gl-row-ring, .gl-row-pct, .prog {
-  --prog: oklch(74% calc(var(--p, 0) * 0.0016) calc(40 + var(--p, 0) * 1.1));
+  /* Heat sweeps in the navy/blue family: a quiet blue-grey at 0, warming in
+     chroma toward the azure accent at 100. */
+  --prog: oklch(72% calc(0.02 + var(--p, 0) * 0.0015) 248);
 }
 [data-theme='light'] .ll-bar,
 [data-theme='light'] .ll-ring,
 [data-theme='light'] .gl-row-ring,
 [data-theme='light'] .gl-row-pct,
 [data-theme='light'] .prog {
-  /* Dimmed on paper so coloured % text keeps AA contrast. */
-  --prog: oklch(54% calc(var(--p, 0) * 0.0017) calc(40 + var(--p, 0) * 1.1));
+  /* Dimmed to classic navy on paper so coloured % text keeps AA contrast. */
+  --prog: oklch(45% calc(0.02 + var(--p, 0) * 0.0012) 262);
 }
 .prog { color: var(--prog); }
 /* Cards need a real edge in light mode — a grey-on-grey border alone reads flat,
@@ -1332,6 +1347,46 @@ a:focus-visible, button:focus-visible, [role="button"]:focus-visible,
   .t-dropdown { transition: none !important; }
 }
 
+/* ── Notification badge (03) ────────────────────────────── */
+@keyframes t-badge-slide-in {
+  from { transform: translate(var(--badge-offset-x), var(--badge-offset-y)); }
+  to   { transform: translate(0, 0); }
+}
+.t-badge {
+  position: absolute;
+  top: -6px;
+  right: -8px;
+  pointer-events: none;
+  will-change: transform;
+}
+.t-badge[data-open="true"] {
+  animation: t-badge-slide-in var(--badge-slide-dur) var(--badge-slide-ease);
+}
+.t-badge-dot {
+  display: block;
+  transform-origin: center;
+  transform: scale(1);
+  opacity: 1;
+  filter: blur(0);
+  transition:
+    transform var(--badge-pop-dur)  var(--badge-pop-ease),
+    opacity   var(--badge-fade-dur) var(--badge-pop-ease),
+    filter    var(--badge-pop-dur)  var(--badge-pop-ease);
+  will-change: transform, opacity, filter;
+}
+.t-badge[data-open="false"] .t-badge-dot {
+  transform: scale(0);
+  opacity: 0;
+  filter: blur(var(--badge-blur));
+  transition:
+    transform var(--badge-pop-close-dur)  var(--badge-close-ease),
+    opacity   var(--badge-fade-close-dur) var(--badge-close-ease),
+    filter    var(--badge-pop-close-dur)  var(--badge-close-ease);
+}
+@media (prefers-reduced-motion: reduce) {
+  .t-badge, .t-badge-dot { animation: none !important; transition: none !important; }
+}
+
 /* ── Panel reveal (07) ──────────────────────────────────── */
 .t-panel-slide {
   transform: translateY(var(--panel-translate-y));
@@ -1734,8 +1789,44 @@ button:active:not(:disabled) { transform: scale(0.97); }
 .ft-leg .hr { font-family: var(--font-mono); font-variant-numeric: tabular-nums; color: var(--muted); }
 .ft-more { font-size: 11px; color: var(--muted); padding-top: 2px; }
 
-.ft-week { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
-.ft-day { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.ft-week { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-top: 12px; padding-top: 12px; padding-bottom: 8px; border-top: 1px solid var(--border); position: relative; }
+.ft-day { display: flex; flex-direction: column; align-items: center; gap: 4px; position: relative; z-index: 1; }
+
+/* Sliding selection indicator — glides between options (useSelectPill).
+   Variants: base rounded-rect cell · .is-circle orb · .is-underline bar.
+   The Free-Time week strip uses .is-underline: a thin accent bar that glides
+   along the bottom edge of the viewed day. */
+.sel-pill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 0;
+  border-radius: 9px;
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-line);
+  opacity: 0;
+  pointer-events: none;
+  will-change: transform, width, height;
+  transition:
+    transform var(--dur-3) var(--ease-out),
+    width     var(--dur-3) var(--ease-out),
+    height    var(--dur-3) var(--ease-out),
+    opacity   140ms        var(--ease-out);
+}
+.sel-pill.is-circle {
+  border-radius: 50%;
+  background: color-mix(in oklab, var(--accent) 22%, transparent);
+  box-shadow: 0 0 16px -2px var(--accent-line);
+}
+.sel-pill.is-underline {
+  height: 2.5px;
+  border: 0;
+  border-radius: 99px;
+  background: var(--accent);
+}
+@media (prefers-reduced-motion: reduce) {
+  .sel-pill { transition: opacity 140ms; }
+}
 .ft-day .wd { font-size: 9px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
 .ft-day.today .wd { color: var(--accent); }
 .ft-day .fr { font-family: var(--font-mono); font-size: 10px; font-variant-numeric: tabular-nums; color: var(--text-mid); }

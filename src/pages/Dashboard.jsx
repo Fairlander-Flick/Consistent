@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { GraphCard } from '../components/dashboard/GraphCard'
 import { FreeTimeCard } from '../components/dashboard/FreeTimeCard'
 import { GoalsCard } from '../components/dashboard/GoalsCard'
@@ -9,6 +9,7 @@ import { DashboardContext } from '../lib/DashboardContext'
 import { useSettingsStore } from '../store/useSettingsStore'
 import { IconSettings } from '../components/ui/Icons'
 import { todayISO } from '../lib/dateUtils'
+import { readMs } from '../components/ui/transitions'
 
 const FULL_DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']
 const FULL_MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December']
@@ -40,13 +41,22 @@ export function Dashboard() {
   const isOn = (k) => dashboardCards?.[k] !== false
 
   const [custOpen, setCustOpen] = useState(false)
+  const [custClosing, setCustClosing] = useState(false)
   const custRef = useRef(null)
+
+  const closeCust = useCallback(() => {
+    if (custClosing) return
+    setCustOpen(false)
+    setCustClosing(true)
+    setTimeout(() => setCustClosing(false), readMs('--dropdown-close-dur', 150))
+  }, [custClosing])
+
   useEffect(() => {
     if (!custOpen) return
-    const onDoc = (e) => { if (custRef.current && !custRef.current.contains(e.target)) setCustOpen(false) }
+    const onDoc = (e) => { if (custRef.current && !custRef.current.contains(e.target)) closeCust() }
     document.addEventListener('mousedown', onDoc)
     return () => document.removeEventListener('mousedown', onDoc)
-  }, [custOpen])
+  }, [custOpen, closeCust])
 
   return (
     // React Compiler auto-memoizes this value, so an inline object is safe here.
@@ -63,31 +73,33 @@ export function Dashboard() {
           <button
             type="button"
             className="btn ghost sm"
-            onClick={() => setCustOpen(o => !o)}
+            onClick={() => custOpen ? closeCust() : setCustOpen(true)}
             aria-haspopup="true"
             aria-expanded={custOpen}
           >
             <IconSettings size={13} /> Customize
           </button>
-          {custOpen && (
-            <div className="dash-cust-menu" role="menu">
-              <div className="dash-cust-title">Cards on dashboard</div>
-              {CARDS.map(c => (
-                <label key={c.key} className="dash-cust-row">
-                  <span>{c.label}</span>
-                  <span className="toggle">
-                    <input
-                      type="checkbox"
-                      aria-label={c.label}
-                      checked={isOn(c.key)}
-                      onChange={e => setDashboardCard(c.key, e.target.checked)}
-                    />
-                    <span className="toggle-track" />
-                  </span>
-                </label>
-              ))}
-            </div>
-          )}
+          <div
+            className={'dash-cust-menu t-dropdown' + (custOpen ? ' is-open' : '') + (custClosing ? ' is-closing' : '')}
+            data-origin="top-right"
+            role="menu"
+          >
+            <div className="dash-cust-title">Cards on dashboard</div>
+            {CARDS.map(c => (
+              <label key={c.key} className="dash-cust-row">
+                <span>{c.label}</span>
+                <span className="toggle">
+                  <input
+                    type="checkbox"
+                    aria-label={c.label}
+                    checked={isOn(c.key)}
+                    onChange={e => setDashboardCard(c.key, e.target.checked)}
+                  />
+                  <span className="toggle-track" />
+                </span>
+              </label>
+            ))}
+          </div>
         </div>
       </div>
 

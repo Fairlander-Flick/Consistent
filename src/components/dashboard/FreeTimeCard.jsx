@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { useLifelongStore } from '../../store/useLifelongStore'
 import { useEssentialsStore } from '../../store/useEssentialsStore'
@@ -8,6 +8,7 @@ import {
   dailyAvailableHours, dayBreakdown, dayUsedHours, buildWeekFree, sessionsForDate,
 } from '../../lib/timeBudget'
 import { CardTitleLink } from './CardTitleLink'
+import { useSelectPill } from '../ui/transitions'
 
 const WD_INITIAL = { Mon: 'M', Tue: 'T', Wed: 'W', Thu: 'T', Fri: 'F', Sat: 'S', Sun: 'S' }
 
@@ -16,7 +17,7 @@ function fmt(n) {
   return String(n)
 }
 
-// Descending green ramp derived from --accent, so segments read as one family.
+// Descending accent ramp derived from --accent, so segments read as one family.
 function ramp(i) {
   const pct = Math.max(34, 100 - i * 18)
   return `color-mix(in oklab, var(--accent) ${pct}%, var(--track))`
@@ -42,6 +43,8 @@ export function FreeTimeCard() {
 
   // Which day's breakdown is shown — click a day in the week strip to switch.
   const [selectedDate, setSelectedDate] = useState(baseDate)
+  // Sliding selection pill glides between days instead of snapping an outline.
+  const weekRef = useRef(null)
 
   const { available, free, over, segs, sessions, colorOf, week, hasEssentials } = useMemo(() => {
     const avail = dailyAvailableHours(essentials)
@@ -61,6 +64,8 @@ export function FreeTimeCard() {
       hasEssentials: (Number(essentials.sleepPerDay) || 0) > 0 || (essentials.factors || []).length > 0,
     }
   }, [selectedDate, baseDate, nodes, essentials, today])
+
+  useSelectPill(weekRef, [week.length], { variant: 'underline' })
 
   const sel = week.find(d => d.date === selectedDate)
   const selLabel = !sel || sel.isToday ? 'today' : `${sel.weekday} ${Number(selectedDate.slice(8, 10))}`
@@ -112,7 +117,7 @@ export function FreeTimeCard() {
         </>
       )}
 
-      <div className="ft-week">
+      <div className="ft-week" ref={weekRef}>
         {week.map(d => {
           const fillPct = d.available > 0 ? Math.min(100, (d.used / d.available) * 100) : 0
           const isSel = d.date === selectedDate
@@ -122,7 +127,7 @@ export function FreeTimeCard() {
               key={d.date}
               role="button"
               tabIndex={0}
-              style={{ cursor: 'pointer', outline: isSel ? '1px solid var(--accent-line)' : 'none', outlineOffset: 2, borderRadius: 8 }}
+              style={{ cursor: 'pointer' }}
               title={`${d.weekday}: ${fmt(d.used)}h scheduled · ${fmt(Math.max(0, d.free))}h free`}
               onClick={() => setSelectedDate(d.date)}
               onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedDate(d.date) } }}

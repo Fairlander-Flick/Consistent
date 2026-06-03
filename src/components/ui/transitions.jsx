@@ -290,3 +290,63 @@ export function useTabPill(rootRef, deps = []) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, deps)
 }
+
+// ── Sliding selection pill ──────────────────────────────────
+// Same glide-and-resize idea as useTabPill, but tracks the child carrying
+// `.sel` (not `.active`) and parks the pill *behind* the content (z-index 0),
+// so it reads as a highlighted cell that slides between options — e.g. the
+// Free-Time week strip. Initial placement is jumpless; subsequent moves animate.
+export function useSelectPill(rootRef, deps = [], options = {}) {
+  // variant: 'rect' (rounded-cell, default) | 'circle' (orb) | 'underline' (bar).
+  const { variant = 'rect', gutter = 4 } = options
+  useEffect(() => {
+    const root = rootRef.current
+    if (!root) return
+
+    let pill = root.querySelector(':scope > .sel-pill')
+    if (!pill) {
+      pill = document.createElement('div')
+      pill.className = 'sel-pill' + (variant !== 'rect' ? ' is-' + variant : '')
+      pill.setAttribute('aria-hidden', 'true')
+      root.insertBefore(pill, root.firstChild)
+    }
+
+    const move = (animate) => {
+      const sel = root.querySelector(':scope > .sel')
+      if (!sel) { pill.style.opacity = '0'; return }
+      if (!animate) pill.style.transition = 'none'
+      const L = sel.offsetLeft, T = sel.offsetTop, W = sel.offsetWidth, H = sel.offsetHeight
+      if (variant === 'circle') {
+        // A ball centred on the selected day's box (sized to its short edge).
+        const d = Math.min(W, H)
+        pill.style.width = d + 'px'
+        pill.style.height = d + 'px'
+        pill.style.transform = `translate(${L + W / 2 - d / 2}px, ${T + H / 2 - d / 2}px)`
+      } else if (variant === 'underline') {
+        // A thin bar gliding along the bottom edge of the selected day. Height
+        // is owned by CSS; we only size the width and slide it horizontally.
+        pill.style.width = W + 'px'
+        pill.style.transform = `translate(${L}px, ${T + H + gutter}px)`
+      } else {
+        pill.style.width = W + 'px'
+        pill.style.height = H + 'px'
+        pill.style.transform = `translate(${L}px, ${T}px)`
+      }
+      pill.style.opacity = '1'
+      if (!animate) { void pill.offsetWidth; pill.style.transition = '' }
+    }
+
+    move(false)
+    document.fonts?.ready.then(() => move(false)).catch(() => {})
+
+    // Animate when the `.sel` class hops to another child (selection change);
+    // keep layout-driven re-placements (resize) jumpless.
+    const mo = new MutationObserver(() => move(true))
+    mo.observe(root, { attributes: true, subtree: true, attributeFilter: ['class'] })
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(() => move(false)) : null
+    ro?.observe(root)
+
+    return () => { mo.disconnect(); ro?.disconnect() }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, deps)
+}

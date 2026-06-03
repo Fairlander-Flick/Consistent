@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useAuthStore } from '../../store/useAuthStore'
-import { useShake } from '../ui/transitions'
+import { useShake, IconSwap } from '../ui/transitions'
 
 function IconEye() {
   return (
@@ -83,7 +83,7 @@ export function AuthForm({ onAuthSuccess }) {
               tabIndex={-1}
               aria-label={showPassword ? 'Hide password' : 'Show password'}
             >
-              {showPassword ? <IconEye /> : <IconEyeOff />}
+              <IconSwap state={showPassword ? 'a' : 'b'} a={<IconEye />} b={<IconEyeOff />} />
             </button>
           )}
         </div>
