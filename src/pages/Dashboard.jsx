@@ -19,7 +19,7 @@ const CARDS = [
   { key: 'recap', label: 'Recap', Comp: RecapCard },
   { key: 'week', label: 'This week', Comp: WeekPlannerCard },
   { key: 'weight', label: 'Weight', Comp: GraphCard },
-  { key: 'pursuits', label: 'Pursuits', Comp: GoalsCard },
+  { key: 'goals', label: 'Goals', Comp: GoalsCard },
   { key: 'free', label: 'Time Management', Comp: FreeTimeCard },
   { key: 'consistency', label: 'Consistency', Comp: ConsistencyCard },
 ]
@@ -124,7 +124,7 @@ export function Dashboard() {
         </div>
         <div className="bento-right">
           {isOn('weight') && <GraphCard />}
-          {isOn('pursuits') && <GoalsCard />}
+          {isOn('goals') && <GoalsCard />}
           {isOn('free') && <FreeTimeCard />}
         </div>
         {isOn('consistency') && <ConsistencyCard />}

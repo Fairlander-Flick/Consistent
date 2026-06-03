@@ -89,6 +89,9 @@ export function Goals() {
       {/* Focused leaf: its own controls (a category instead rolls up children) */}
       {showLeafControls && <LeafDetail key={focused.id} node={focused} store={store} />}
 
+      {/* Focused category: schedule it to recur so it groups on the daily list */}
+      {focused && isCategory(focused) && <CategoryDetail key={focused.id} node={focused} store={store} />}
+
       {/* Children of the focused node (or root pursuits) */}
       <div className="gl-list">
         {children.map(node => (
@@ -117,6 +120,27 @@ function NodeRow({ node, store, onOpen }) {
   // A task with no children gets an inline checkbox (the common "task-focused"
   // leaf you just tick).
   const quickTask = !category && node.kind === 'task'
+  const [confirmDone, setConfirmDone] = useState(false)
+
+  // Ticking an unfinished task asks "Really done?" first; un-ticking is direct.
+  function onTaskCheck() {
+    if (node.done) { store.toggleTask(node.id); return }
+    setConfirmDone(true)
+  }
+
+  if (quickTask && confirmDone) {
+    return (
+      <div className="gl-row">
+        <span className="todo-chk" />
+        <div className="gl-row-main" style={{ cursor: 'default' }}>
+          <span className="gl-row-title">Really done?</span>
+          <span className="gl-row-sub">{node.title}</span>
+        </div>
+        <button type="button" className="btn primary sm" onClick={() => { store.toggleTask(node.id); setConfirmDone(false) }}>Yes, done</button>
+        <button type="button" className="btn ghost sm" onClick={() => setConfirmDone(false)}>Not yet</button>
+      </div>
+    )
+  }
 
   return (
     <div className={'gl-row' + (done ? ' done' : '')}>
@@ -124,7 +148,7 @@ function NodeRow({ node, store, onOpen }) {
         <button
           type="button"
           className={'todo-chk' + (node.done ? ' on' : '')}
-          onClick={() => store.toggleTask(node.id)}
+          onClick={onTaskCheck}
           title="Toggle done"
         >
           {node.done && <SuccessCheck size={11} style={{ '--check-y-amount': '10px' }} />}
@@ -173,6 +197,7 @@ function LeafDetail({ node, store }) {
   const [logging, setLogging] = useState(false)
   const [draft, setDraft] = useState(String(node.current ?? 0))
   const [newItem, setNewItem] = useState('')
+  const [confirmDone, setConfirmDone] = useState(false)
 
   return (
     <div className="card gl-detail reveal">
@@ -222,11 +247,23 @@ function LeafDetail({ node, store }) {
         <button type="button" className="btn sm" style={{ marginTop: 8 }} onClick={() => store.bumpProgress(node.id, 1)}>+1 watched</button>
       )}
 
-      {/* task */}
+      {/* task — marking done asks "Really done?" first */}
       {node.kind === 'task' && (
-        <button type="button" className={'btn' + (node.done ? '' : ' primary')} onClick={() => store.toggleTask(node.id)}>
-          <TextSwap>{node.done ? 'Mark not done' : 'Mark done'}</TextSwap>
-        </button>
+        node.done ? (
+          <button type="button" className="btn" onClick={() => store.toggleTask(node.id)}>
+            <TextSwap>Mark not done</TextSwap>
+          </button>
+        ) : confirmDone ? (
+          <div className="ll-logrow reveal" style={{ alignItems: 'center' }}>
+            <span style={{ fontSize: 13 }}>Really done?</span>
+            <button type="button" className="btn primary sm" onClick={() => { store.toggleTask(node.id); setConfirmDone(false) }}>Yes, done</button>
+            <button type="button" className="btn ghost sm" onClick={() => setConfirmDone(false)}>Not yet</button>
+          </div>
+        ) : (
+          <button type="button" className="btn primary" onClick={() => setConfirmDone(true)}>
+            <TextSwap>Mark done</TextSwap>
+          </button>
+        )
       )}
 
       {/* checklist */}
@@ -257,6 +294,9 @@ function LeafDetail({ node, store }) {
         <div className="dim" style={{ fontSize: 13 }}>Target {node.perWeek || '?'}×/week. Pick the days below to schedule it on the Planner.</div>
       )}
 
+      {/* how much time one session eats on an active day — feeds the time budget */}
+      <SessionLength node={node} store={store} />
+
       {/* scheduling — any leaf can surface on planner/daily days */}
       <DaySchedule node={node} store={store} />
     </div>
@@ -271,6 +311,46 @@ function MeasuredFoot({ node }) {
   if (pace != null && eta) return <span className="ll-chip">+{fmtRate(pace)} {node.unit || 'u'}/day · ETA {monthYear(eta)}</span>
   if (pace != null) return <span className="ll-chip">+{fmtRate(pace)} {node.unit || 'u'}/day</span>
   return <span className="ll-chip">log twice to project pace</span>
+}
+
+// A focused category can be scheduled to recur. On its days it shows on the
+// dashboard daily list as a collapsible group with its sub-tasks nested.
+function CategoryDetail({ node, store }) {
+  const n = node.children.length
+  return (
+    <div className="card gl-detail reveal">
+      <div className="gl-detail-h">
+        <h3>{node.title}</h3>
+        <span className="chip">{n} sub-goal{n === 1 ? '' : 's'}</span>
+      </div>
+      <div className="dim" style={{ fontSize: 13 }}>
+        Schedule this group to recur — on the chosen days it shows on your dashboard with its sub-tasks nested.
+      </div>
+      <DaySchedule node={node} store={store} />
+    </div>
+  )
+}
+
+// Hours one session of this leaf takes on an active day. Editable on the leaf
+// itself so you don't have to open the Manage editor.
+function SessionLength({ node, store }) {
+  return (
+    <div className="gl-days" style={{ marginTop: 8 }}>
+      <span className="gl-days-l">Time / active day</span>
+      <input
+        className="input"
+        type="number"
+        min="0"
+        step="0.25"
+        aria-label="Session length in hours"
+        placeholder="hours"
+        value={node.sessionHours ?? ''}
+        style={{ width: 90 }}
+        onChange={e => store.updateNode(node.id, { sessionHours: e.target.value === '' ? null : Number(e.target.value) })}
+      />
+      <span style={{ fontSize: 12, color: 'var(--muted)' }}>h</span>
+    </div>
+  )
 }
 
 function DaySchedule({ node, store }) {
@@ -296,6 +376,7 @@ function AddNode({ parentId, store, isRoot }) {
   const [unit, setUnit] = useState('pages')
   const [total, setTotal] = useState('')
   const [perWeek, setPerWeek] = useState('')
+  const [sessionHours, setSessionHours] = useState('')
 
   const tmpl = KINDS.find(t => t.k === kind) || KINDS[0]
   const fields = tmpl.fields || []
@@ -304,7 +385,7 @@ function AddNode({ parentId, store, isRoot }) {
   const { inputRef, trigger } = useShake()
   useHoverSpring(kindsRef, [open])
 
-  function reset() { setTitle(''); setTotal(''); setPerWeek(''); setOpen(false) }
+  function reset() { setTitle(''); setTotal(''); setPerWeek(''); setSessionHours(''); setOpen(false) }
   function add() {
     if (!title.trim()) { trigger(); return }
     store.addNode(parentId, {
@@ -312,6 +393,7 @@ function AddNode({ parentId, store, isRoot }) {
       unit: fields.includes('unit') ? unit : (kind === 'playlist' ? 'episodes' : null),
       total: fields.includes('total') ? total : null,
       perWeek: fields.includes('perWeek') ? perWeek : null,
+      sessionHours: kind === null ? null : sessionHours,
     })
     reset()
   }
@@ -340,6 +422,17 @@ function AddNode({ parentId, store, isRoot }) {
           placeholder={kind === null ? 'Category name (e.g. AI Bachelor)' : 'Title'}
           value={title} onChange={e => setTitle(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && add()} />
+
+        {/* Time one session of this goal takes on an active day — feeds the time budget. */}
+        {kind !== null && (
+          <div className="row" style={{ gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 12, color: 'var(--muted)' }}>Session length</span>
+            <input className="input" type="number" min="0" step="0.25" aria-label="Session length in hours"
+              placeholder="hours / active day" value={sessionHours} style={{ width: 150 }}
+              onChange={e => setSessionHours(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && add()} />
+          </div>
+        )}
 
         <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
           {fields.includes('unit') && (

@@ -28,6 +28,7 @@ export function itemsForDate(date, { lifelongGoals = [], dayPlan = {}, doneMap =
     items.push({
       key: lt.key,
       label: lt.label,
+      kind: lt.kind,
       source: 'lifelong',
       goalTitle: lt.goalTitle,
       crumb: lt.crumb,

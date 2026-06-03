@@ -1,11 +1,11 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useLifelongStore } from '../../store/useLifelongStore'
 import { useEssentialsStore } from '../../store/useEssentialsStore'
 import { useDashboard } from '../../lib/DashboardContext'
 import { todayISO } from '../../lib/dateUtils'
 import {
-  dailyAvailableHours, dayBreakdown, dayUsedHours, buildWeekFree,
+  dailyAvailableHours, dayBreakdown, dayUsedHours, buildWeekFree, sessionsForDate,
 } from '../../lib/timeBudget'
 import { CardTitleLink } from './CardTitleLink'
 
@@ -37,38 +37,47 @@ export function FreeTimeCard() {
   const nodes = useLifelongStore(s => s.nodes)
   const essentials = useEssentialsStore()
   const { viewDate } = useDashboard()
-  const date = viewDate || todayISO()
+  const today = todayISO()
+  const baseDate = viewDate || today
 
-  const { available, free, over, breakdown, segs, week, hasEssentials } = useMemo(() => {
+  // Which day's breakdown is shown — click a day in the week strip to switch.
+  const [selectedDate, setSelectedDate] = useState(baseDate)
+
+  const { available, free, over, segs, sessions, colorOf, week, hasEssentials } = useMemo(() => {
     const avail = dailyAvailableHours(essentials)
-    const u = dayUsedHours(date, nodes)
-    const bd = dayBreakdown(date, nodes)
+    const u = dayUsedHours(selectedDate, nodes)
+    const bd = dayBreakdown(selectedDate, nodes)
     const denom = Math.max(avail, u) || 1
+    const cmap = new Map()
+    bd.forEach((b, i) => cmap.set(b.pursuitId, ramp(i)))
     return {
       available: avail,
       free: Math.round((avail - u) * 10) / 10,
       over: u > avail,
-      breakdown: bd,
       segs: segments(bd, denom),
-      week: buildWeekFree(date, nodes, essentials, todayISO()),
+      sessions: [...sessionsForDate(selectedDate, nodes)].sort((a, b) => b.hours - a.hours),
+      colorOf: cmap,
+      week: buildWeekFree(baseDate, nodes, essentials, today),
       hasEssentials: (Number(essentials.sleepPerDay) || 0) > 0 || (essentials.factors || []).length > 0,
     }
-  }, [date, nodes, essentials])
+  }, [selectedDate, baseDate, nodes, essentials, today])
 
-  const shownLegend = breakdown.slice(0, 4)
-  const moreCount = breakdown.length - shownLegend.length
+  const sel = week.find(d => d.date === selectedDate)
+  const selLabel = !sel || sel.isToday ? 'today' : `${sel.weekday} ${Number(selectedDate.slice(8, 10))}`
+  const shownSessions = sessions.slice(0, 5)
+  const moreCount = sessions.length - shownSessions.length
 
   return (
     <div className="card">
       <div className="card-h">
         <CardTitleLink to="/planner">Time Management</CardTitleLink>
-        <span className="meta">today</span>
+        <span className="meta">{selLabel}</span>
       </div>
 
       <div className="ft-ring-wrap">
         <div className="ft-ring">
           <svg width="132" height="132" viewBox="0 0 42 42" className="ft-ring-in" role="img"
-            aria-label={`${Math.max(0, free)} hours free of ${available} available today`}>
+            aria-label={`${Math.max(0, free)} hours free of ${available} available on ${selLabel}`}>
             <circle cx="21" cy="21" r="15.9" fill="none" stroke="var(--track)" strokeWidth="4.2" />
             {segs.map(s => (
               <circle key={s.pursuitId} cx="21" cy="21" r="15.9" fill="none"
@@ -84,19 +93,19 @@ export function FreeTimeCard() {
         </div>
       </div>
 
-      {breakdown.length === 0 ? (
+      {sessions.length === 0 ? (
         <div className="ft-empty">
           {hasEssentials
-            ? <>No sessions scheduled today — all {available}h free.</>
+            ? <>Nothing scheduled {selLabel === 'today' ? 'today' : `on ${selLabel}`} — all {available}h free.</>
             : <>Set your <Link to="/settings">Life Essentials</Link> to size your day.</>}
         </div>
       ) : (
         <>
-          {shownLegend.map((b, i) => (
-            <div className="ft-leg" key={b.pursuitId}>
-              <span className="dot" style={{ background: ramp(i) }} />
-              <span className="nm">{b.title}</span>
-              <span className="hr">{fmt(b.hours)}h</span>
+          {shownSessions.map(s => (
+            <div className="ft-leg" key={s.id}>
+              <span className="dot" style={{ background: colorOf.get(s.rootId) || 'var(--muted)' }} />
+              <span className="nm">{s.title}{s.rootTitle && s.rootTitle !== s.title ? ` · ${s.rootTitle}` : ''}</span>
+              <span className="hr">{fmt(s.hours)}h</span>
             </div>
           ))}
           {moreCount > 0 && <div className="ft-more">+{moreCount} more</div>}
@@ -106,8 +115,18 @@ export function FreeTimeCard() {
       <div className="ft-week">
         {week.map(d => {
           const fillPct = d.available > 0 ? Math.min(100, (d.used / d.available) * 100) : 0
+          const isSel = d.date === selectedDate
           return (
-            <div className={'ft-day' + (d.isToday ? ' today' : '') + (d.over ? ' over' : '')} key={d.date}>
+            <div
+              className={'ft-day' + (d.isToday ? ' today' : '') + (d.over ? ' over' : '') + (isSel ? ' sel' : '')}
+              key={d.date}
+              role="button"
+              tabIndex={0}
+              style={{ cursor: 'pointer', outline: isSel ? '1px solid var(--accent-line)' : 'none', outlineOffset: 2, borderRadius: 8 }}
+              title={`${d.weekday}: ${fmt(d.used)}h scheduled · ${fmt(Math.max(0, d.free))}h free`}
+              onClick={() => setSelectedDate(d.date)}
+              onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedDate(d.date) } }}
+            >
               <span className="wd">{WD_INITIAL[d.weekday]}</span>
               <svg width="22" height="22" viewBox="0 0 42 42">
                 <circle cx="21" cy="21" r="17" fill="none" stroke="var(--track)" strokeWidth="6" />

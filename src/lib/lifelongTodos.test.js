@@ -34,6 +34,7 @@ describe('lifelongTodosForDate', () => {
     expect(todos[0]).toEqual({
       key: 'lifelong|i1',
       label: 'Rogawski — Calculus',
+      kind: 'book',
       goalTitle: 'Math',
       goalId: 'g1',
       itemId: 'i1',

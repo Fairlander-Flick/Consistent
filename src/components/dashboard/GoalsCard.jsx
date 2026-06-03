@@ -3,10 +3,10 @@ import { useGoalsStore } from '../../store/useGoalsStore'
 import { useDashboard } from '../../lib/DashboardContext'
 import { useScheduleDoneStore } from '../../store/useScheduleDoneStore'
 import { todayISO, getWeekStart } from '../../lib/dateUtils'
-import { IconEdit } from '../ui/Icons'
+import { IconEdit, IconChevRight } from '../ui/Icons'
 import { useLifelongStore } from '../../store/useLifelongStore'
 import { useDayPlanStore } from '../../store/useDayPlanStore'
-import { lifelongTodosForDate } from '../../lib/lifelongTodos'
+import { dailyGroupsForDate } from '../../lib/lifelongTodos'
 import { CardTitleLink } from './CardTitleLink'
 import { Swap, Modal, PopNumber, useTabPill } from '../ui/transitions'
 
@@ -97,11 +97,17 @@ export function GoalsCard() {
   // Lifelong-goal step todos: daily + live + viewing today
   const showSchedule = period === 'daily' && isCurrentPeriod && !isViewingPast
   const lifelongNodes = useLifelongStore(s => s.nodes)
-  const lifelongTodos = useMemo(
-    () => showSchedule ? lifelongTodosForDate(today, lifelongNodes) : [],
+  const toggleTask = useLifelongStore(s => s.toggleTask)
+  const lifelongGroups = useMemo(
+    () => showSchedule ? dailyGroupsForDate(today, lifelongNodes) : [],
     [showSchedule, today, lifelongNodes]
   )
-  const lifelongDoneCount = lifelongTodos.filter(lt => done[today]?.[lt.key]).length
+  // Flatten parent groups to count the actual leaf todos.
+  const lifelongLeaves = useMemo(
+    () => lifelongGroups.flatMap(g => g.type === 'parent' ? g.children : [g]),
+    [lifelongGroups]
+  )
+  const lifelongDoneCount = lifelongLeaves.filter(lt => done[today]?.[lt.key]).length
 
   // One-off todos planned on the Planner for this day surface here too, kept in
   // sync via the shared day-plan store — toggling here updates the Planner, and
@@ -112,7 +118,7 @@ export function GoalsCard() {
   const planTodos = period === 'daily' ? (dayPlanByDate[viewDate]?.todos ?? []) : []
   const planDone  = planTodos.filter(t => t.done).length
 
-  const totalCount = goalTasks.length + lifelongTodos.length + planTodos.length
+  const totalCount = goalTasks.length + lifelongLeaves.length + planTodos.length
   const totalDone  = goalDone + lifelongDoneCount + planDone
 
   function openEdit() {
@@ -179,38 +185,31 @@ export function GoalsCard() {
 
         <Swap swapKey={`${period}:${key}`}>
         <div className="row between" style={{ marginBottom: 8 }}>
-          <div style={{ fontSize: 13, fontWeight: 500 }}>{goalTitle || '—'}</div>
+          <div style={{ fontSize: 13, fontWeight: 500 }}>{goalTitle || periodLabel(period, viewDate)}</div>
           <div className="mono" style={{ fontSize: 11, color: 'var(--muted)' }}>
             <PopNumber value={totalDone} /> / {totalCount} done
           </div>
         </div>
 
         <div className="col" style={{ gap: 0 }}>
-          {lifelongTodos.map(lt => {
-            const isDone = !!done[today]?.[lt.key]
-            return (
-              <div
-                key={'lf-' + lt.key}
-                className={'todo' + (isDone ? ' done' : '')}
-                role="button"
-                tabIndex={0}
-                onClick={() => toggleScheduleDone(today, lt.key)}
-                onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleScheduleDone(today, lt.key) } }}
-                title={`From: ${lt.goalTitle}`}
-              >
-                <div className="chk"></div>
-                <div className="lbl">{lt.label}</div>
-                <span style={{
-                  fontSize: 9, padding: '1px 5px', borderRadius: 3, flexShrink: 0,
-                  background: 'var(--accent-soft)',
-                  color: 'var(--accent)',
-                  border: '1px solid var(--accent-line)',
-                }}>
-                  {lt.goalTitle}
-                </span>
-              </div>
-            )
-          })}
+          {lifelongGroups.map(g => g.type === 'parent' ? (
+            <ParentGroup
+              key={'pg-' + g.id}
+              group={g}
+              done={done}
+              today={today}
+              toggleScheduleDone={toggleScheduleDone}
+              toggleTask={toggleTask}
+            />
+          ) : (
+            <LifelongTodoRow
+              key={'lf-' + g.key}
+              lt={g}
+              ticked={!!done[today]?.[g.key]}
+              onJustToday={() => toggleScheduleDone(today, g.key)}
+              onFullyDone={() => toggleTask(g.itemId)}
+            />
+          ))}
           {planTodos.map(t => {
             const live = !isViewingPast
             return (
@@ -352,5 +351,90 @@ export function GoalsCard() {
         </Modal>
       )}
     </>
+  )
+}
+
+// A scheduled parent (e.g. a habit with sub-tasks) — a collapsible group that
+// starts expanded. Its sub-tasks are the usual task rows with the done/continue
+// confirm. The header count reflects today's effort.
+function ParentGroup({ group, done, today, toggleScheduleDone, toggleTask }) {
+  const [open, setOpen] = useState(true)
+  const total = group.children.length
+  const doneN = group.children.filter(c => done[today]?.[c.key]).length
+
+  return (
+    <div>
+      <div
+        role="button"
+        tabIndex={0}
+        style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', cursor: 'pointer' }}
+        aria-expanded={open}
+        onClick={() => setOpen(o => !o)}
+        onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpen(o => !o) } }}
+      >
+        <IconChevRight size={11} style={{ opacity: 0.55, transform: open ? 'rotate(90deg)' : 'none', transition: 'transform 150ms' }} />
+        <div style={{ flex: 1, fontSize: 13, fontWeight: 500 }}>{group.title}</div>
+        <span className="mono" style={{ fontSize: 10, color: 'var(--muted)' }}>{doneN}/{total}</span>
+      </div>
+      {open && (
+        <div style={{ marginLeft: 14, borderLeft: '1px solid var(--border)', paddingLeft: 10 }}>
+          {group.children.map(c => (
+            <LifelongTodoRow
+              key={'lf-' + c.key}
+              lt={c}
+              ticked={!!done[today]?.[c.key]}
+              onJustToday={() => toggleScheduleDone(today, c.key)}
+              onFullyDone={() => toggleTask(c.itemId)}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// A scheduled lifelong leaf in the daily list. Ticking a TASK asks whether it's
+// fully done (→ permanent, leaves every day) or just done for today (→ effort
+// tick, comes back on its next scheduled day). Non-task leaves toggle directly.
+function LifelongTodoRow({ lt, ticked, onJustToday, onFullyDone }) {
+  const [confirm, setConfirm] = useState(false)
+  const isTask = lt.kind === 'task'
+
+  const badge = (
+    <span style={{
+      fontSize: 9, padding: '1px 5px', borderRadius: 3, flexShrink: 0,
+      background: 'var(--accent-soft)', color: 'var(--accent)', border: '1px solid var(--accent-line)',
+    }}>{lt.goalTitle}</span>
+  )
+
+  if (isTask && confirm) {
+    return (
+      <div className="todo" style={{ cursor: 'default' }}>
+        <div className="lbl" style={{ fontSize: 12 }}>Fully done, or continue?</div>
+        <button type="button" className="btn primary sm" style={{ marginLeft: 'auto' }}
+          onClick={() => { onFullyDone(); setConfirm(false) }}>Done</button>
+        <button type="button" className="btn ghost sm"
+          onClick={() => { onJustToday(); setConfirm(false) }}>Just today</button>
+        <button type="button" className="btn ghost sm" aria-label="Cancel" onClick={() => setConfirm(false)}>✕</button>
+      </div>
+    )
+  }
+
+  // A task that hasn't been touched yet → ask; otherwise (non-task, or un-ticking) toggle today's effort.
+  const handle = () => { if (isTask && !ticked) setConfirm(true); else onJustToday() }
+
+  return (
+    <div
+      className={'todo' + (ticked ? ' done' : '')}
+      role="button"
+      tabIndex={0}
+      onClick={handle}
+      onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handle() } }}
+      title={`From: ${lt.goalTitle}`}
+    >
+      <div className="chk"></div>
+      <div className="lbl">{lt.label}</div>
+      {badge}
+    </div>
   )
 }
