@@ -52,8 +52,8 @@ export function WeightChart({ data, height = 170 }) {
       ))}
       {xTicks.map((i, k) => {
         const p = pts[i]
-        const d = new Date(p.d.date)
-        const label = d.toLocaleString('en', { month: 'short', day: 'numeric' })
+        const [, mm, dd] = p.d.date.split('-')  // ISO YYYY-MM-DD → DD.MM
+        const label = `${dd}.${mm}`
         return (
           <text key={k} x={p.x} y={h - 6} fontSize="9" fontFamily="var(--font-mono)" fill="var(--muted)"
                 textAnchor={k === 0 ? 'start' : k === xTicks.length - 1 ? 'end' : 'middle'}>{label}</text>

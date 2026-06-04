@@ -178,6 +178,17 @@ export function GraphCard() {
             <circle cx={p.x} cy={p.y} r="2.5" fill={lineColor} />
           </g>
         ) : null)}
+        {/* x-axis: which day each end/middle point was logged (DD.MM) */}
+        {[...new Set([0, Math.floor((pts.length - 1) / 2), pts.length - 1])].map((idx, k, arr) => {
+          const [, mm, dd] = weightData[idx].date.split('-')
+          return (
+            <text key={'xt' + idx} x={pts[idx].x} y={SVG_H - 8} fontSize="9"
+                  fontFamily="var(--font-mono)" fill="var(--muted)"
+                  textAnchor={k === 0 ? 'start' : k === arr.length - 1 ? 'end' : 'middle'}>
+              {`${dd}.${mm}`}
+            </text>
+          )
+        })}
       </g>
     )
   }
