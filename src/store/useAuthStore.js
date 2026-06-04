@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { supabase } from '../lib/supabase'
 import { pullAll, pushAll, setupAutoSync, teardownAutoSync } from '../lib/cloudSync'
+import { setReadOnly, isDemoUser } from '../lib/demoMode'
 
 const USERNAME_DOMAIN = 'consistent.local'
 const toEmail = (username) => `${username.toLowerCase().trim()}@${USERNAME_DOMAIN}`
@@ -27,6 +28,7 @@ export const useAuthStore = create((set, get) => ({
     if (data.session) {
       const userId   = data.session.user.id
       const username = fromEmail(data.session.user.email)
+      setReadOnly(isDemoUser(username))
       const hasLocalData = localStorage.getItem('consistent:weight') !== null
 
       if (!hasLocalData) {
@@ -47,6 +49,7 @@ export const useAuthStore = create((set, get) => ({
       if (session) {
         const userId   = session.user.id
         const username = fromEmail(session.user.email)
+        setReadOnly(isDemoUser(username))
         set({ user: { id: userId, username }, status: 'authed', error: null })
         setupAutoSync(userId)
       } else if (get().status !== 'loading') {

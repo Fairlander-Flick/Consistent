@@ -67,7 +67,13 @@ export function ConsistencyCard() {
   )
 
   function handleCellClick(dateStr) {
-    setViewDate(dateStr === viewDate || dateStr === todayStr ? todayStr : dateStr)
+    const next = dateStr === viewDate || dateStr === todayStr ? todayStr : dateStr
+    setViewDate(next)
+    // The grid sits at the bottom of the dashboard; scroll the cards back into
+    // view so the day you picked is actually visible.
+    if (next !== todayStr) {
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
   }
 
   return (

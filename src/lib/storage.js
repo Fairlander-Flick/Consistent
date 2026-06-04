@@ -1,4 +1,5 @@
 import { scheduleSync } from './cloudSync'
+import { isReadOnly } from './demoMode'
 
 export function loadData(key, defaultValue) {
   try {
@@ -10,6 +11,8 @@ export function loadData(key, defaultValue) {
 }
 
 export function saveData(key, value) {
+  // Read-only (demo) account: never persist or sync — keep the data immutable.
+  if (isReadOnly()) return
   try {
     localStorage.setItem(key, JSON.stringify(value))
     scheduleSync()

@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { isReadOnly } from './demoMode'
 
 const KEY_MAP = {
   'consistent:weight':           'weight',
@@ -7,6 +8,8 @@ const KEY_MAP = {
   'consistent:settings':         'settings',
   'consistent:schedule-done':    'schedule_done',
   'consistent:lifelong:v2':      'lifelong',
+  'consistent:dayplan':          'dayplan',
+  'consistent:essentials':       'essentials',
 }
 
 // Set to true during pullAll so writes triggered by the pull don't re-push.
@@ -38,6 +41,8 @@ export async function pullAll(userId) {
 
 // Reads all known localStorage keys and upserts them to Supabase.
 export async function pushAll(userId) {
+  // Read-only (demo) account: never write back, so the seeded row is immutable.
+  if (isReadOnly()) return false
   const row = { user_id: userId }
 
   for (const [lsKey, col] of Object.entries(KEY_MAP)) {
@@ -59,7 +64,7 @@ export async function pushAll(userId) {
 let _debounceTimer = null
 
 export function scheduleSync() {
-  if (_pulling) return
+  if (_pulling || isReadOnly()) return
   if (_debounceTimer) clearTimeout(_debounceTimer)
   _debounceTimer = setTimeout(async () => {
     const { data } = await supabase.auth.getSession()
