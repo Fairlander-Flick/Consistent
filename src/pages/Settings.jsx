@@ -41,7 +41,6 @@ export function Settings() {
   const availablePerDay = dailyAvailableHours({ sleepPerDay, factors })
 
   const user = useAuthStore(s => s.user)
-  const [syncStatus, setSyncStatus] = useState('idle') // idle | syncing | done | error
 
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [deleteInput, setDeleteInput] = useState('')
@@ -53,14 +52,6 @@ export function Settings() {
 
   const notifSupported = typeof window !== 'undefined' && 'Notification' in window
   const [notifPerm, setNotifPerm] = useState(notifSupported ? Notification.permission : 'unsupported')
-
-  async function handlePushToCloud() {
-    if (!user?.id) return
-    setSyncStatus('syncing')
-    const ok = await pushAll(user.id)
-    setSyncStatus(ok ? 'done' : 'error')
-    setTimeout(() => setSyncStatus('idle'), 3000)
-  }
 
   async function toggleReminder(on) {
     if (!on) { setReminderEnabled(false); return }
@@ -280,32 +271,6 @@ export function Settings() {
             onChange={handleFilePicked}
           />
           <button type="button" className="btn" onClick={() => fileInputRef.current?.click()}>Import</button>
-        </div>
-      </div>
-
-      <div className="card" style={{ maxWidth: 560, marginTop: 16 }}>
-        <div className="card-h"><h3>Cloud sync</h3></div>
-        <div className="setting-row" style={{ borderBottom: 0 }}>
-          <div>
-            <div className="setting-label">Push to cloud</div>
-            <div className="setting-desc">
-              Manually upload all your local data to Supabase right now. Useful when switching to a new device.
-            </div>
-            {syncStatus === 'done' && (
-              <div className="setting-desc" style={{ color: 'var(--accent)' }}>Synced successfully.</div>
-            )}
-            {syncStatus === 'error' && (
-              <div className="setting-desc" style={{ color: 'var(--negative)' }}>Sync failed, check your connection.</div>
-            )}
-          </div>
-          <button
-            type="button"
-            className="btn"
-            disabled={syncStatus === 'syncing'}
-            onClick={handlePushToCloud}
-          >
-            {syncStatus === 'syncing' ? 'Syncing…' : 'Push now'}
-          </button>
         </div>
       </div>
 
