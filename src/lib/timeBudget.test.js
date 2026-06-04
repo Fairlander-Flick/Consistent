@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   dailyAvailableHours, sessionsForDate, dayUsedHours, dayBreakdown, buildWeekFree,
+  untimedScheduledLeaves,
 } from './timeBudget'
 
 // 2026-05-25 is Monday → week Mon 05-25 … Sun 05-31.
@@ -51,6 +52,30 @@ describe('dayBreakdown', () => {
       { pursuitId: 'math', title: 'Math', hours: 3 },
       { pursuitId: 'gym',  title: 'Gym',  hours: 1.5 },
     ])
+  })
+})
+
+describe('untimedScheduledLeaves', () => {
+  it('lists scheduled leaves missing sessionHours, with ancestor path', () => {
+    const tree = [
+      {
+        id: 'math', title: 'Math', children: [
+          { id: 'rog', title: 'Rogawski', kind: 'book', days: ['Mon'], sessionHours: 2, children: [] },
+          { id: 'la',  title: 'Linear',   kind: 'book', days: ['Mon'], sessionHours: null, children: [] },
+        ],
+      },
+      { id: 'gym',  title: 'Gym',  kind: 'habit', days: ['Mon', 'Tue'], sessionHours: 0, children: [] },
+      { id: 'read', title: 'Read', kind: 'task',  days: [],             sessionHours: null, children: [] },
+    ]
+    const res = untimedScheduledLeaves(tree)
+    // 'la' (no time), 'gym' (0 still counts as set? no — 0 is a real value).
+    expect(res.map(x => x.id)).toEqual(['la'])
+    expect(res[0]).toMatchObject({ title: 'Linear', path: ['Math'], days: ['Mon'] })
+  })
+
+  it('ignores unscheduled leaves even when untimed', () => {
+    const tree = [{ id: 'x', title: 'X', kind: 'task', days: [], sessionHours: null, children: [] }]
+    expect(untimedScheduledLeaves(tree)).toEqual([])
   })
 })
 

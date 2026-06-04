@@ -3,6 +3,7 @@ import { useLifelongStore, findNode, nodePath } from '../store/useLifelongStore'
 import {
   nodePct, isCategory, nodeDone, progressSummary,
 } from '../lib/lifelongProgress'
+import { untimedScheduledLeaves } from '../lib/timeBudget'
 import { IconPlus, IconTrash, IconChevRight } from '../components/ui/Icons'
 import { ManageTree } from '../components/goals/ManageTree'
 import { TextSwap, PopNumber, SuccessCheck, useShake, useHoverSpring, useTabPill } from '../components/ui/transitions'
@@ -67,6 +68,9 @@ export function Goals() {
       <div key={mode} className={'gl-mode ' + (mode === 'manage' ? 'from-right' : 'from-left')}>
       {mode === 'manage' ? <ManageTree store={store} /> : (
       <>
+      {/* Scheduled leaves still missing a per-day time — fill them in one place */}
+      <UntimedPanel store={store} onOpen={setCurrentId} />
+
       {/* Breadcrumb */}
       <div className="gl-crumb">
         <button type="button" className={'gl-crumb-link' + (currentId ? '' : ' here')} onClick={() => setCurrentId(null)}>
@@ -107,6 +111,64 @@ export function Goals() {
       )}
       </div>
     </>
+  )
+}
+
+// ── "Missing time" panel ─────────────────────────────────────────────
+// Every scheduled leaf without a per-day time silently counts as 0h in the
+// time budget. This gathers them so you can log hours in one pass instead of
+// drilling into each leaf to check whether you set it.
+function UntimedPanel({ store, onOpen }) {
+  const items = untimedScheduledLeaves(store.nodes)
+  if (items.length === 0) return null
+  return (
+    <div className="card gl-untimed reveal">
+      <div className="gl-untimed-h">
+        <h3>Missing time</h3>
+        <span className="chip warn">{items.length} to log</span>
+      </div>
+      <div className="dim" style={{ fontSize: 13, marginBottom: 4 }}>
+        These are scheduled but have no time per active day, so they count as 0h in your budget.
+      </div>
+      <div className="gl-untimed-list">
+        {items.map(it => (
+          <UntimedRow key={it.id} item={it} store={store} onOpen={onOpen} />
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function UntimedRow({ item, store, onOpen }) {
+  const [draft, setDraft] = useState('')
+  function save() {
+    if (draft === '') return
+    store.updateNode(item.id, { sessionHours: Number(draft) })
+    // row drops out on the next render once it has a time
+  }
+  return (
+    <div className="gl-untimed-row">
+      <button type="button" className="gl-untimed-main" onClick={() => onOpen(item.id)} title="Open">
+        <span className="gl-untimed-title">{item.title}</span>
+        <span className="gl-untimed-sub">
+          {item.path.length > 0 && <span className="gl-untimed-path">{item.path.join(' › ')}</span>}
+          <span className="gl-untimed-days">{item.days.join(' ')}</span>
+        </span>
+      </button>
+      <input
+        className="input"
+        type="number"
+        min="0"
+        step="0.25"
+        aria-label={`Time per active day for ${item.title}`}
+        placeholder="hours"
+        value={draft}
+        style={{ width: 84 }}
+        onChange={e => setDraft(e.target.value)}
+        onKeyDown={e => { if (e.key === 'Enter') save() }}
+      />
+      <button type="button" className="btn primary sm" onClick={save} disabled={draft === ''}>Save</button>
+    </div>
   )
 }
 

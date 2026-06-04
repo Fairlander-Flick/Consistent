@@ -59,6 +59,28 @@ export function dayBreakdown(date, nodes = []) {
   return [...map.values()].filter(x => x.hours > 0).sort((a, b) => b.hours - a.hours)
 }
 
+// Scheduled leaves (a weekday set) that still have no sessionHours entered.
+// These silently count as 0h in the time budget — this surfaces them in one
+// list so you can fill them all in without opening each leaf. Each item carries
+// its ancestor titles as `path` for a breadcrumb. Walks in tree order.
+export function untimedScheduledLeaves(nodes = []) {
+  const out = []
+  const walk = (node, trail) => {
+    const isLeaf = !(node.children && node.children.length)
+    if (isLeaf) {
+      const scheduled = (node.days || []).length > 0
+      const noTime = node.sessionHours == null || node.sessionHours === ''
+      if (scheduled && noTime) {
+        out.push({ id: node.id, title: node.title, path: trail, days: node.days || [] })
+      }
+      return
+    }
+    for (const child of node.children) walk(child, [...trail, node.title])
+  }
+  for (const r of nodes) walk(r, [])
+  return out
+}
+
 // 7 days (Mon..Sun) for the week containing refDate, each with free-time stats.
 export function buildWeekFree(refDate, nodes = [], essentials = {}, today = todayISO()) {
   const available = dailyAvailableHours(essentials)
