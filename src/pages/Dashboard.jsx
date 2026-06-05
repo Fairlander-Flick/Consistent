@@ -10,7 +10,6 @@ import { useSettingsStore } from '../store/useSettingsStore'
 import { IconSettings } from '../components/ui/Icons'
 import { todayISO } from '../lib/dateUtils'
 import { readMs } from '../components/ui/transitions'
-import { Masonry } from '../components/ui/Masonry'
 
 const FULL_DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']
 const FULL_MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December']
@@ -131,11 +130,17 @@ export function Dashboard() {
       )}
 
       <div className="bento">
-        <Masonry gap={16} minColWidth={360}>
-          {CARDS
-            .filter(c => c.key !== 'consistency' && isOn(c.key))
-            .map(c => <c.Comp key={c.key} />)}
-        </Masonry>
+        {/* Left column sets the height (natural); the right column stretches to
+            match and Goals fills + scrolls. Below tablet width both stack. */}
+        <div className="bento-col">
+          {isOn('recap') && <RecapCard />}
+          {isOn('week') && <WeekPlannerCard />}
+          {isOn('free') && <FreeTimeCard />}
+        </div>
+        <div className="bento-col">
+          {isOn('weight') && <GraphCard />}
+          {isOn('goals') && <GoalsCard />}
+        </div>
         {isOn('consistency') && <ConsistencyCard />}
       </div>
     </DashboardContext.Provider>

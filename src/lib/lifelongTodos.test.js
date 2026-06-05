@@ -37,6 +37,8 @@ describe('lifelongTodosForDate', () => {
       kind: 'book',
       goalTitle: 'Math',
       goalId: 'g1',
+      rootId: 'g1',
+      rootTitle: 'Math',
       itemId: 'i1',
       crumb: ['Math'],
     })

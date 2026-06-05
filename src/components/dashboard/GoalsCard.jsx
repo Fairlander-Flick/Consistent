@@ -3,10 +3,12 @@ import { useGoalsStore } from '../../store/useGoalsStore'
 import { useDashboard } from '../../lib/DashboardContext'
 import { useScheduleDoneStore } from '../../store/useScheduleDoneStore'
 import { todayISO, getWeekStart } from '../../lib/dateUtils'
-import { IconEdit, IconChevRight } from '../ui/Icons'
+import { IconEdit } from '../ui/Icons'
 import { useLifelongStore } from '../../store/useLifelongStore'
 import { useDayPlanStore } from '../../store/useDayPlanStore'
-import { dailyGroupsForDate } from '../../lib/lifelongTodos'
+import { lifelongTodosForDate } from '../../lib/lifelongTodos'
+import { buildGoalsTree, treeCounts } from '../../lib/goalsTree'
+import { pursuitColorVar, PLANNER_COLOR } from '../../lib/pursuitColors'
 import { CardTitleLink } from './CardTitleLink'
 import { Swap, Modal, PopNumber, useTabPill } from '../ui/transitions'
 
@@ -98,15 +100,13 @@ export function GoalsCard() {
   const showSchedule = period === 'daily' && isCurrentPeriod && !isViewingPast
   const lifelongNodes = useLifelongStore(s => s.nodes)
   const toggleTask = useLifelongStore(s => s.toggleTask)
-  const lifelongGroups = useMemo(
-    () => showSchedule ? dailyGroupsForDate(today, lifelongNodes) : [],
+  // Flat scheduled leaves (each carries its ancestor crumb + root id) → rebuild
+  // the pursuit tree so the card shows where every task comes from.
+  const lifelongLeaves = useMemo(
+    () => showSchedule ? lifelongTodosForDate(today, lifelongNodes) : [],
     [showSchedule, today, lifelongNodes]
   )
-  // Flatten parent groups to count the actual leaf todos.
-  const lifelongLeaves = useMemo(
-    () => lifelongGroups.flatMap(g => g.type === 'parent' ? g.children : [g]),
-    [lifelongGroups]
-  )
+  const lifelongTree = useMemo(() => buildGoalsTree(lifelongLeaves), [lifelongLeaves])
   const lifelongDoneCount = lifelongLeaves.filter(lt => done[today]?.[lt.key]).length
 
   // One-off todos planned on the Planner for this day surface here too, kept in
@@ -183,7 +183,7 @@ export function GoalsCard() {
           </div>
         )}
 
-        <Swap swapKey={`${period}:${key}`}>
+        <Swap swapKey={`${period}:${key}`} className="goals-body">
         <div className="row between" style={{ marginBottom: 8 }}>
           <div style={{ fontSize: 13, fontWeight: 500 }}>{goalTitle || periodLabel(period, viewDate)}</div>
           <div className="mono" style={{ fontSize: 11, color: 'var(--muted)' }}>
@@ -191,23 +191,15 @@ export function GoalsCard() {
           </div>
         </div>
 
-        <div className="col" style={{ gap: 0 }}>
-          {lifelongGroups.map(g => g.type === 'parent' ? (
-            <ParentGroup
-              key={'pg-' + g.id}
-              group={g}
+        <div className="col goals-scroll" style={{ gap: 0 }}>
+          {lifelongTree.map(root => (
+            <GoalsTreeRoot
+              key={'gt-' + root.title}
+              node={root}
               done={done}
               today={today}
               toggleScheduleDone={toggleScheduleDone}
               toggleTask={toggleTask}
-            />
-          ) : (
-            <LifelongTodoRow
-              key={'lf-' + g.key}
-              lt={g}
-              ticked={!!done[today]?.[g.key]}
-              onJustToday={() => toggleScheduleDone(today, g.key)}
-              onFullyDone={() => toggleTask(g.itemId)}
             />
           ))}
           {planTodos.map(t => {
@@ -224,6 +216,7 @@ export function GoalsCard() {
                 title="From: Planner"
               >
                 <div className="chk" style={{ pointerEvents: live ? undefined : 'none' }} />
+                <span className="pdot" style={{ background: PLANNER_COLOR }} />
                 <div className="lbl">{t.text}</div>
                 <span style={{
                   fontSize: 9, padding: '1px 6px', borderRadius: 3, flexShrink: 0,
@@ -354,58 +347,72 @@ export function GoalsCard() {
   )
 }
 
-// A scheduled parent (e.g. a habit with sub-tasks) — a collapsible group that
-// starts expanded. Its sub-tasks are the usual task rows with the done/continue
-// confirm. The header count reflects today's effort.
-function ParentGroup({ group, done, today, toggleScheduleDone, toggleTask }) {
+// A pursuit root in the Goals tree — collapsible, with a colour dot and a
+// done/total count for everything under it. Its branches indent to show the
+// path from the root pursuit down to each task ("where it comes from").
+function GoalsTreeRoot({ node, done, today, toggleScheduleDone, toggleTask }) {
   const [open, setOpen] = useState(true)
-  const total = group.children.length
-  const doneN = group.children.filter(c => done[today]?.[c.key]).length
+  const doneMap = done[today] || {}
+  const { total, done: doneN } = treeCounts(node, doneMap)
 
   return (
-    <div>
+    <div className={'gtree-root' + (open ? ' open' : '')}>
       <div
+        className="gtree-root-h"
         role="button"
         tabIndex={0}
-        style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', cursor: 'pointer' }}
         aria-expanded={open}
         onClick={() => setOpen(o => !o)}
         onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpen(o => !o) } }}
       >
-        <IconChevRight size={11} style={{ opacity: 0.55, transform: open ? 'rotate(90deg)' : 'none', transition: 'transform 150ms' }} />
-        <div style={{ flex: 1, fontSize: 13, fontWeight: 500 }}>{group.title}</div>
-        <span className="mono" style={{ fontSize: 10, color: 'var(--muted)' }}>{doneN}/{total}</span>
+        <span className="gtree-chev" />
+        <span className="gtree-root-name">
+          <span className="pdot" style={{ background: pursuitColorVar(node.rootId) }} />
+          <span>{node.title}</span>
+        </span>
+        <span className="gtree-cnt">{doneN}/{total}</span>
       </div>
       {open && (
-        <div style={{ marginLeft: 14, borderLeft: '1px solid var(--border)', paddingLeft: 10 }}>
-          {group.children.map(c => (
-            <LifelongTodoRow
-              key={'lf-' + c.key}
-              lt={c}
-              ticked={!!done[today]?.[c.key]}
-              onJustToday={() => toggleScheduleDone(today, c.key)}
-              onFullyDone={() => toggleTask(c.itemId)}
-            />
-          ))}
+        <div className="gtree-root-body">
+          <GoalsTreeBody node={node} done={done} today={today}
+            toggleScheduleDone={toggleScheduleDone} toggleTask={toggleTask} />
         </div>
       )}
     </div>
   )
 }
 
-// A scheduled lifelong leaf in the daily list. Ticking a TASK asks whether it's
-// fully done (→ permanent, leaves every day) or just done for today (→ effort
-// tick, comes back on its next scheduled day). Non-task leaves toggle directly.
+// The leaves directly under a node, then each child branch (label + indent).
+function GoalsTreeBody({ node, done, today, toggleScheduleDone, toggleTask }) {
+  return (
+    <>
+      {node.leaves.map(lt => (
+        <LifelongTodoRow
+          key={'lf-' + lt.key}
+          lt={lt}
+          ticked={!!done[today]?.[lt.key]}
+          onJustToday={() => toggleScheduleDone(today, lt.key)}
+          onFullyDone={() => toggleTask(lt.itemId)}
+        />
+      ))}
+      {node.nodes.map(child => (
+        <div key={'br-' + child.title} className="gtree-branch">
+          <div className="gtree-label">{child.title}</div>
+          <GoalsTreeBody node={child} done={done} today={today}
+            toggleScheduleDone={toggleScheduleDone} toggleTask={toggleTask} />
+        </div>
+      ))}
+    </>
+  )
+}
+
+// A scheduled lifelong leaf in the tree. Ticking a TASK asks whether it's fully
+// done (→ permanent, leaves every day) or just done for today (→ effort tick,
+// comes back on its next scheduled day). Non-task leaves toggle directly. The
+// pursuit colour dot ties it back to its root in the tree / Time card.
 function LifelongTodoRow({ lt, ticked, onJustToday, onFullyDone }) {
   const [confirm, setConfirm] = useState(false)
   const isTask = lt.kind === 'task'
-
-  const badge = (
-    <span style={{
-      fontSize: 9, padding: '1px 5px', borderRadius: 3, flexShrink: 0,
-      background: 'var(--accent-soft)', color: 'var(--accent)', border: '1px solid var(--accent-line)',
-    }}>{lt.goalTitle}</span>
-  )
 
   if (isTask && confirm) {
     return (
@@ -433,8 +440,8 @@ function LifelongTodoRow({ lt, ticked, onJustToday, onFullyDone }) {
       title={`From: ${lt.goalTitle}`}
     >
       <div className="chk"></div>
+      <span className="pdot" style={{ background: pursuitColorVar(lt.rootId ?? lt.goalTitle) }} />
       <div className="lbl">{lt.label}</div>
-      {badge}
     </div>
   )
 }

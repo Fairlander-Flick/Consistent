@@ -18,12 +18,15 @@ function collectScheduled(node, wd, trail, out) {
   if (isLeaf) {
     if (!nodeDone(node) && new Set(node.days || []).has(wd)) {
       const parent = trail[trail.length - 1] || null
+      const root = trail[0] || node
       out.push({
         key: `lifelong|${node.id}`,
         label: node.title,
         kind: node.kind,
         goalTitle: parent ? parent.title : node.title,
         goalId: parent ? parent.id : node.id,
+        rootId: root.id,
+        rootTitle: root.title,
         itemId: node.id,
         crumb: trail.map(n => n.title),
       })

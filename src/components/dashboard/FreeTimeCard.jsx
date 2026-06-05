@@ -9,6 +9,7 @@ import {
 } from '../../lib/timeBudget'
 import { CardTitleLink } from './CardTitleLink'
 import { useSelectPill } from '../ui/transitions'
+import { pursuitColorVar } from '../../lib/pursuitColors'
 
 const WD_INITIAL = { Mon: 'M', Tue: 'T', Wed: 'W', Thu: 'T', Fri: 'F', Sat: 'S', Sun: 'S' }
 
@@ -17,18 +18,14 @@ function fmt(n) {
   return String(n)
 }
 
-// Descending accent ramp derived from --accent, so segments read as one family.
-function ramp(i) {
-  const pct = Math.max(34, 100 - i * 18)
-  return `color-mix(in oklab, var(--accent) ${pct}%, var(--track))`
-}
-
 // Donut segment geometry on a 100-unit circumference (r≈15.9 in a 42 viewBox).
+// Each pursuit keeps its own colour (pursuitColorVar by root id) so the ring,
+// bar and legend all read as the same family across the dashboard.
 function segments(breakdown, denom) {
   let start = 0
-  return breakdown.map((b, i) => {
+  return breakdown.map(b => {
     const len = denom > 0 ? (b.hours / denom) * 100 : 0
-    const seg = { len, offset: -start, color: ramp(i), ...b }
+    const seg = { len, offset: -start, color: pursuitColorVar(b.pursuitId), ...b }
     start += len
     return seg
   })
@@ -46,15 +43,16 @@ export function FreeTimeCard() {
   // Sliding selection pill glides between days instead of snapping an outline.
   const weekRef = useRef(null)
 
-  const { available, free, over, segs, sessions, colorOf, week, hasEssentials } = useMemo(() => {
+  const { available, used, free, over, segs, sessions, colorOf, week, hasEssentials } = useMemo(() => {
     const avail = dailyAvailableHours(essentials)
     const u = dayUsedHours(selectedDate, nodes)
     const bd = dayBreakdown(selectedDate, nodes)
     const denom = Math.max(avail, u) || 1
     const cmap = new Map()
-    bd.forEach((b, i) => cmap.set(b.pursuitId, ramp(i)))
+    bd.forEach(b => cmap.set(b.pursuitId, pursuitColorVar(b.pursuitId)))
     return {
       available: avail,
+      used: u,
       free: Math.round((avail - u) * 10) / 10,
       over: u > avail,
       segs: segments(bd, denom),
@@ -73,20 +71,20 @@ export function FreeTimeCard() {
   const moreCount = sessions.length - shownSessions.length
 
   return (
-    <div className="card">
+    <div className="card area-time">
       <div className="card-h">
         <CardTitleLink to="/planner">Time Management</CardTitleLink>
-        <span className="meta">{selLabel}</span>
+        <span className="meta">{selLabel} · {fmt(used)}h / {available}h</span>
       </div>
 
-      <div className="ft-ring-wrap">
+      <div className="ft-top">
         <div className="ft-ring">
-          <svg width="132" height="132" viewBox="0 0 42 42" className="ft-ring-in" role="img"
+          <svg width="108" height="108" viewBox="0 0 42 42" className="ft-ring-in" role="img"
             aria-label={`${Math.max(0, free)} hours free of ${available} available on ${selLabel}`}>
-            <circle cx="21" cy="21" r="15.9" fill="none" stroke="var(--track)" strokeWidth="4.2" />
+            <circle cx="21" cy="21" r="15.9" fill="none" stroke="var(--track)" strokeWidth="4.4" />
             {segs.map(s => (
               <circle key={s.pursuitId} cx="21" cy="21" r="15.9" fill="none"
-                stroke={s.color} strokeWidth="4.2"
+                stroke={s.color} strokeWidth="4.4"
                 strokeDasharray={`${s.len} ${100 - s.len}`} strokeDashoffset={s.offset}
                 transform="rotate(-90 21 21)" />
             ))}
@@ -94,6 +92,16 @@ export function FreeTimeCard() {
           <div className="ft-center">
             <div className={'ft-h' + (over ? ' over' : '')}>{Math.max(0, free)}h</div>
             <div className="ft-l">{over ? 'OVER' : 'FREE'}</div>
+          </div>
+        </div>
+        {/* Stacked bar — which pursuit ate how much of the day, at a glance. */}
+        <div className="ft-bar">
+          <div className="ft-bar-track">
+            {segs.map(s => <i key={s.pursuitId} style={{ width: `${s.len}%`, background: s.color }} />)}
+          </div>
+          <div className="ft-bar-cap">
+            <span>{fmt(used)}h scheduled</span>
+            <span>{over ? `${fmt(used - available)}h over` : `${Math.max(0, free)}h free`}</span>
           </div>
         </div>
       </div>
@@ -111,6 +119,7 @@ export function FreeTimeCard() {
               <span className="dot" style={{ background: colorOf.get(s.rootId) || 'var(--muted)' }} />
               <span className="nm">{s.title}{s.rootTitle && s.rootTitle !== s.title ? ` · ${s.rootTitle}` : ''}</span>
               <span className="hr">{fmt(s.hours)}h</span>
+              <span className="pct">{available > 0 ? Math.round((s.hours / available) * 100) : 0}%</span>
             </div>
           ))}
           {moreCount > 0 && <div className="ft-more">+{moreCount} more</div>}

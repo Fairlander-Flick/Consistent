@@ -35,6 +35,17 @@
   /* Text/icon colour that sits on top of a solid --accent fill. */
   --on-accent: oklch(19% 0.05 250);
 
+  /* Pursuit palette — muted, low-chroma hues that tie a root pursuit together
+     across the dashboard (Goals tree, Time Management, week dots). Kept quiet so
+     they read as a family on graphite, never neon. */
+  --p-1: oklch(67% 0.075 250);
+  --p-2: oklch(70% 0.072 158);
+  --p-3: oklch(74% 0.075 92);
+  --p-4: oklch(65% 0.085 305);
+  --p-5: oklch(69% 0.085 45);
+  --p-6: oklch(68% 0.07 200);
+  --p-plan: oklch(60% 0.012 72);
+
   /* Radius / shadow */
   --r-card: 8px;
   --r-sm: 4px;
@@ -202,6 +213,16 @@
   --warn-soft: color-mix(in oklab, var(--warn) 14%, transparent);
   --on-accent: oklch(97% 0.012 84);
   --shadow-1: 0 1px 2px rgba(40, 34, 22, 0.07), 0 1px 3px rgba(40, 34, 22, 0.05);
+
+  /* Pursuit palette — deeper, low-chroma variants so they stay legible and calm
+     on Parchment paper. */
+  --p-1: oklch(50% 0.085 255);
+  --p-2: oklch(48% 0.08 158);
+  --p-3: oklch(54% 0.082 95);
+  --p-4: oklch(48% 0.095 305);
+  --p-5: oklch(52% 0.095 45);
+  --p-6: oklch(48% 0.08 210);
+  --p-plan: oklch(56% 0.018 265);
 }
 
 /* Progress heat: driven by --p (0–100, set inline as data). A quiet blue-grey
@@ -841,19 +862,18 @@ a:focus-visible, button:focus-visible, [role="button"]:focus-visible,
 /* Stagger the dashboard's top strip + bento children so they arrive in
    sequence rather than all at once — a calmer reveal. */
 .route-enter .dash-strip > *,
-.route-enter .masonry-item,
+.route-enter .bento-col > *,
 .route-enter .bento > .area-contrib {
   animation: page-rise var(--dur-4) var(--ease-out) backwards;
 }
-/* Stagger counts within each masonry column, so both columns rise in parallel. */
+/* Stagger counts within each column, so both columns rise in parallel. */
 .route-enter .dash-strip > *:nth-child(1),
-.route-enter .masonry-item:nth-child(1) { animation-delay: 40ms; }
+.route-enter .bento-col > *:nth-child(1) { animation-delay: 40ms; }
 .route-enter .dash-strip > *:nth-child(2),
-.route-enter .masonry-item:nth-child(2) { animation-delay: 90ms; }
+.route-enter .bento-col > *:nth-child(2) { animation-delay: 90ms; }
 .route-enter .dash-strip > *:nth-child(3),
-.route-enter .masonry-item:nth-child(3) { animation-delay: 140ms; }
-.route-enter .masonry-item:nth-child(4) { animation-delay: 190ms; }
-.route-enter .bento > .area-contrib { animation-delay: 220ms; }
+.route-enter .bento-col > *:nth-child(3) { animation-delay: 140ms; }
+.route-enter .bento > .area-contrib { animation-delay: 200ms; }
 
 /* Smooth the theme flip: surfaces cross-fade their colour instead of snapping
    between dark and light. Scoped to backgrounds/borders so text stays crisp. */
@@ -939,29 +959,39 @@ a:focus-visible, button:focus-visible, [role="button"]:focus-visible,
   margin-bottom: var(--gap-bento);
 }
 
-/* ── Bento (JS masonry) ────────────────────────────
-   The dashboard stacks an order-aware masonry of cards over the full-width
-   Consistency band. Column count + placement are handled in JS (Masonry.jsx);
-   here we only own the flex frame and the gaps. Cards size to their content, so
-   a sparse card no longer holds a tall empty box. */
+/* ── Bento — aligned two columns ───────────────────
+   Two equal columns over a full-width Consistency band. The left column (Recap ·
+   This Week · Time) sizes to its content and sets the height; the right column
+   stretches to match, and Goals fills the remainder and scrolls inside its box —
+   it's the only card that scrolls, so nothing else gets squashed. Below tablet
+   width everything collapses to a single column. */
 .bento {
-  display: flex;
-  flex-direction: column;
+  display: grid;
   gap: var(--gap-bento);
+  grid-template-columns: 1fr 1fr;
+  align-items: stretch;
 }
+.bento-col { display: flex; flex-direction: column; gap: var(--gap-bento); min-width: 0; }
+/* Hidden via the Customize menu? Collapse the empty column so no dead half. */
+.bento-col:empty { display: none; }
 
-.masonry { display: flex; gap: var(--masonry-gap, var(--gap-bento)); align-items: flex-start; }
-.masonry-col { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: var(--masonry-gap, var(--gap-bento)); }
-.masonry-item { min-width: 0; }
+/* Goals: fill the right column's height and scroll its body, not the page.
+   flex-basis:0 so a long tree never inflates the column — the left column sets
+   the height and Goals grows into whatever space is left. */
+.bento-col .area-goals { display: flex; flex-direction: column; flex: 1 1 0; min-height: 0; overflow: hidden; }
+.area-goals .goals-scroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; margin-right: -8px; padding-right: 8px; }
+.area-goals .goals-scroll::-webkit-scrollbar { width: 7px; }
+.area-goals .goals-scroll::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 4px; }
 
-/* Consistency (GitHub grid) — its own full-width row below the masonry. */
-.bento .area-contrib { width: 100%; }
+/* Consistency (GitHub grid) — its own full-width row below the columns. */
+.bento .area-contrib { width: 100%; grid-column: 1 / -1; }
 
-/* This Week sizes to its content now; if a packed week gets very tall it caps
-   and scrolls internally instead of dominating its column. */
-.area-week .wkp-scroll { max-height: 560px; overflow-y: auto; margin-right: -6px; padding-right: 6px; }
-.area-week .wkp-scroll::-webkit-scrollbar { width: 7px; }
-.area-week .wkp-scroll::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 4px; }
+@media (max-width: 1023px) {
+  .bento { grid-template-columns: 1fr; }
+  /* Single column: cards flow naturally; Goals no longer needs to fill/scroll. */
+  .bento-col .area-goals { flex: 0 0 auto; overflow: visible; }
+  .area-goals .goals-scroll { max-height: 60vh; }
+}
 
 /* ── Dashboard "Customize" control ─────────────────── */
 .dash-cust { position: relative; }
@@ -1871,3 +1901,49 @@ button:active:not(:disabled) { transform: scale(0.97); }
 @keyframes ft-ring-in { from { opacity: 0; transform: scale(0.92); } to { opacity: 1; transform: scale(1); } }
 .ft-ring-in { animation: ft-ring-in var(--dur-3) var(--ease-out) backwards; transform-origin: center; }
 @media (prefers-reduced-motion: reduce) { .ft-ring-in { animation: none; } }
+
+/* Ring + stacked bar side by side; each pursuit reads in its own colour. */
+.ft-top { display: flex; gap: 16px; align-items: center; margin-bottom: 12px; }
+.ft-top .ft-ring { width: 108px; height: 108px; flex-shrink: 0; }
+.ft-bar { flex: 1; min-width: 0; }
+.ft-bar-track { display: flex; height: 12px; border-radius: 6px; overflow: hidden; background: var(--track); }
+.ft-bar-track i { height: 100%; transition: width .4s var(--ease-out); }
+.ft-bar-cap { display: flex; justify-content: space-between; font-size: 10px; color: var(--muted); margin-top: 7px; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.ft-leg .pct { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 10px; color: var(--muted); width: 34px; text-align: right; }
+
+/* ── Pursuit dot — shared colour chip (Goals tree, week rows) ── */
+.pdot { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; display: inline-block; }
+
+/* ── Goals card — pursuit tree (FEATURE: parent→child branch) ── */
+.goals-scroll { display: flex; flex-direction: column; }
+.gtree { font-size: 14px; }
+.gtree-root + .gtree-root { border-top: 1px solid var(--border); margin-top: 4px; padding-top: 4px; }
+.gtree-root-h { display: flex; align-items: center; gap: 8px; padding: 6px 4px; cursor: pointer; user-select: none; border-radius: 4px; transition: background .12s; }
+.gtree-root-h:hover { background: var(--faint); }
+.gtree-chev { width: 7px; height: 7px; border-right: 2px solid var(--text-mid); border-bottom: 2px solid var(--text-mid); transform: rotate(-45deg); transition: transform .18s var(--ease-out); flex-shrink: 0; }
+.gtree-root.open .gtree-chev { transform: rotate(45deg); }
+.gtree-root-name { font-weight: 600; font-size: 13px; flex: 1; display: flex; align-items: center; gap: 7px; min-width: 0; }
+.gtree-root-name span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gtree-cnt { font-family: var(--font-mono); font-size: 10px; color: var(--muted); flex-shrink: 0; }
+.gtree-branch { margin-left: 9px; padding-left: 12px; border-left: 1px solid var(--border); }
+.gtree-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; padding: 7px 4px 2px; display: flex; align-items: center; gap: 6px; }
+.gtree-label .pdot { width: 7px; height: 7px; }
+
+/* ── This Week card — day drill-down (FEATURE) ── */
+.wkp-swap { display: flex; flex-direction: column; min-height: 0; }
+.wkp-day-row { display: flex; align-items: center; gap: 10px; padding: 9px 6px; border-radius: 6px; cursor: pointer; transition: background .12s; }
+.wkp-day-row + .wkp-day-row { border-top: 1px solid var(--border); }
+.wkp-day-row:hover { background: var(--faint); }
+.wkp-day-row .wd { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--text-mid); flex: 1; }
+.wkp-day-row.today .wd { color: var(--accent); }
+.wkp-day-row .date { font-family: var(--font-mono); font-size: 10px; color: var(--muted); }
+.wkp-day-row .cnt { font-family: var(--font-mono); font-size: 10px; color: var(--muted); min-width: 30px; text-align: right; }
+.wkp-day-row .cnt.full { color: var(--accent); }
+.wkp-day-row.past { opacity: .72; }
+.wkp-chev-r { width: 6px; height: 6px; border-right: 1.5px solid var(--muted); border-top: 1.5px solid var(--muted); transform: rotate(45deg); flex-shrink: 0; }
+.wkp-detail-h { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; flex-shrink: 0; }
+.wkp-back { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; font-size: 12.5px; color: var(--text-mid); background: transparent; border: 0; border-radius: 6px; padding: 5px 8px 5px 4px; font-family: var(--font-sans); transition: color .12s, background .12s; }
+.wkp-back:hover { color: var(--text); background: var(--faint); }
+.wkp-detail-title { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; }
+.wkp-detail-title.today { color: var(--accent); }
+.wkp-detail-date { font-family: var(--font-mono); font-size: 10px; color: var(--muted); margin-left: auto; }

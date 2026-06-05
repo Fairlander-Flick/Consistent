@@ -4,8 +4,10 @@ import { useLifelongStore } from '../../store/useLifelongStore'
 import { useDayPlanStore } from '../../store/useDayPlanStore'
 import { useScheduleDoneStore } from '../../store/useScheduleDoneStore'
 import { buildWeek } from '../../lib/weekPlanner'
+import { pursuitColorVar, PLANNER_COLOR } from '../../lib/pursuitColors'
 import { IconChevRight } from '../ui/Icons'
 import { CardTitleLink } from './CardTitleLink'
+import { Swap } from '../ui/transitions'
 
 const MONTH_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
 
@@ -13,11 +15,10 @@ function dayLabel(dateISO, day) {
   return `${MONTH_SHORT[Number(dateISO.slice(5, 7)) - 1]} ${day}`
 }
 
-// Checkable week summary for the dashboard bento — the same todo rows as the
-// Goals card, grouped by day. Lifelong leaves carry their immediate-parent
-// badge; one-off Planner todos carry a "Planner" badge. Toggling here writes
-// straight back to the shared stores, so the /planner page stays in sync. The
-// card grows to fill the left column and scrolls internally (see .area-week).
+// Week summary that drills into a single day. The list shows one row per day
+// (weekday + count) with no task text; clicking a day swaps the card to that
+// day's checkable todos with a "← This Week" button to return. Toggling writes
+// straight back to the shared stores, so /planner stays in sync.
 export function WeekPlannerCard() {
   const navigate = useNavigate()
 
@@ -36,13 +37,9 @@ export function WeekPlannerCard() {
   const total = week.reduce((n, d) => n + d.total, 0)
   const doneCount = week.reduce((n, d) => n + d.doneCount, 0)
 
-  // Days start collapsed — the user expands a day to see what's scheduled on it.
-  const [expanded, setExpanded] = useState(() => new Set())
-  const toggleExpand = (date) => setExpanded(prev => {
-    const next = new Set(prev)
-    if (next.has(date)) next.delete(date); else next.add(date)
-    return next
-  })
+  // Which day is opened, by ISO date. null = the week list.
+  const [openDate, setOpenDate] = useState(null)
+  const openDay = openDate ? week.find(d => d.date === openDate) : null
 
   function toggle(day, item) {
     if (item.source === 'lifelong') toggleDone(day.date, item.key)
@@ -54,62 +51,60 @@ export function WeekPlannerCard() {
       <div className="card-h">
         <CardTitleLink to="/planner">This Week</CardTitleLink>
         <div className="row" style={{ gap: 10, alignItems: 'center' }}>
-          {total > 0 && <span className="meta">{doneCount}/{total} done</span>}
+          {openDay == null && total > 0 && <span className="meta">{doneCount}/{total} done</span>}
           <button type="button" className="btn ghost sm" onClick={() => navigate('/planner')}>
             Open Planner <IconChevRight size={12} style={{ verticalAlign: '-2px' }} />
           </button>
         </div>
       </div>
 
-      <div className="wkp-scroll">
-        {week.map(day => {
-          const open = expanded.has(day.date)
-          return (
-          <div key={day.date} className={'wkp-group' + (day.isPast ? ' past' : '') + (open ? ' open' : '')}>
-            <div
-              className="wkp-group-h"
-              role="button"
-              tabIndex={0}
-              aria-expanded={open}
-              style={{ alignItems: 'center', cursor: 'pointer' }}
-              onClick={() => toggleExpand(day.date)}
-              onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleExpand(day.date) } }}
-            >
-              <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <IconChevRight
-                  size={11}
-                  style={{ opacity: 0.55, transform: open ? 'rotate(90deg)' : 'none', transition: 'transform 150ms' }}
-                />
-                <span className={'wkp-day' + (day.isToday ? ' today' : '')}>
-                  {day.weekday}{day.isToday ? ' · today' : ''}
+      <Swap swapKey={openDate || 'list'} className="wkp-swap">
+        {openDay == null ? (
+          <div className="wkp-list">
+            {week.map(day => (
+              <div
+                key={day.date}
+                className={'wkp-day-row' + (day.isToday ? ' today' : '') + (day.isPast ? ' past' : '')}
+                role="button"
+                tabIndex={0}
+                onClick={() => setOpenDate(day.date)}
+                onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpenDate(day.date) } }}
+              >
+                <span className="wd">{day.weekday}{day.isToday ? ' · today' : ''}</span>
+                <span className={'cnt' + (day.total > 0 && day.doneCount === day.total ? ' full' : '')}>
+                  {day.total > 0 ? `${day.doneCount}/${day.total}` : '—'}
                 </span>
+                <span className="date">{dayLabel(day.date, day.day)}</span>
+                <span className="wkp-chev-r" />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <>
+            <div className="wkp-detail-h">
+              <button type="button" className="wkp-back" onClick={() => setOpenDate(null)}>
+                <span style={{ fontSize: 14, lineHeight: 1 }}>←</span> This Week
+              </button>
+              <span className={'wkp-detail-title' + (openDay.isToday ? ' today' : '')}>
+                {openDay.weekdayFull}{openDay.isToday ? ' · today' : ''}
               </span>
-              <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span className="wkp-date">{dayLabel(day.date, day.day)}</span>
-                {day.total > 0 && (
-                  <span className="wkp-date" style={{ color: day.doneCount === day.total ? 'var(--accent)' : 'var(--muted)' }}>
-                    {day.doneCount}/{day.total}
-                  </span>
-                )}
-              </span>
+              <span className="wkp-detail-date">{dayLabel(openDay.date, openDay.day)}</span>
             </div>
-
-            {open && (
-              day.items.length === 0 ? (
-                <div className="wkp-empty">—</div>
-              ) : day.items.map(item => (
+            <div className="wkp-scroll">
+              {openDay.items.length === 0 ? (
+                <div className="wkp-empty">Nothing scheduled.</div>
+              ) : openDay.items.map(item => (
                 <WeekTodoRow
                   key={item.key}
                   item={item}
-                  onJustToday={() => toggle(day, item)}
+                  onJustToday={() => toggle(openDay, item)}
                   onFullyDone={() => toggleTask(item.itemId)}
                 />
-              ))
-            )}
-          </div>
-          )
-        })}
-      </div>
+              ))}
+            </div>
+          </>
+        )}
+      </Swap>
     </div>
   )
 }
@@ -119,6 +114,9 @@ export function WeekPlannerCard() {
 function WeekTodoRow({ item, onJustToday, onFullyDone }) {
   const [confirm, setConfirm] = useState(false)
   const isTask = item.source === 'lifelong' && item.kind === 'task'
+  const dot = item.source === 'lifelong'
+    ? pursuitColorVar(item.rootId ?? item.goalTitle)
+    : PLANNER_COLOR
 
   if (isTask && confirm) {
     return (
@@ -145,6 +143,7 @@ function WeekTodoRow({ item, onJustToday, onFullyDone }) {
       title={item.source === 'lifelong' ? `From: ${item.goalTitle}` : 'From: Planner'}
     >
       <div className="chk" />
+      <span className="pdot" style={{ background: dot }} />
       <div className="lbl">{item.label}</div>
       {item.source === 'lifelong'
         ? <span className="wkp-badge life">{item.goalTitle}</span>
