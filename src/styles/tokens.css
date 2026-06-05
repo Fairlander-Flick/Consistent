@@ -841,16 +841,19 @@ a:focus-visible, button:focus-visible, [role="button"]:focus-visible,
 /* Stagger the dashboard's top strip + bento children so they arrive in
    sequence rather than all at once — a calmer reveal. */
 .route-enter .dash-strip > *,
-.route-enter .bento > * {
+.route-enter .masonry-item,
+.route-enter .bento > .area-contrib {
   animation: page-rise var(--dur-4) var(--ease-out) backwards;
 }
+/* Stagger counts within each masonry column, so both columns rise in parallel. */
 .route-enter .dash-strip > *:nth-child(1),
-.route-enter .bento > *:nth-child(1) { animation-delay: 40ms; }
+.route-enter .masonry-item:nth-child(1) { animation-delay: 40ms; }
 .route-enter .dash-strip > *:nth-child(2),
-.route-enter .bento > *:nth-child(2) { animation-delay: 90ms; }
+.route-enter .masonry-item:nth-child(2) { animation-delay: 90ms; }
 .route-enter .dash-strip > *:nth-child(3),
-.route-enter .bento > *:nth-child(3) { animation-delay: 140ms; }
-.route-enter .bento > *:nth-child(4) { animation-delay: 190ms; }
+.route-enter .masonry-item:nth-child(3) { animation-delay: 140ms; }
+.route-enter .masonry-item:nth-child(4) { animation-delay: 190ms; }
+.route-enter .bento > .area-contrib { animation-delay: 220ms; }
 
 /* Smooth the theme flip: surfaces cross-fade their colour instead of snapping
    between dark and light. Scoped to backgrounds/borders so text stays crisp. */
@@ -936,38 +939,29 @@ a:focus-visible, button:focus-visible, [role="button"]:focus-visible,
   margin-bottom: var(--gap-bento);
 }
 
-/* ── Bento grid ────────────────────────────────── */
+/* ── Bento (JS masonry) ────────────────────────────
+   The dashboard stacks an order-aware masonry of cards over the full-width
+   Consistency band. Column count + placement are handled in JS (Masonry.jsx);
+   here we only own the flex frame and the gaps. Cards size to their content, so
+   a sparse card no longer holds a tall empty box. */
 .bento {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: var(--gap-bento);
-  grid-template-columns: repeat(12, 1fr);
-  grid-template-areas:
-    "A A A A A A B B B B B B"
-    "c c c c c c c c c c c c";
 }
-.bento .bento-left  { grid-area: A; display: flex; flex-direction: column; gap: var(--gap-bento); min-width: 0; }
-.bento .bento-right { grid-area: B; display: flex; flex-direction: column; gap: var(--gap-bento); min-width: 0; }
-.bento .area-contrib { grid-area: c; }  /* Consistency (GitHub grid) — full width */
 
-/* Recap stays compact; This Week grows to fill the left column and scrolls
-   internally so a full week never stretches the bento. */
-.bento-left .area-recap { flex: 0 0 auto; }
-.bento-left .area-week { flex: 1 1 auto; min-height: 300px; display: flex; flex-direction: column; }
-.bento-left .area-week .wkp-scroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; margin-right: -6px; padding-right: 6px; }
-.bento-left .area-week .wkp-scroll::-webkit-scrollbar { width: 7px; }
-.bento-left .area-week .wkp-scroll::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 4px; }
+.masonry { display: flex; gap: var(--masonry-gap, var(--gap-bento)); align-items: flex-start; }
+.masonry-col { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: var(--masonry-gap, var(--gap-bento)); }
+.masonry-item { min-width: 0; }
 
-/* Empty columns collapse so a hidden group never leaves a dead half. */
-.bento .bento-left:empty, .bento .bento-right:empty { display: none; }
+/* Consistency (GitHub grid) — its own full-width row below the masonry. */
+.bento .area-contrib { width: 100%; }
 
-@media (max-width: 1023px) {
-  .bento {
-    grid-template-columns: 1fr;
-    grid-template-areas: "A" "B" "c";
-  }
-  .bento-left .area-week { display: block; }
-  .bento-left .area-week .wkp-scroll { max-height: none; overflow: visible; margin-right: 0; padding-right: 0; }
-}
+/* This Week sizes to its content now; if a packed week gets very tall it caps
+   and scrolls internally instead of dominating its column. */
+.area-week .wkp-scroll { max-height: 560px; overflow-y: auto; margin-right: -6px; padding-right: 6px; }
+.area-week .wkp-scroll::-webkit-scrollbar { width: 7px; }
+.area-week .wkp-scroll::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 4px; }
 
 /* ── Dashboard "Customize" control ─────────────────── */
 .dash-cust { position: relative; }
