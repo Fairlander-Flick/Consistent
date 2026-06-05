@@ -3,6 +3,7 @@ import { useLifelongStore, findNode, nodePath } from '../store/useLifelongStore'
 import {
   nodePct, isCategory, nodeDone, progressSummary,
 } from '../lib/lifelongProgress'
+import { isUntimed, untimedScheduled } from '../lib/timeBudget'
 import { IconPlus, IconTrash, IconChevRight } from '../components/ui/Icons'
 import { ManageTree } from '../components/goals/ManageTree'
 import { TextSwap, PopNumber, SuccessCheck, useShake, useHoverSpring, useTabPill } from '../components/ui/transitions'
@@ -40,6 +41,10 @@ export function Goals() {
   const path = focused ? nodePath(nodes, currentId) : []
   const children = focused ? (focused.children || []) : nodes
   const showLeafControls = focused && !isCategory(focused) && focused.kind != null
+
+  // Scheduled leaves with no session length — they count as 0h and skew the
+  // time budget. Surface them so you fill the hours in.
+  const untimed = untimedScheduled(nodes)
 
   const tabsRef = useRef(null)
   useHoverSpring(tabsRef)
@@ -86,6 +91,17 @@ export function Goals() {
         ))}
       </div>
 
+      {/* Scheduled-but-untimed prompt — click to jump to the first offender */}
+      {untimed.length > 0 && (
+        <button type="button" className="gl-needtime" onClick={() => setCurrentId(untimed[0].id)}>
+          <span aria-hidden="true">⚠</span>
+          <span>
+            <b>{untimed.length}</b> scheduled {untimed.length === 1 ? 'item needs' : 'items need'} a time
+          </span>
+          <span className="gl-needtime-go">Set time ›</span>
+        </button>
+      )}
+
       {/* Focused leaf: its own controls (a category instead rolls up children) */}
       {showLeafControls && <LeafDetail key={focused.id} node={focused} store={store} />}
 
@@ -116,6 +132,7 @@ function NodeRow({ node, store, onOpen }) {
   const pct = nodePct(node)
   const pctTxt = pct != null ? `${Math.round(pct * 100)}%` : '—'
   const done = nodeDone(node)
+  const needsTime = isUntimed(node)
 
   // A task with no children gets an inline checkbox (the common "task-focused"
   // leaf you just tick).
@@ -167,6 +184,12 @@ function NodeRow({ node, store, onOpen }) {
             : kindLabel(node)}
         </span>
       </button>
+
+      {needsTime && (
+        <button type="button" className="gl-row-warn" onClick={onOpen} title="No session length set — click to add">
+          ⚠ set time
+        </button>
+      )}
 
       {!quickTask && <span className="gl-row-pct mono" style={{ '--p': pct != null ? Math.round(pct * 100) : 0 }}><PopNumber value={pctTxt} /></span>}
       <button type="button" className="btn ghost icon" title="Open" onClick={onOpen}><IconChevRight size={14} /></button>

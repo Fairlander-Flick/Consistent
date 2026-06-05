@@ -1196,6 +1196,29 @@ a:focus-visible, button:focus-visible, [role="button"]:focus-visible,
 .gl-list { display: flex; flex-direction: column; gap: 8px; }
 .gl-empty { color: var(--muted); font-size: 14px; padding: 16px 4px; }
 
+/* "scheduled but untimed" prompt above the list */
+.gl-needtime {
+  display: flex; align-items: center; gap: 9px; width: 100%; text-align: left;
+  margin-bottom: 14px; padding: 9px 12px; font-size: 13px;
+  color: var(--warn); background: var(--warn-soft);
+  border: 1px solid color-mix(in oklab, var(--warn) 25%, transparent);
+  border-radius: 9px; cursor: pointer;
+  transition: border-color 140ms var(--ease-out);
+}
+.gl-needtime:hover { border-color: color-mix(in oklab, var(--warn) 45%, transparent); }
+.gl-needtime b { font-weight: 700; }
+.gl-needtime-go { margin-left: auto; font-family: var(--font-mono); font-size: 11px; opacity: .85; }
+
+/* per-row "set time" badge */
+.gl-row-warn {
+  flex-shrink: 0; font-family: var(--font-mono); font-size: 10px; cursor: pointer;
+  color: var(--warn); background: var(--warn-soft);
+  border: 1px solid color-mix(in oklab, var(--warn) 25%, transparent);
+  border-radius: 7px; padding: 3px 8px;
+  transition: border-color 140ms var(--ease-out);
+}
+.gl-row-warn:hover { border-color: color-mix(in oklab, var(--warn) 45%, transparent); }
+
 .gl-row {
   display: flex; align-items: center; gap: 12px;
   background: var(--card); border: 1px solid var(--border);

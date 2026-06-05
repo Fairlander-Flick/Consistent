@@ -37,6 +37,28 @@ function collect(node, wd, root, out) {
   for (const child of node.children) collect(child, wd, root || node, out)
 }
 
+// A leaf is "untimed" when it's scheduled on at least one day but has no
+// session length — it silently counts as 0h and quietly skews the budget.
+export function isUntimed(node) {
+  const isLeaf = !(node.children && node.children.length)
+  return isLeaf && node.kind != null && (node.days || []).length > 0 && node.sessionHours == null
+}
+
+// Every untimed leaf in the tree, tagged with its root pursuit. Drives the
+// "needs a time" prompt on the Goals page.
+export function untimedScheduled(nodes = []) {
+  const out = []
+  function walk(node, root) {
+    if (isUntimed(node)) {
+      const r = root || node
+      out.push({ id: node.id, title: node.title, rootId: r.id, rootTitle: r.title })
+    }
+    for (const child of node.children || []) walk(child, root || node)
+  }
+  for (const r of nodes) walk(r, null)
+  return out
+}
+
 export function sessionsForDate(date, nodes = []) {
   const wd = weekdayKey(date)
   const out = []

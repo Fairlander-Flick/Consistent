@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   dailyAvailableHours, sessionsForDate, dayUsedHours, dayBreakdown, buildWeekFree,
+  isUntimed, untimedScheduled,
 } from './timeBudget'
 
 // 2026-05-25 is Monday → week Mon 05-25 … Sun 05-31.
@@ -51,6 +52,38 @@ describe('dayBreakdown', () => {
       { pursuitId: 'math', title: 'Math', hours: 3 },
       { pursuitId: 'gym',  title: 'Gym',  hours: 1.5 },
     ])
+  })
+})
+
+describe('untimed scheduled leaves', () => {
+  const tree = [
+    {
+      id: 'math', title: 'Math', children: [
+        { id: 'rog', title: 'Rogawski', kind: 'book', days: ['Mon'], sessionHours: null, children: [] }, // untimed
+        { id: 'la',  title: 'Linear',   kind: 'book', days: ['Mon'], sessionHours: 2,    children: [] }, // timed
+      ],
+    },
+    { id: 'gym',   title: 'Gym',   kind: 'habit', days: ['Tue'], sessionHours: null, children: [] }, // untimed
+    { id: 'read',  title: 'Read',  kind: 'book',  days: [],      sessionHours: null, children: [] }, // not scheduled
+    { id: 'empty', title: 'Empty', kind: null,    days: ['Mon'], sessionHours: null, children: [] }, // category, ignored
+  ]
+
+  it('flags a scheduled leaf with no session length', () => {
+    expect(isUntimed(tree[0].children[0])).toBe(true)  // rog
+    expect(isUntimed(tree[0].children[1])).toBe(false) // la (timed)
+    expect(isUntimed(tree[2])).toBe(false)             // read (no days)
+    expect(isUntimed(tree[3])).toBe(false)             // empty category
+  })
+
+  it('treats sessionHours 0 as a real value, not untimed', () => {
+    expect(isUntimed({ kind: 'task', days: ['Mon'], sessionHours: 0, children: [] })).toBe(false)
+  })
+
+  it('collects every untimed leaf with its root pursuit', () => {
+    const u = untimedScheduled(tree)
+    expect(u.map(x => x.id).sort()).toEqual(['gym', 'rog'])
+    expect(u.find(x => x.id === 'rog').rootTitle).toBe('Math')
+    expect(u.find(x => x.id === 'gym').rootTitle).toBe('Gym')
   })
 })
 
