@@ -17,9 +17,15 @@ const PERIODS = ['daily', 'weekly', 'monthly', 'yearly']
 // Collapsed pursuit roots persist locally (UI preference only — not synced), so
 // the tree stays the way you left it across reloads.
 const COLLAPSE_KEY = 'consistent:goalsCollapsed'
+const MANUAL_ROOT_ID = '__manual_goals__'
+const PLANNER_ROOT_ID = '__planner__'
 function loadCollapsed() {
-  try { return new Set(JSON.parse(localStorage.getItem(COLLAPSE_KEY) || '[]')) }
-  catch { return new Set() }
+  try {
+    const raw = localStorage.getItem(COLLAPSE_KEY)
+    if (raw === null) return new Set([MANUAL_ROOT_ID, PLANNER_ROOT_ID])
+    return new Set(JSON.parse(raw))
+  }
+  catch { return new Set([MANUAL_ROOT_ID, PLANNER_ROOT_ID]) }
 }
 function saveCollapsed(set) {
   try { localStorage.setItem(COLLAPSE_KEY, JSON.stringify([...set])) } catch { /* ignore */ }
@@ -224,65 +230,30 @@ export function GoalsCard() {
               toggleTask={toggleTask}
             />
           ))}
-          {planTodos.map(t => {
-            const live = !isViewingPast
-            return (
-              <div
-                key={'pl-' + t.id}
-                className={'todo' + (t.done ? ' done' : '')}
-                role="button"
-                tabIndex={live ? 0 : -1}
-                onClick={() => live && toggleDayTodo(viewDate, t.id)}
-                onKeyDown={e => { if (live && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); toggleDayTodo(viewDate, t.id) } }}
-                style={{ cursor: live ? 'pointer' : 'default' }}
-                title="From: Planner"
-              >
-                <div className="chk" style={{ pointerEvents: live ? undefined : 'none' }} />
-                <span className="pdot" style={{ background: PLANNER_COLOR }} />
-                <div className="lbl">{t.text}</div>
-                <span style={{
-                  fontSize: 9, padding: '1px 6px', borderRadius: 3, flexShrink: 0,
-                  background: 'var(--faint)', color: 'var(--text-mid)', border: '1px solid var(--border)',
-                }}>
-                  Planner
-                </span>
-                {live && (
-                  <button
-                    type="button"
-                    className="x"
-                    aria-label="Delete todo"
-                    style={{ color: 'var(--negative)', fontSize: 16, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-                    onClick={e => { e.stopPropagation(); deleteDayTodo(viewDate, t.id) }}
-                  >×</button>
-                )}
-              </div>
-            )
-          })}
-          {goalTasks.slice(0, 6).map(t => (
-            <div
-              key={t.id}
-              className={'todo' + (t.done ? ' done' : '')}
-              role="button"
-              tabIndex={canEdit ? 0 : -1}
-              onClick={() => canEdit && hasGoals && toggleTodo(period, t.id)}
-              onKeyDown={e => { if (canEdit && hasGoals && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); toggleTodo(period, t.id) } }}
-              style={{ cursor: canEdit ? 'pointer' : 'default' }}
-            >
-              <div className="chk" style={{ pointerEvents: canEdit ? undefined : 'none' }} />
-              <div className="lbl">{t.text}</div>
-              {canEdit && hasGoals && (
-                <button
-                  type="button"
-                  className="x"
-                  aria-label="Delete task"
-                  style={{ color: 'var(--negative)', fontSize: 16, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-                  onClick={e => { e.stopPropagation(); deleteTodo(period, t.id) }}
-                >
-                  ×
-                </button>
-              )}
-            </div>
-          ))}
+          {planTodos.length > 0 && (
+            <PlannerRoot
+              todos={planTodos}
+              open={!collapsed.has(PLANNER_ROOT_ID)}
+              onToggle={() => toggleRoot(PLANNER_ROOT_ID)}
+              isViewingPast={isViewingPast}
+              viewDate={viewDate}
+              toggleDayTodo={toggleDayTodo}
+              deleteDayTodo={deleteDayTodo}
+            />
+          )}
+          {goalTasks.length > 0 && (
+            <ManualGoalsRoot
+              title={goalTitle || periodLabel(period, viewDate)}
+              tasks={goalTasks.slice(0, 6)}
+              open={!collapsed.has(MANUAL_ROOT_ID)}
+              onToggle={() => toggleRoot(MANUAL_ROOT_ID)}
+              canEdit={canEdit}
+              hasGoals={hasGoals}
+              toggleTodo={toggleTodo}
+              deleteTodo={deleteTodo}
+              period={period}
+            />
+          )}
           {totalCount === 0 && (
             <div style={{ fontSize: 12, color: 'var(--muted)', padding: '12px 4px' }}>
               {isViewingPast
@@ -366,6 +337,106 @@ export function GoalsCard() {
         </Modal>
       )}
     </>
+  )
+}
+
+// Manual goals (added via the edit modal) wrapped in the same collapsible
+// root style as the pursuit tree, so they don't appear bare.
+function PlannerRoot({ todos, open, onToggle, isViewingPast, viewDate, toggleDayTodo, deleteDayTodo }) {
+  const live = !isViewingPast
+  const doneCount = todos.filter(t => t.done).length
+  return (
+    <div className={'gtree-root' + (open ? ' open' : '')}>
+      <div
+        className="gtree-root-h"
+        role="button"
+        tabIndex={0}
+        aria-expanded={open}
+        onClick={onToggle}
+        onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onToggle() } }}
+      >
+        <span className="gtree-chev" />
+        <span className="gtree-root-name">
+          <span className="pdot" style={{ background: PLANNER_COLOR }} />
+          <span>Planner</span>
+        </span>
+        <span className="gtree-cnt">{doneCount}/{todos.length}</span>
+      </div>
+      {open && (
+        <div className="gtree-root-body">
+          {todos.map(t => (
+            <div
+              key={'pl-' + t.id}
+              className={'todo' + (t.done ? ' done' : '')}
+              role="button"
+              tabIndex={live ? 0 : -1}
+              onClick={() => live && toggleDayTodo(viewDate, t.id)}
+              onKeyDown={e => { if (live && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); toggleDayTodo(viewDate, t.id) } }}
+              style={{ cursor: live ? 'pointer' : 'default' }}
+            >
+              <div className="chk" style={{ pointerEvents: live ? undefined : 'none' }} />
+              <div className="lbl">{t.text}</div>
+              {live && (
+                <button
+                  type="button"
+                  className="x"
+                  aria-label="Delete todo"
+                  style={{ color: 'var(--negative)', fontSize: 16, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                  onClick={e => { e.stopPropagation(); deleteDayTodo(viewDate, t.id) }}
+                >×</button>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function ManualGoalsRoot({ title, tasks, open, onToggle, canEdit, hasGoals, toggleTodo, deleteTodo, period }) {
+  const doneCount = tasks.filter(t => t.done).length
+  return (
+    <div className={'gtree-root' + (open ? ' open' : '')}>
+      <div
+        className="gtree-root-h"
+        role="button"
+        tabIndex={0}
+        aria-expanded={open}
+        onClick={onToggle}
+        onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onToggle() } }}
+      >
+        <span className="gtree-chev" />
+        <span className="gtree-root-name"><span>{title}</span></span>
+        <span className="gtree-cnt">{doneCount}/{tasks.length}</span>
+      </div>
+      {open && (
+        <div className="gtree-root-body">
+          {tasks.map(t => (
+            <div
+              key={t.id}
+              className={'todo' + (t.done ? ' done' : '')}
+              role="button"
+              tabIndex={canEdit ? 0 : -1}
+              onClick={() => canEdit && hasGoals && toggleTodo(period, t.id)}
+              onKeyDown={e => { if (canEdit && hasGoals && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); toggleTodo(period, t.id) } }}
+              style={{ cursor: canEdit ? 'pointer' : 'default' }}
+            >
+              <div className="chk" style={{ pointerEvents: canEdit ? undefined : 'none' }} />
+              <div className="lbl">{t.text}</div>
+              {canEdit && hasGoals && (
+                <button
+                  type="button"
+                  className="x"
+                  aria-label="Delete task"
+                  style={{ color: 'var(--negative)', fontSize: 16, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                  onClick={e => { e.stopPropagation(); deleteTodo(period, t.id) }}
+                >×</button>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   )
 }
 
