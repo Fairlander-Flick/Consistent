@@ -43,13 +43,18 @@ export function FreeTimeCard() {
   // Sliding selection pill glides between days instead of snapping an outline.
   const weekRef = useRef(null)
 
-  const { available, used, free, over, segs, sessions, colorOf, week, hasEssentials } = useMemo(() => {
+  const { available, used, free, over, segs, sessions, colorOf, week, hasEssentials, sessionsMinHeight } = useMemo(() => {
     const avail = dailyAvailableHours(essentials)
     const u = dayUsedHours(selectedDate, nodes)
     const bd = dayBreakdown(selectedDate, nodes)
     const denom = Math.max(avail, u) || 1
     const cmap = new Map()
     bd.forEach(b => cmap.set(b.pursuitId, pursuitColorVar(b.pursuitId)))
+    const w = buildWeekFree(baseDate, nodes, essentials, today)
+      .map(d => ({ ...d, segs: segments(dayBreakdown(d.date, nodes), Math.max(d.available, d.used) || 1) }))
+    const weekMaxCount = Math.max(0, ...w.map(d => [...sessionsForDate(d.date, nodes)].length))
+    const shownMax = Math.min(5, weekMaxCount)
+    const hasMore = weekMaxCount > 5
     return {
       available: avail,
       used: u,
@@ -58,11 +63,9 @@ export function FreeTimeCard() {
       segs: segments(bd, denom),
       sessions: [...sessionsForDate(selectedDate, nodes)].sort((a, b) => b.hours - a.hours),
       colorOf: cmap,
-      // Each day in the strip carries its own pursuit breakdown so the mini ring
-      // fills with the same per-pursuit colours as the main ring, not flat blue.
-      week: buildWeekFree(baseDate, nodes, essentials, today)
-        .map(d => ({ ...d, segs: segments(dayBreakdown(d.date, nodes), Math.max(d.available, d.used) || 1) })),
+      week: w,
       hasEssentials: (Number(essentials.sleepPerDay) || 0) > 0 || (essentials.factors || []).length > 0,
+      sessionsMinHeight: shownMax * 28 + (hasMore ? 22 : 0),
     }
   }, [selectedDate, baseDate, nodes, essentials, today])
 
@@ -110,6 +113,7 @@ export function FreeTimeCard() {
         </div>
       </div>
 
+      <div style={{ minHeight: sessionsMinHeight }}>
       {sessions.length === 0 ? (
         <div className="ft-empty">
           {hasEssentials
@@ -129,6 +133,7 @@ export function FreeTimeCard() {
           {moreCount > 0 && <div className="ft-more">+{moreCount} more</div>}
         </>
       )}
+      </div>
 
       <div className="ft-week" ref={weekRef}>
         {week.map(d => {
