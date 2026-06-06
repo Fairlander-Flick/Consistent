@@ -32,11 +32,11 @@ export function RecapCard() {
   useTabPill(tabsRef)
 
   const dates = useMemo(() => {
-    const now = new Date()
-    if (period === 'week') return isoWeekDates(now)
-    if (period === 'month') return monthDates(now.getFullYear(), now.getMonth())
-    return yearDates(now.getFullYear())
-  }, [period])
+    const ref = new Date(viewDate + 'T00:00:00')
+    if (period === 'week') return isoWeekDates(ref)
+    if (period === 'month') return monthDates(ref.getFullYear(), ref.getMonth())
+    return yearDates(ref.getFullYear())
+  }, [period, viewDate])
 
   const goalPeriod = period === 'week' ? goals.weekly : period === 'month' ? goals.monthly : goals.yearly
 

@@ -26,8 +26,8 @@ const CARDS = [
 ]
 
 function formatViewDate(iso) {
-  const d = new Date(iso + 'T00:00:00')
-  return d.toLocaleString('en', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })
+  const [y, m, d] = iso.split('-')
+  return `${d}.${m}.${y}`
 }
 
 export function Dashboard() {
@@ -117,7 +117,7 @@ export function Dashboard() {
           fontSize: 13,
         }}>
           <span>
-            Viewing <strong>{formatViewDate(viewDate)}</strong>
+            as if you were back in <strong>{formatViewDate(viewDate)}</strong>
           </span>
           <button
             type="button"

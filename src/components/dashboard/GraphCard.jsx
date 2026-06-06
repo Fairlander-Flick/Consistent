@@ -4,6 +4,7 @@ import { RangeOverlay } from '../ui/Widgets'
 import { useSettingsStore } from '../../store/useSettingsStore'
 import { deltaTone } from '../../lib/deltaTone'
 import { CardTitleLink } from './CardTitleLink'
+import { useDashboard } from '../../lib/DashboardContext'
 
 const SVG_W = 600
 const SVG_H = 200
@@ -21,6 +22,7 @@ function yAt(val, min, max) {
 export function GraphCard() {
   const { entries: weightEntries } = useWeightStore()
   const { weightGoal, weightTarget } = useSettingsStore()
+  const { viewDate } = useDashboard()
   const weightMode = weightGoal === 'lose' ? 'weightLose' : weightGoal === 'gain' ? 'weightGain' : 'neutral'
 
   const [range, setRange] = useState(null)   // { start: idx, end: idx }
@@ -37,8 +39,9 @@ export function GraphCard() {
   // ── Data ──────────────────────────────────────────────────
   const weightData = useMemo(() => weightEntries
     .toSorted((a, b) => a.date.localeCompare(b.date))
+    .filter(e => e.date <= viewDate)
     .slice(-28)
-    .map(e => ({ date: e.date, value: e.kg })), [weightEntries])
+    .map(e => ({ date: e.date, value: e.kg })), [weightEntries, viewDate])
 
   // ── Pointer helpers ───────────────────────────────────────
   function clientXToIdx(clientX) {

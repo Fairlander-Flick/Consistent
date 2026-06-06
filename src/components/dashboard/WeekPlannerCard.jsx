@@ -8,6 +8,8 @@ import { pursuitColorVar, PLANNER_COLOR } from '../../lib/pursuitColors'
 import { IconChevRight } from '../ui/Icons'
 import { CardTitleLink } from './CardTitleLink'
 import { Swap } from '../ui/transitions'
+import { useDashboard } from '../../lib/DashboardContext'
+import { todayISO } from '../../lib/dateUtils'
 
 const MONTH_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
 
@@ -29,9 +31,10 @@ export function WeekPlannerCard() {
   const done          = useScheduleDoneStore(s => s.done)
   const toggleDone    = useScheduleDoneStore(s => s.toggle)
 
+  const { viewDate } = useDashboard()
   const week = useMemo(
-    () => buildWeek({ lifelongGoals: lifelongNodes, dayPlan, doneMap: done }),
-    [lifelongNodes, dayPlan, done],
+    () => buildWeek({ refDate: viewDate, lifelongGoals: lifelongNodes, dayPlan, doneMap: done }),
+    [lifelongNodes, dayPlan, done, viewDate],
   )
 
   const total = week.reduce((n, d) => n + d.total, 0)

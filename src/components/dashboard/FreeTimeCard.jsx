@@ -1,4 +1,4 @@
-import { useMemo, useState, useRef } from 'react'
+import { useMemo, useState, useRef, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useLifelongStore } from '../../store/useLifelongStore'
 import { useEssentialsStore } from '../../store/useEssentialsStore'
@@ -40,6 +40,7 @@ export function FreeTimeCard() {
 
   // Which day's breakdown is shown — click a day in the week strip to switch.
   const [selectedDate, setSelectedDate] = useState(baseDate)
+  useEffect(() => { setSelectedDate(baseDate) }, [baseDate])
   // Sliding selection pill glides between days instead of snapping an outline.
   const weekRef = useRef(null)
 
