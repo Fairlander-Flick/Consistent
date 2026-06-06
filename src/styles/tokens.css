@@ -1834,20 +1834,14 @@ body, .card, .gl-row, .mng-row, .ll-cat {
 /* Cards lift slightly on hover. */
 .card { transition: background-color var(--dur-2) var(--ease-out), border-color var(--dur-2) var(--ease-out), transform var(--dur-2) var(--ease-out), box-shadow var(--dur-2) var(--ease-out); }
 .card:hover {
-  transform: translateY(-3px);
-  background: var(--card-hover);
+  transform: translateY(-1px);
   border-color: var(--border-strong);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.04),   /* top light rim — reads as "lifting" */
-    0 2px 6px rgba(0, 0, 0, 0.5),              /* near contact shadow */
-    0 16px 40px -12px rgba(0, 0, 0, 0.7);      /* far depth shadow — large blur so black-on-black still reads */
+    0 2px 8px rgba(0, 0, 0, 0.18);
 }
-/* Light mode: the black depth shadow doesn't suit paper. Surface + border lift
-   carry over via the token swap; only the shadow shifts to a warm tone. */
 [data-theme='light'] .card:hover {
   box-shadow:
-    0 2px 4px rgba(40, 34, 22, 0.08),
-    0 18px 40px -16px rgba(40, 34, 22, 0.22);
+    0 2px 8px rgba(40, 34, 22, 0.07);
 }
 /* Browse-mode goal rows lift + shift on hover. */
 .gl-row { transition: border-color 140ms var(--ease-out), background 140ms var(--ease-out), transform 140ms var(--ease-out); }
