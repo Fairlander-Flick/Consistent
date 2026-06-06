@@ -2012,6 +2012,9 @@ button:active:not(:disabled) { transform: scale(0.97); }
 .gtree-root-name { font-weight: 600; font-size: 13px; flex: 1; display: flex; align-items: center; gap: 7px; min-width: 0; }
 .gtree-root-name span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .gtree-cnt { font-family: var(--font-mono); font-size: 10px; color: var(--muted); flex-shrink: 0; }
+.gtree-root-body-wrap { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 220ms var(--ease-out); overflow: hidden; }
+.gtree-root.open .gtree-root-body-wrap { grid-template-rows: 1fr; }
+.gtree-root-body-wrap > * { min-height: 0; overflow: hidden; }
 .gtree-branch { margin-left: 9px; padding-left: 12px; border-left: 1px solid var(--border); }
 .gtree-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; padding: 7px 4px 2px; display: flex; align-items: center; gap: 6px; }
 .gtree-label .pdot { width: 7px; height: 7px; }

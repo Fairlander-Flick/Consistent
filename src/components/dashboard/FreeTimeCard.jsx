@@ -89,7 +89,8 @@ export function FreeTimeCard() {
               <circle key={s.pursuitId} cx="21" cy="21" r="15.9" fill="none"
                 stroke={s.color} strokeWidth="4.4"
                 strokeDasharray={`${s.len} ${100 - s.len}`} strokeDashoffset={s.offset}
-                transform="rotate(-90 21 21)" />
+                transform="rotate(-90 21 21)"
+                style={{ transition: 'stroke-dasharray 380ms cubic-bezier(0.16,1,0.3,1), stroke-dashoffset 380ms cubic-bezier(0.16,1,0.3,1)' }} />
             ))}
           </svg>
           <div className="ft-center">

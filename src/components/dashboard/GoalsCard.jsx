@@ -362,7 +362,7 @@ function PlannerRoot({ todos, open, onToggle, isViewingPast, viewDate, toggleDay
         </span>
         <span className="gtree-cnt">{doneCount}/{todos.length}</span>
       </div>
-      {open && (
+      <div className="gtree-root-body-wrap">
         <div className="gtree-root-body">
           {todos.map(t => (
             <div
@@ -388,7 +388,7 @@ function PlannerRoot({ todos, open, onToggle, isViewingPast, viewDate, toggleDay
             </div>
           ))}
         </div>
-      )}
+      </div>
     </div>
   )
 }
@@ -412,7 +412,7 @@ function ManualGoalsRoot({ title, tasks, open, onToggle, canEdit, hasGoals, togg
         </span>
         <span className="gtree-cnt">{doneCount}/{tasks.length}</span>
       </div>
-      {open && (
+      <div className="gtree-root-body-wrap">
         <div className="gtree-root-body">
           {tasks.map(t => (
             <div
@@ -438,7 +438,7 @@ function ManualGoalsRoot({ title, tasks, open, onToggle, canEdit, hasGoals, togg
             </div>
           ))}
         </div>
-      )}
+      </div>
     </div>
   )
 }
@@ -467,12 +467,12 @@ function GoalsTreeRoot({ node, open, onToggle, done, today, toggleScheduleDone, 
         </span>
         <span className="gtree-cnt">{doneN}/{total}</span>
       </div>
-      {open && (
+      <div className="gtree-root-body-wrap">
         <div className="gtree-root-body">
           <GoalsTreeBody node={node} done={done} today={today}
             toggleScheduleDone={toggleScheduleDone} toggleTask={toggleTask} />
         </div>
-      )}
+      </div>
     </div>
   )
 }
