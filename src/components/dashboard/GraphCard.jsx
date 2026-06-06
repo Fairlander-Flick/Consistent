@@ -229,8 +229,10 @@ export function GraphCard() {
             startX={rangeStartX}
             endX={rangeEndX}
             chartH={SVG_H}
+            chartW={SVG_W}
             padT={PAD.t}
             padB={PAD.b}
+            padR={PAD.r}
             labelLines={labelLines}
           />
         )}

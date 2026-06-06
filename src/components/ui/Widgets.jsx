@@ -64,11 +64,22 @@ export function WeightChart({ data, height = 170 }) {
 }
 
 // ── Range brush overlay (used by GraphCard) ─────────────────
-export function RangeOverlay({ startX, endX, chartH, padT, padB, labelLines }) {
+export function RangeOverlay({ startX, endX, chartH, padT, padB, chartW = 600, padR = 8, labelLines }) {
   const left = Math.min(startX, endX)
   const right = Math.max(startX, endX)
   const innerH = chartH - padT - padB
   const midY = padT + innerH / 2
+
+  // The label normally sits to the right of the left guide line. When the
+  // selection is near the right edge that would clip it off the card, so flip it
+  // to the left of the line instead. (~5.4px per char at the 9px mono size.)
+  const labelChars = labelLines
+    ? Math.max(0, ...labelLines.map(l => (typeof l === 'string' ? l : l.text).length))
+    : 0
+  const labelW = labelChars * 5.4 + 6
+  const flipLeft = left + labelW > chartW - padR
+  const labelX = flipLeft ? left - 5 : left + 4
+  const labelAnchor = flipLeft ? 'end' : 'start'
 
   return (
     <g style={{ pointerEvents: 'none' }}>
@@ -93,8 +104,9 @@ export function RangeOverlay({ startX, endX, chartH, padT, padB, labelLines }) {
         return (
           <text
             key={i}
-            x={left + 4}
+            x={labelX}
             y={padT + 12 + i * 12}
+            textAnchor={labelAnchor}
             fill={fill}
             fontSize="9"
             fontFamily="var(--font-mono)"
