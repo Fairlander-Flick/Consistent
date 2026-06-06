@@ -20,7 +20,7 @@ function yAt(val, min, max) {
 
 export function GraphCard() {
   const { entries: weightEntries } = useWeightStore()
-  const { weightGoal } = useSettingsStore()
+  const { weightGoal, weightTarget } = useSettingsStore()
   const weightMode = weightGoal === 'lose' ? 'weightLose' : weightGoal === 'gain' ? 'weightGain' : 'neutral'
 
   const [range, setRange] = useState(null)   // { start: idx, end: idx }
@@ -198,17 +198,30 @@ export function GraphCard() {
   const rangeStartX = range ? xAt(range.start, len) : 0
   const rangeEndX = range ? xAt(range.end, len) : 0
 
+  // Goal weight: shown next to current when a target + direction are set. Its
+  // colour tracks the overall trend toward the goal — accent when we're heading
+  // the right way, negative when drifting away — matching the chart line.
+  const showGoal = weightTarget != null && (weightGoal === 'lose' || weightGoal === 'gain') && len >= 2
+  const overallDelta = len >= 2 ? weightData[len - 1].value - weightData[0].value : 0
+  const goalTone = deltaTone(overallDelta, weightMode)
+  const goalColor = goalTone === 'pos' ? 'var(--accent)' : goalTone === 'neg' ? 'var(--negative)' : 'var(--text-mid)'
+
   return (
     <div className="card area-weight">
       <div className="card-h">
         <div className="row" style={{ gap: 8, alignItems: 'center' }}>
           <CardTitleLink to="/consistency">Weight</CardTitleLink>
         </div>
-        <div className="row" style={{ gap: 12 }}>
-          <span style={{ fontSize: 10, color: 'var(--muted)' }}>↔ drag to select</span>
+        <div className="row" style={{ gap: 10, alignItems: 'baseline' }}>
+          <span style={{ fontSize: 10, color: 'var(--muted)' }}>↔ drag</span>
           <span className={`num num-md ${headline.tone ? 'delta ' + headline.tone : ''}`}>
             {headline.text}
           </span>
+          {showGoal && (
+            <span className="num" style={{ fontSize: 13, color: goalColor }} title="Goal weight">
+              → {weightTarget.toFixed(1)} kg
+            </span>
+          )}
         </div>
       </div>
 
