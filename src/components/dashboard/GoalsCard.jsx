@@ -406,7 +406,9 @@ function ManualGoalsRoot({ title, tasks, open, onToggle, canEdit, hasGoals, togg
         onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onToggle() } }}
       >
         <span className="gtree-chev" />
-        <span className="gtree-root-name"><span>{title}</span></span>
+        <span className="gtree-root-name">
+          <span style={{ fontFamily: 'var(--font-display)', color: 'var(--text)', letterSpacing: '0.01em' }}>{title}</span>
+        </span>
         <span className="gtree-cnt">{doneCount}/{tasks.length}</span>
       </div>
       {open && (
