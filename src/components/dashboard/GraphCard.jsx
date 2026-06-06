@@ -214,12 +214,17 @@ export function GraphCard() {
         </div>
         <div className="row" style={{ gap: 10, alignItems: 'baseline' }}>
           <span style={{ fontSize: 10, color: 'var(--muted)' }}>↔ drag</span>
-          <span className={`num num-md ${headline.tone ? 'delta ' + headline.tone : ''}`}>
-            {headline.text}
-          </span>
           {showGoal && (
-            <span className="num" style={{ fontSize: 13, color: goalColor }} title="Goal weight">
-              → {weightTarget.toFixed(1)} kg
+            <span
+              style={{
+                fontFamily: 'var(--font-mono)',
+                fontSize: 13,
+                fontVariantNumeric: 'tabular-nums',
+                color: 'var(--p-1)',
+              }}
+              title="Goal weight"
+            >
+              {weightTarget.toFixed(1)} kg
             </span>
           )}
         </div>
