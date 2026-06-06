@@ -24,8 +24,9 @@
   /* Empty progress track (rings + bars). */
   --track: oklch(27% 0.007 256);
 
-  /* Semantic — vivid azure, the Carbon signature lifted to pop on graphite. */
-  --accent: oklch(68% 0.16 248);
+  /* Semantic — the classic navy hue (262) as in light mode, lifted brighter for
+     graphite so it pops on the dark surfaces. */
+  --accent: oklch(70% 0.14 262);
   --accent-soft: color-mix(in oklab, var(--accent) 14%, transparent);
   --accent-line: color-mix(in oklab, var(--accent) 36%, transparent);
   --negative: oklch(67% 0.17 26);
@@ -33,18 +34,18 @@
   --warn: oklch(80% 0.13 78);
   --warn-soft: color-mix(in oklab, var(--warn) 10%, transparent);
   /* Text/icon colour that sits on top of a solid --accent fill. */
-  --on-accent: oklch(19% 0.05 250);
+  --on-accent: oklch(19% 0.05 262);
 
-  /* Pursuit palette — muted, low-chroma hues that tie a root pursuit together
-     across the dashboard (Goals tree, Time Management, week dots). Kept quiet so
-     they read as a family on graphite, never neon. */
-  --p-1: oklch(67% 0.075 250);
-  --p-2: oklch(70% 0.072 158);
-  --p-3: oklch(74% 0.075 92);
-  --p-4: oklch(65% 0.085 305);
-  --p-5: oklch(69% 0.085 45);
-  --p-6: oklch(68% 0.07 200);
-  --p-plan: oklch(60% 0.012 72);
+  /* Pursuit palette (chosen: "DB2"). Slot 1 is the accent navy; the ramp drifts
+     gently toward white so pursuits read as one navy family. --p-plan stays a
+     neutral grey so one-off / planner items don't look like a pursuit. */
+  --p-1: oklch(70% 0.14 262);
+  --p-2: oklch(75% 0.115 263);
+  --p-3: oklch(80% 0.09 265);
+  --p-4: oklch(85% 0.068 267);
+  --p-5: oklch(89% 0.048 269);
+  --p-6: oklch(93% 0.03 272);
+  --p-plan: oklch(60% 0.012 256);
 
   /* Radius / shadow */
   --r-card: 8px;
@@ -214,15 +215,15 @@
   --on-accent: oklch(97% 0.012 84);
   --shadow-1: 0 1px 2px rgba(40, 34, 22, 0.07), 0 1px 3px rgba(40, 34, 22, 0.05);
 
-  /* Pursuit palette — deeper, low-chroma variants so they stay legible and calm
-     on Parchment paper. */
-  --p-1: oklch(50% 0.085 255);
-  --p-2: oklch(48% 0.08 158);
-  --p-3: oklch(54% 0.082 95);
-  --p-4: oklch(48% 0.095 305);
-  --p-5: oklch(52% 0.095 45);
-  --p-6: oklch(48% 0.08 210);
-  --p-plan: oklch(56% 0.018 265);
+  /* Pursuit palette (chosen: "LB2"). Slot 1 is the accent navy; the ramp drifts
+     down toward near-black ink. --p-plan stays a neutral grey. */
+  --p-1: oklch(40% 0.11 262);
+  --p-2: oklch(35% 0.10 263);
+  --p-3: oklch(31% 0.09 263);
+  --p-4: oklch(26% 0.075 264);
+  --p-5: oklch(22% 0.06 265);
+  --p-6: oklch(17% 0.045 266);
+  --p-plan: oklch(50% 0.02 264);
 }
 
 /* Progress heat: driven by --p (0–100, set inline as data). A quiet blue-grey
@@ -747,11 +748,64 @@ a:focus-visible, button:focus-visible, [role="button"]:focus-visible,
 .cg-square[data-today="1"] { border-color: var(--text); }
 .cg-square:hover { transform: scale(1.25); z-index: 2; }
 
+/* Contribution grid layout. Desktop: the GitHub-style 7-row, week-per-column
+   board that scrolls sideways. */
+.cg-scroll { display: flex; gap: 8px; padding-bottom: 2px; overflow-x: auto; }
+.cg-grid {
+  display: grid;
+  grid-template-rows: repeat(7, 12px);
+  grid-auto-flow: column;
+  grid-auto-columns: 12px;
+  gap: 3px;
+}
+
 /* First-load wipe — the heatmap reveals left→right instead of snapping in.
    Replays on year switch (occasional), collapses under reduced-motion. */
 @keyframes cg-wipe { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
 .cg-grid { animation: cg-wipe var(--dur-4) var(--ease-out) backwards; }
 @media (prefers-reduced-motion: reduce) { .cg-grid { animation: none; } }
+
+/* Tablet / mobile: don't scroll sideways. Stack the weeks top-to-bottom — 7
+   columns (Mon→Sun), one row per week — so the grid grows downward and the
+   cells fill the card width as tappable squares. */
+@media (max-width: 1023px) {
+  .area-contrib .cg-scroll { overflow-x: visible; }
+  .area-contrib .cg-dow,
+  .area-contrib .cg-months { display: none; }
+  .area-contrib .cg-body { width: 100%; }
+  .cg-grid {
+    grid-template-rows: none;
+    grid-auto-flow: row;
+    grid-template-columns: repeat(7, 1fr);
+    grid-auto-columns: auto;
+    grid-auto-rows: auto;
+    gap: 5px;
+    max-width: 340px;
+    margin-inline: auto;
+    animation: none;            /* the left→right wipe is meaningless stacked */
+  }
+  .cg-grid .cg-square,
+  .cg-grid .cg-pad {
+    width: 100% !important;
+    height: auto !important;
+    aspect-ratio: 1 / 1;
+  }
+  .cg-grid .cg-square:hover { transform: none; }  /* no zoom on touch */
+}
+
+/* Current streak chip in the Consistency header. */
+.cg-streak {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-family: var(--font-mono); font-size: 11px; font-weight: 600;
+  color: var(--accent); font-variant-numeric: tabular-nums;
+}
+.cg-streak svg { color: var(--accent); }
+
+/* Empty heatmap — a gentle nudge instead of a bare grid. */
+.cg-empty-hint {
+  margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border);
+  font-size: 12px; color: var(--muted); text-align: center;
+}
 
 /* ── Badge / chip ─────────────────────────────── */
 .chip {
@@ -882,6 +936,18 @@ a:focus-visible, button:focus-visible, [role="button"]:focus-visible,
               border-color var(--dur-3) var(--ease-out);
 }
 
+/* Theme flip uses the View Transitions API (see toggleTheme): the browser
+   GPU-composites a single crossfade between the old and new theme in one go, so
+   it stays smooth and uniform instead of repainting every element one by one. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 300ms;
+  animation-timing-function: var(--ease-out);
+}
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root), ::view-transition-new(root) { animation: none; }
+}
+
 /* ── Toast ─────────────────────────────────────── */
 .toaster {
   position: fixed;
@@ -975,10 +1041,13 @@ a:focus-visible, button:focus-visible, [role="button"]:focus-visible,
 /* Hidden via the Customize menu? Collapse the empty column so no dead half. */
 .bento-col:empty { display: none; }
 
-/* Goals: fill the right column's height and scroll its body, not the page.
-   flex-basis:0 so a long tree never inflates the column — the left column sets
-   the height and Goals grows into whatever space is left. */
+/* Goals: fill its column's height and scroll its body, not the page.
+   flex-basis:0 so a long tree never inflates the column — the other column (the
+   3-card side) sets the height and Goals grows into whatever space is left under
+   Recap. The Swap wrapper (.goals-body) must itself be a flex column so the
+   inner .goals-scroll can take the slack and actually scroll. */
 .bento-col .area-goals { display: flex; flex-direction: column; flex: 1 1 0; min-height: 0; overflow: hidden; }
+.area-goals .goals-body { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; }
 .area-goals .goals-scroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; margin-right: -8px; padding-right: 8px; }
 .area-goals .goals-scroll::-webkit-scrollbar { width: 7px; }
 .area-goals .goals-scroll::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 4px; }
@@ -1886,11 +1955,29 @@ button:active:not(:disabled) { transform: scale(0.97); }
   border-radius: 99px;
   background: var(--accent);
 }
+/* The Free-Time week strip's active-day underline runs the full pursuit gradient
+   bottom→top, so it mirrors the active letter's top→bottom gradient and ties
+   selection to the Time Management palette. */
+.ft-week .sel-pill.is-underline {
+  background: linear-gradient(to top,
+    var(--p-1), var(--p-2), var(--p-3), var(--p-4), var(--p-5), var(--p-6));
+}
 @media (prefers-reduced-motion: reduce) {
   .sel-pill { transition: opacity 140ms; }
 }
 .ft-day .wd { font-size: 9px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
-.ft-day.today .wd { color: var(--accent); }
+.ft-day.today .wd { color: var(--text-mid); }
+/* Active day: the letter is painted with the pursuit gradient top→bottom (it
+   meets the underline's bottom→top gradient), a touch bolder. */
+.ft-day.sel .wd {
+  font-weight: 700;
+  background: linear-gradient(to bottom,
+    var(--p-1), var(--p-2), var(--p-3), var(--p-4), var(--p-5), var(--p-6));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
 .ft-day .fr { font-family: var(--font-mono); font-size: 10px; font-variant-numeric: tabular-nums; color: var(--text-mid); }
 .ft-day.over .fr { color: var(--negative); }
 

@@ -4,7 +4,8 @@ import { useDayPlanStore } from '../../store/useDayPlanStore'
 import { todayISO } from '../../lib/dateUtils'
 import { useDashboard } from '../../lib/DashboardContext'
 import { buildYearGrid } from '../../lib/consistencyGrid'
-import { buildActivityMap } from '../../lib/activity'
+import { buildActivityMap, currentStreak } from '../../lib/activity'
+import { IconFlame } from '../ui/Icons'
 import { CardTitleLink } from './CardTitleLink'
 import { Swap, PopNumber, useTabPill } from '../ui/transitions'
 
@@ -66,6 +67,8 @@ export function ConsistencyCard() {
     () => cells.filter(c => c && c.level > 0).length, [cells]
   )
 
+  const streak = useMemo(() => currentStreak(byDate, todayStr), [byDate, todayStr])
+
   function handleCellClick(dateStr) {
     const next = dateStr === viewDate || dateStr === todayStr ? todayStr : dateStr
     setViewDate(next)
@@ -81,6 +84,11 @@ export function ConsistencyCard() {
       <div className="card-h">
         <CardTitleLink to="/consistency">Consistency</CardTitleLink>
         <div className="row" style={{ gap: 10, alignItems: 'center' }}>
+          {streak > 0 && (
+            <span className="cg-streak" title={`${streak}-day streak`}>
+              <IconFlame size={12} /> <PopNumber value={streak} /> day streak
+            </span>
+          )}
           <span className="meta"><PopNumber value={activeDays} /> active days in {selectedYear}</span>
           <div className="tabs" ref={tabsRef}>
             {years.map(y => (
@@ -90,8 +98,8 @@ export function ConsistencyCard() {
         </div>
       </div>
 
-      <Swap swapKey={selectedYear} style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 2 }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: GAP, marginTop: 18, flexShrink: 0 }}>
+      <Swap swapKey={selectedYear} className="cg-scroll">
+        <div className="cg-dow" style={{ display: 'flex', flexDirection: 'column', gap: GAP, marginTop: 18, flexShrink: 0 }}>
           {DOW_LABELS.map((lbl, i) => (
             <div key={i} style={{ height: CELL, fontSize: 9, color: 'var(--muted)', fontFamily: 'var(--font-mono)', lineHeight: `${CELL}px`, width: 24, textAlign: 'right' }}>
               {lbl}
@@ -99,8 +107,8 @@ export function ConsistencyCard() {
           ))}
         </div>
 
-        <div style={{ flexShrink: 0 }}>
-          <div style={{ position: 'relative', height: 14, marginBottom: 4, width: totalCols * PITCH }}>
+        <div className="cg-body" style={{ flexShrink: 0 }}>
+          <div className="cg-months" style={{ position: 'relative', height: 14, marginBottom: 4, width: totalCols * PITCH }}>
             {monthCols.map(({ label, col }) => (
               <div key={label} style={{
                 position: 'absolute', left: col * PITCH, top: 0,
@@ -111,15 +119,9 @@ export function ConsistencyCard() {
             ))}
           </div>
 
-          <div className="cg-grid" style={{
-            display: 'grid',
-            gridTemplateRows: `repeat(7, ${CELL}px)`,
-            gridAutoFlow: 'column',
-            gridAutoColumns: `${CELL}px`,
-            gap: GAP,
-          }}>
+          <div className="cg-grid">
             {cells.map((cell, i) => cell === null ? (
-              <div key={`lead-${i}`} style={{ width: CELL, height: CELL }} />
+              <div key={`lead-${i}`} className="cg-pad" style={{ width: CELL, height: CELL }} />
             ) : (
               <button
                 type="button"
@@ -151,13 +153,19 @@ export function ConsistencyCard() {
         </div>
       )}
 
-      <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 6, marginTop: 12, fontSize: 11, color: 'var(--muted)' }}>
-        <span>Less</span>
-        {[0, 1, 2, 3, 4].map(l => (
-          <div key={l} className="cg-square" data-fill={l} style={{ width: CELL, height: CELL, cursor: 'default' }} />
-        ))}
-        <span>More</span>
-      </div>
+      {byDate.size === 0 ? (
+        <div className="cg-empty-hint">
+          Check off your first task to start lighting up the grid.
+        </div>
+      ) : (
+        <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 6, marginTop: 12, fontSize: 11, color: 'var(--muted)' }}>
+          <span>Less</span>
+          {[0, 1, 2, 3, 4].map(l => (
+            <div key={l} className="cg-square" data-fill={l} style={{ width: CELL, height: CELL, cursor: 'default' }} />
+          ))}
+          <span>More</span>
+        </div>
+      )}
     </div>
   )
 }

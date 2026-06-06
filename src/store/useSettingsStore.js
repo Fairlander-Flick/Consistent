@@ -72,8 +72,20 @@ export const useSettingsStore = create((set, get) => {
     toggleTheme: () => {
       const theme = get().theme === 'dark' ? 'light' : 'dark'
       persist(get, { theme })
-      document.documentElement.setAttribute('data-theme', theme)
-      set({ theme })
+      // Flip is purely CSS-variable driven (data-theme on <html>), so the colour
+      // change is instant in the DOM; we wrap it in a View Transition so the
+      // browser GPU-composites one smooth crossfade instead of repainting the
+      // whole tree (which janked, especially in light mode).
+      const apply = () => {
+        document.documentElement.setAttribute('data-theme', theme)
+        set({ theme })
+      }
+      const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+      if (document.startViewTransition && !reduce) {
+        document.startViewTransition(apply)
+      } else {
+        apply()
+      }
     },
 
     setConfirmGoalDelete: (val) => {

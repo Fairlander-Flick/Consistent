@@ -14,6 +14,17 @@ import { Swap, Modal, PopNumber, useTabPill } from '../ui/transitions'
 
 const PERIODS = ['daily', 'weekly', 'monthly', 'yearly']
 
+// Collapsed pursuit roots persist locally (UI preference only — not synced), so
+// the tree stays the way you left it across reloads.
+const COLLAPSE_KEY = 'consistent:goalsCollapsed'
+function loadCollapsed() {
+  try { return new Set(JSON.parse(localStorage.getItem(COLLAPSE_KEY) || '[]')) }
+  catch { return new Set() }
+}
+function saveCollapsed(set) {
+  try { localStorage.setItem(COLLAPSE_KEY, JSON.stringify([...set])) } catch { /* ignore */ }
+}
+
 const MONTH_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
 const MONTH_FULL  = ['January','February','March','April','May','June','July','August','September','October','November','December']
 const DAY_SHORT   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
@@ -74,6 +85,15 @@ export function GoalsCard() {
   const addInputRef = useRef(null)
   const tabsRef = useRef(null)
   useTabPill(tabsRef)
+
+  // Persisted collapsed state for the pursuit tree roots.
+  const [collapsed, setCollapsed] = useState(loadCollapsed)
+  const toggleRoot = (rootId) => setCollapsed(prev => {
+    const next = new Set(prev)
+    if (next.has(rootId)) next.delete(rootId); else next.add(rootId)
+    saveCollapsed(next)
+    return next
+  })
 
   // Per-day done state for ephemeral daily todos (lifelong-goal steps)
   const done               = useScheduleDoneStore(s => s.done)
@@ -194,8 +214,10 @@ export function GoalsCard() {
         <div className="col goals-scroll" style={{ gap: 0 }}>
           {lifelongTree.map(root => (
             <GoalsTreeRoot
-              key={'gt-' + root.title}
+              key={'gt-' + root.rootId}
               node={root}
+              open={!collapsed.has(root.rootId)}
+              onToggle={() => toggleRoot(root.rootId)}
               done={done}
               today={today}
               toggleScheduleDone={toggleScheduleDone}
@@ -350,8 +372,7 @@ export function GoalsCard() {
 // A pursuit root in the Goals tree — collapsible, with a colour dot and a
 // done/total count for everything under it. Its branches indent to show the
 // path from the root pursuit down to each task ("where it comes from").
-function GoalsTreeRoot({ node, done, today, toggleScheduleDone, toggleTask }) {
-  const [open, setOpen] = useState(true)
+function GoalsTreeRoot({ node, open, onToggle, done, today, toggleScheduleDone, toggleTask }) {
   const doneMap = done[today] || {}
   const { total, done: doneN } = treeCounts(node, doneMap)
 
@@ -362,8 +383,8 @@ function GoalsTreeRoot({ node, done, today, toggleScheduleDone, toggleTask }) {
         role="button"
         tabIndex={0}
         aria-expanded={open}
-        onClick={() => setOpen(o => !o)}
-        onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpen(o => !o) } }}
+        onClick={onToggle}
+        onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onToggle() } }}
       >
         <span className="gtree-chev" />
         <span className="gtree-root-name">

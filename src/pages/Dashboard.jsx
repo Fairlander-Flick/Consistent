@@ -130,16 +130,17 @@ export function Dashboard() {
       )}
 
       <div className="bento">
-        {/* Left column sets the height (natural); the right column stretches to
-            match and Goals fills + scrolls. Below tablet width both stack. */}
+        {/* The right column (Weight · This Week · Time) sets the height; Goals on
+            the left fills the space under Recap to match it and scrolls inside
+            when its tree overflows. Below tablet width both stack. */}
         <div className="bento-col">
           {isOn('recap') && <RecapCard />}
-          {isOn('week') && <WeekPlannerCard />}
-          {isOn('free') && <FreeTimeCard />}
+          {isOn('goals') && <GoalsCard />}
         </div>
         <div className="bento-col">
           {isOn('weight') && <GraphCard />}
-          {isOn('goals') && <GoalsCard />}
+          {isOn('week') && <WeekPlannerCard />}
+          {isOn('free') && <FreeTimeCard />}
         </div>
         {isOn('consistency') && <ConsistencyCard />}
       </div>

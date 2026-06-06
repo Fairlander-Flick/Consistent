@@ -58,7 +58,10 @@ export function FreeTimeCard() {
       segs: segments(bd, denom),
       sessions: [...sessionsForDate(selectedDate, nodes)].sort((a, b) => b.hours - a.hours),
       colorOf: cmap,
-      week: buildWeekFree(baseDate, nodes, essentials, today),
+      // Each day in the strip carries its own pursuit breakdown so the mini ring
+      // fills with the same per-pursuit colours as the main ring, not flat blue.
+      week: buildWeekFree(baseDate, nodes, essentials, today)
+        .map(d => ({ ...d, segs: segments(dayBreakdown(d.date, nodes), Math.max(d.available, d.used) || 1) })),
       hasEssentials: (Number(essentials.sleepPerDay) || 0) > 0 || (essentials.factors || []).length > 0,
     }
   }, [selectedDate, baseDate, nodes, essentials, today])
@@ -128,7 +131,6 @@ export function FreeTimeCard() {
 
       <div className="ft-week" ref={weekRef}>
         {week.map(d => {
-          const fillPct = d.available > 0 ? Math.min(100, (d.used / d.available) * 100) : 0
           const isSel = d.date === selectedDate
           return (
             <div
@@ -144,11 +146,13 @@ export function FreeTimeCard() {
               <span className="wd">{WD_INITIAL[d.weekday]}</span>
               <svg width="22" height="22" viewBox="0 0 42 42">
                 <circle cx="21" cy="21" r="17" fill="none" stroke="var(--track)" strokeWidth="6" />
-                {fillPct > 0 && (
-                  <circle cx="21" cy="21" r="17" fill="none"
-                    stroke={d.over ? 'var(--negative)' : 'var(--accent)'} strokeWidth="6"
-                    strokeDasharray={`${fillPct} ${100 - fillPct}`} transform="rotate(-90 21 21)" />
-                )}
+                {/* Stacked per-pursuit arcs — same colours as the main ring. */}
+                {d.segs.map(s => (
+                  <circle key={s.pursuitId} cx="21" cy="21" r="17" fill="none"
+                    stroke={s.color} strokeWidth="6"
+                    strokeDasharray={`${s.len} ${100 - s.len}`} strokeDashoffset={s.offset}
+                    transform="rotate(-90 21 21)" />
+                ))}
               </svg>
               <span className="fr">{fmt(Math.max(0, d.free))}</span>
             </div>

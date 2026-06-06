@@ -28,3 +28,20 @@ export function buildActivityMap(scheduleDone = {}, dayPlan = {}) {
   for (const date of Object.keys(dayPlan)) add(date, (dayPlan[date]?.todos || []).filter(t => t.done).length)
   return map
 }
+
+const isoOf = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+
+// Length of the run of consecutive active days ending today. A day you haven't
+// logged yet shouldn't break a live streak, so if today is still empty we start
+// counting from yesterday.
+export function currentStreak(activityMap, todayStr) {
+  if (!activityMap || activityMap.size === 0) return 0
+  const cursor = new Date(todayStr + 'T00:00:00')
+  if (!(activityMap.get(isoOf(cursor)) > 0)) cursor.setDate(cursor.getDate() - 1)
+  let streak = 0
+  while (activityMap.get(isoOf(cursor)) > 0) {
+    streak++
+    cursor.setDate(cursor.getDate() - 1)
+  }
+  return streak
+}

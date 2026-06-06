@@ -217,7 +217,7 @@ export function GraphCard() {
         ref={svgRef}
         viewBox={`0 0 ${SVG_W} ${SVG_H}`}
         width="100%"
-        style={{ display: 'block', cursor: drag ? 'ew-resize' : 'crosshair' }}
+        style={{ display: 'block', cursor: drag ? 'ew-resize' : 'crosshair', userSelect: 'none', WebkitUserSelect: 'none' }}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
